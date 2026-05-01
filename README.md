@@ -1,36 +1,40 @@
 # cap2UI5 — Documentation
 
-VitePress-Dokumentation für [**cap2UI5**](https://github.com/cap2UI5/dev) — der CAP-/Node.js-Portierung des [abap2UI5](https://github.com/abap2UI5/abap2UI5)-Konzepts.
+VitePress documentation for [**cap2UI5**](https://github.com/cap2UI5/dev) — the CAP / Node.js port of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) concept.
 
-## Lokal entwickeln
+## Develop locally
 
 ```bash
 npm install
 npm run docs:dev
 ```
 
-Öffnet die Doku unter http://localhost:5173.
+Opens the docs at http://localhost:5173.
 
 ## Build
 
 ```bash
-npm run docs:build       # → .vitepress/dist
+npm run docs:build       # → docs/.vitepress/dist
 npm run docs:preview     # → preview server
 ```
 
-## Struktur
+## Structure
 
 ```
 .
-├── .vitepress/config.mjs    # VitePress-Konfiguration
-├── index.md                 # Landing Page
-├── guide/                   # Konzepte, Quickstart, Lifecycle, Bindings, …
-├── examples/                # End-to-End-Beispiel-Apps
-├── api/                     # API-Referenz (client, View Builder, App Interface)
-├── reference/               # Architektur, Protokoll, DB, Deployment
-└── public/                  # statische Assets
+├── docs/
+│   ├── .vitepress/
+│   │   ├── config.mjs       # VitePress configuration
+│   │   └── theme/           # Custom theme (red brand color)
+│   ├── index.md             # Landing page
+│   ├── guide/               # Concepts, quickstart, lifecycle, bindings, …
+│   ├── examples/            # End-to-end example apps
+│   ├── api/                 # API reference (client, View Builder, App Interface)
+│   └── reference/           # Architecture, protocol, DB, deployment
+├── package.json
+└── README.md
 ```
 
 ## License
 
-MIT — siehe [LICENSE](./LICENSE).
+MIT — see [LICENSE](./LICENSE).
