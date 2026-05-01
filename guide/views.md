@@ -1,8 +1,8 @@
 # View Builder
 
-Statt UI5-Views als XML-Dateien zu pflegen, baust du sie in JavaScript zusammen — mit einem **Fluent Builder**, der das XML im Hintergrund erzeugt. Output ist immer ein `<mvc:View>`-XML-String, der zum Frontend wandert.
+Instead of maintaining UI5 views as XML files, you assemble them in JavaScript — with a **fluent builder** that produces the XML in the background. The output is always a `<mvc:View>` XML string that goes to the frontend.
 
-## Der einfachste Fall
+## The simplest case
 
 ```js
 const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
@@ -15,40 +15,40 @@ const view = z2ui5_cl_xml_view.factory()
 client.view_display(view.stringify());
 ```
 
-`factory()` liefert eine neue View. Jede Methode erzeugt ein UI5-Control unter dem aktuellen Knoten und gibt **den neuen Knoten** zurück — damit verkettest du den Tree natürlich:
+`factory()` returns a new view. Each method creates a UI5 control under the current node and returns **the new node** — that's how you naturally chain the tree:
 
 ```js
 view
-  .Page()                  // ← neuer Knoten
-    .Input()               // ← Kind von Page, neuer Knoten
-    .Button();             // ← Kind von Page (siblings via Auto-Insertion)
+  .Page()                  // ← new node
+    .Input()               // ← child of Page, new node
+    .Button();             // ← child of Page (siblings via auto-insertion)
 ```
 
-Die meisten Builder-Methoden setzen das Ziel auf das **gerade erzeugte Control** _als Container_. Wenn du explizit einen Aggregations-Slot brauchst (z.B. `content`, `items`, `cells`), gibt es Methoden mit kleinem Anfangsbuchstaben:
+Most builder methods set the target to the **just-created control** _as a container_. When you explicitly need an aggregation slot (e.g. `content`, `items`, `cells`), there are methods with a lowercase initial:
 
 ```js
 view
   .SimpleForm({ editable: true })
-    .content()                       // ← öffnet die <SimpleForm.content>-Aggregation
+    .content()                       // ← opens the <SimpleForm.content> aggregation
       .Label({ text: "Name" })
       .Input({ value: "..." });
 ```
 
-## Wichtige Aggregations-Methoden
+## Important aggregation methods
 
-| Methode | Aggregations-Slot |
+| Method | Aggregation slot |
 |---|---|
 | `.content()` | `<…:content>` (Page, SimpleForm, Panel, …) |
 | `.items()`   | `<…:items>` (Table, List, ComboBox, …) |
 | `.columns()` | `<…:columns>` (Table) |
 | `.cells()`   | `<…:cells>` (ColumnListItem) |
-| `.headerContent()` | Page-Toolbar |
-| `.footer()`  | Page-Footer |
+| `.headerContent()` | Page toolbar |
+| `.footer()`  | Page footer |
 | `.endButton()` | Dialog |
 
-Sie sind kleingeschrieben, um sie von den Control-Methoden (`PascalCase`) zu unterscheiden.
+They are lowercase to distinguish them from the control methods (`PascalCase`).
 
-## Häufige Controls
+## Common controls
 
 ```js
 view.Page({ title: "..." });
@@ -76,23 +76,23 @@ view.IconTabBar({ ... });
 view.Wizard({ ... });
 ```
 
-Praktisch alles, was UI5 in `sap.m` / `sap.ui.layout` / `sap.tnt` kennt, ist abgedeckt — die Methoden mappen 1:1 auf Control-Namen, Properties auf Attribute. Boolean-Werte werden automatisch in `"true"`/`"false"` konvertiert.
+Practically everything UI5 provides in `sap.m` / `sap.ui.layout` / `sap.tnt` is covered — methods map 1:1 to control names, properties to attributes. Boolean values are converted automatically to `"true"`/`"false"`.
 
-## Werte: roh, gebunden, oder Expression
+## Values: raw, bound, or expression
 
 ```js
-view.Input({ value: "Hello" });                            // Literal-String
-view.Input({ value: client._bind_edit(this.name) });       // Two-way-Bind: {/XX/name}
-view.Input({ value: client._bind(this.name) });            // One-way-Bind: {/name}
-view.Input({ value: `{= ${client._bind(this.name)} }` });  // Expression-Binding
-view.Input({ value: `{path: '/name', formatter: '.fmt'}` });// klassisches Binding
+view.Input({ value: "Hello" });                            // literal string
+view.Input({ value: client._bind_edit(this.name) });       // two-way bind: {/XX/name}
+view.Input({ value: client._bind(this.name) });            // one-way bind: {/name}
+view.Input({ value: `{= ${client._bind(this.name)} }` });  // expression binding
+view.Input({ value: `{path: '/name', formatter: '.fmt'}` });// classical binding
 ```
 
-Alles, was du als String reingibst, wandert 1:1 ins XML-Attribut. Die Bind-Helpers sind reine String-Builder.
+Whatever you pass as a string lands 1:1 in the XML attribute. The bind helpers are pure string builders.
 
-## Custom Controls (z2ui5-Namespace)
+## Custom controls (z2ui5 namespace)
 
-Über `view._z2ui5()` bekommst du den Custom-Control-Decorator (siehe `z2ui5_cl_xml_view_cc.js`):
+Via `view._z2ui5()` you get the custom control decorator (see `z2ui5_cl_xml_view_cc.js`):
 
 ```js
 view.Page()
@@ -103,23 +103,23 @@ view.Page()
   });
 ```
 
-Verfügbare Custom-Controls (Auswahl):
+Available custom controls (selection):
 
-- `camera_picture`, `camera_selector` — Kamera-Zugriff
-- `chartjs` — Chart.js-Integration
-- `file_uploader` — File-Upload
+- `camera_picture`, `camera_selector` — camera access
+- `chartjs` — Chart.js integration
+- `file_uploader` — file upload
 - `geolocation` — GPS
-- `bwip_js` — Barcode-Generator
-- `info_frontend` — UI5-Version, Device-Info
+- `bwip_js` — barcode generator
+- `info_frontend` — UI5 version, device info
 - `scrolling`, `timer`, `websocket`, `storage`
-- `spreadsheet_export` — Excel-Export
-- `multiinput_ext`, `smartmultiinput_ext` — erweiterte MultiInputs
+- `spreadsheet_export` — Excel export
+- `multiinput_ext`, `smartmultiinput_ext` — extended MultiInputs
 
-Alle docs: [`srv/z2ui5/02/z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js).
+All docs: [`srv/z2ui5/02/z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js).
 
-## Statisches XML einbinden
+## Embedding static XML
 
-Wenn du eine View **schon als XML hast** (z.B. aus einem Designer exportiert), umgeh den Builder einfach:
+If you **already have a view as XML** (e.g. exported from a designer), simply bypass the builder:
 
 ```js
 const fs = require("fs");
@@ -129,28 +129,28 @@ const xml = fs.readFileSync(path.join(__dirname, "MyView.view.xml"), "utf8");
 client.view_display(xml);
 ```
 
-Der Roundtrip funktioniert genauso — das Frontend-Renderer interessiert nicht, _wie_ das XML entstanden ist.
+The roundtrip works exactly the same way — the frontend renderer doesn't care _how_ the XML was produced.
 
-→ Beispiel: [Statisches XML View](../examples/static-xml-view).
+→ Example: [Static XML View](../examples/static-xml-view).
 
-## Faktorien für Sonder-Views
+## Factories for special views
 
 ```js
-z2ui5_cl_xml_view.factory();          // normale View (mit Shell+Page)
-z2ui5_cl_xml_view.factory_popup();    // View für Dialog/Popup
+z2ui5_cl_xml_view.factory();          // normal view (with Shell+Page)
+z2ui5_cl_xml_view.factory_popup();    // view for dialog/popup
 ```
 
-Popups laufen über `client.popup_display(view.stringify())` statt `view_display(...)`. → Mehr in [Popups & Toasts](./popups).
+Popups go through `client.popup_display(view.stringify())` instead of `view_display(...)`. → More in [Popups & Toasts](./popups).
 
-## Zwei verschachtelte Views (Master-Detail)
+## Two nested views (master-detail)
 
-Ein Pattern für klassische Master-Detail-Layouts:
+A pattern for classic master-detail layouts:
 
 ```js
 client.view_display(masterView.stringify());
 client.nest_view_display(detailView.stringify(), "containerId", "addItem");
 ```
 
-`nest_view_display` injectet eine zweite View per JS-Insert in einen bestimmten Container der Hauptview. Es gibt zwei Nesting-Stufen (`nest_view_display`, `nest2_view_display`) für tiefere Layouts.
+`nest_view_display` injects a second view via JS insert into a specific container of the main view. There are two nesting levels (`nest_view_display`, `nest2_view_display`) for deeper layouts.
 
-→ Weiter mit [**Data Binding**](./data-binding).
+→ Continue with [**Data Binding**](./data-binding).

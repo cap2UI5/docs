@@ -1,6 +1,6 @@
 # API: App Interface
 
-Jede cap2UI5-App muss von `z2ui5_if_app` erben. Quelle: [`srv/z2ui5/02/z2ui5_if_app.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_if_app.js).
+Every cap2UI5 app must extend `z2ui5_if_app`. Source: [`srv/z2ui5/02/z2ui5_if_app.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_if_app.js).
 
 ## Definition
 
@@ -14,11 +14,11 @@ class my_app extends z2ui5_if_app {
 }
 ```
 
-## Pflicht-Methode
+## Mandatory method
 
 ### `async main(client)`
 
-Wird bei **jedem Roundtrip** aufgerufen. Bekommt das `client`-Objekt als einziges Argument. Muss `async` sein (oder ein Promise zurückgeben).
+Called on **every roundtrip**. Receives the `client` object as the only argument. Must be `async` (or return a promise).
 
 ```js
 async main(client) {
@@ -27,72 +27,72 @@ async main(client) {
 }
 ```
 
-## Reservierte Felder (Framework)
+## Reserved fields (framework)
 
-Diese Properties sind auf der Basisklasse vordefiniert. **Nicht überschreiben** und nicht als eigenen App-State nutzen:
+These properties are predefined on the base class. **Don't override** them and don't use them as your own app state:
 
-| Property | Typ | Bedeutung |
+| Property | Type | Meaning |
 |---|---|---|
-| `id_draft` | `string` | Draft-ID, intern verwaltet |
-| `id_app` | `string` | App-ID, intern verwaltet |
-| `check_initialized` | `boolean` | wird nach erstem `main()` auf `true` gesetzt — steuert `check_on_init()` |
-| `check_sticky` | `boolean` | wenn `true`, sticky-Session aktiv |
+| `id_draft` | `string` | Draft ID, managed internally |
+| `id_app` | `string` | App ID, managed internally |
+| `check_initialized` | `boolean` | Set to `true` after the first `main()` — controls `check_on_init()` |
+| `check_sticky` | `boolean` | If `true`, sticky session active |
 
-Der Binding-Engine schließt diese Felder explizit aus dem Reference-Lookup aus (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`).
+The binding engine explicitly excludes these fields from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`).
 
-## Statische Konstanten
+## Static constants
 
 ```js
 z2ui5_if_app.version    // "1.142.0"
 z2ui5_if_app.origin     // "https://github.com/abap2UI5/abap2UI5"
-z2ui5_if_app.authors    // Link zur Contributors-Seite
+z2ui5_if_app.authors    // link to contributors page
 z2ui5_if_app.license    // "MIT"
 ```
 
-## Validierung
+## Validation
 
-Beim ersten Roundtrip wird `z2ui5_cl_core_app.validate(oApp)` aufgerufen — wenn deine Klasse nicht von `z2ui5_if_app` erbt, wirft sie:
+On the first roundtrip, `z2ui5_cl_core_app.validate(oApp)` is called — if your class does not extend `z2ui5_if_app`, it throws:
 
 ```
 my_app must extend z2ui5_if_app (INTERFACES z2ui5_if_app)
 ```
 
-## Persistenz-Annotationen
+## Persistence annotations
 
-Es gibt aktuell **keine Annotationen**, mit denen du Felder von der Persistenz ausschließen kannst. Wenn du transient Felder brauchst, lege sie als **lokale Variablen in `main()`** an statt als App-Property. Die einzige hardgecodete Skip-Liste ist `["client"]` in `z2ui5_cl_core_srv_draft.js`.
+There are currently **no annotations** to exclude fields from persistence. If you need transient fields, declare them as **local variables in `main()`** instead of as app properties. The only hard-coded skip list is `["client"]` in `z2ui5_cl_core_srv_draft.js`.
 
-Vorschlag, falls du das brauchst — patch `SKIP_PROPS`:
+Suggestion if you need this — patch `SKIP_PROPS`:
 
 ```js
 // srv/z2ui5/01/01/z2ui5_cl_core_srv_draft.js
 static SKIP_PROPS = new Set(["client", "_my_transient_field"]);
 ```
 
-(Mit dem Wissen, dass dein Patch beim nächsten Sync verloren gehen kann.)
+(Keeping in mind that your patch may be lost on the next sync.)
 
-## Konstruktor
+## Constructor
 
-Die Basisklasse hat einen Konstruktor, der **direkte Instanziierung** verbietet:
+The base class has a constructor that **forbids direct instantiation**:
 
 ```js
 new z2ui5_if_app();   // ❌ throws
 ```
 
-Außerdem prüft er, dass deine Subklasse `main` als Funktion implementiert:
+It also checks that your subclass implements `main` as a function:
 
 ```js
-class broken extends z2ui5_if_app { /* fehlt main() */ }
+class broken extends z2ui5_if_app { /* main() missing */ }
 new broken();  // ❌ "broken must implement async main(client)"
 ```
 
-## Lebenszyklus
+## Lifecycle
 
-→ siehe [App-Lifecycle](../guide/lifecycle).
+→ see [App Lifecycle](../guide/lifecycle).
 
-## Convention: Naming
+## Convention: naming
 
-abap2UI5-Konvention ist `z2ui5_cl_app_xyz`. cap2UI5 hält sich daran für Library-Apps (Startup, Hello World, Pop-Helper), aber **deine eigenen Apps** dürfen heißen wie sie wollen. Wichtig:
+abap2UI5 convention is `z2ui5_cl_app_xyz`. cap2UI5 sticks to that for library apps (Startup, Hello World, Pop helpers), but **your own apps** can be named however you like. Important:
 
-- **Klassenname === Dateiname** (sonst findet `_findAppFile` die Klasse nicht beim Reload).
-- Die Datei muss in einem der drei Lookup-Pfade liegen (`srv/z2ui5/02/`, `srv/z2ui5/02/01/`, `srv/samples/`) oder du erweiterst `_findAppFile`.
-- Klassenname sollte **case-sensitive eindeutig** sein — der Lookup zwingt auf Lowercase, also kollidieren `MyApp` und `myapp`.
+- **Class name === file name** (otherwise `_findAppFile` won't find the class on reload).
+- The file must live in one of the three lookup paths (`srv/z2ui5/02/`, `srv/z2ui5/02/01/`, `srv/samples/`) or you extend `_findAppFile`.
+- Class names should be **case-sensitive unique** — the lookup forces lowercase, so `MyApp` and `myapp` collide.

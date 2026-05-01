@@ -1,8 +1,8 @@
-# Datenbankmodell
+# Database Model
 
-cap2UI5 nutzt **eine einzige CDS-Entity** für die App-Persistenz: `z2ui5_t_01`. Diese Seite beschreibt sie und gibt Hinweise zu Cleanup, Skalierung und Backend-Auswahl.
+cap2UI5 uses **a single CDS entity** for app persistence: `z2ui5_t_01`. This page describes it and gives hints on cleanup, scaling, and backend choice.
 
-## Entity-Definition
+## Entity definition
 
 `db/schema.cds`:
 
@@ -11,18 +11,18 @@ namespace my.domain;
 
 entity z2ui5_t_01 {
   key id      : UUID;
-  id_prev     : UUID;          // ← Vorgänger-ID (App-History)
-  data        : LargeString;   // ← serialisierte App-Instanz (JSON)
+  id_prev     : UUID;          // ← predecessor ID (app history)
+  data        : LargeString;   // ← serialized app instance (JSON)
 }
 ```
 
-Drei Felder, mehr nicht. Jeder Roundtrip macht ein `INSERT.into(z2ui5_t_01)` mit:
+Three fields, nothing more. Every roundtrip performs an `INSERT.into(z2ui5_t_01)` with:
 
-- `id` — neu generiert (UUID v4)
-- `id_prev` — die ID, die der Frontend-Treiber als `S_FRONT.ID` mitgesendet hat
-- `data` — `JSON.stringify(oApp)` mit zusätzlich `__className` + `__filePath`
+- `id` — newly generated (UUID v4)
+- `id_prev` — the ID the frontend driver passed along as `S_FRONT.ID`
+- `data` — `JSON.stringify(oApp)` plus `__className` + `__filePath`
 
-## Daten-Format in `data`
+## Data format in `data`
 
 ```json
 {
@@ -38,20 +38,20 @@ Drei Felder, mehr nicht. Jeder Roundtrip macht ein `INSERT.into(z2ui5_t_01)` mit
 }
 ```
 
-`__className` und `__filePath` werden für den Reload genutzt. `__navStackIds` enthält die IDs der gestapelten Apps (siehe [Persistenz](../guide/persistence)).
+`__className` and `__filePath` are used for the reload. `__navStackIds` contains the IDs of the stacked apps (see [Persistence](../guide/persistence)).
 
-Die Engine ist **cycle-safe** — eingebauter `WeakSet`-Tracker verhindert dass akzidentelle zirkuläre Referenzen den Stringify zerlegen.
+The engine is **cycle-safe** — a built-in `WeakSet` tracker prevents accidental circular references from breaking stringify.
 
-## Datenbankbackends
+## Database backends
 
-CAP unterstützt mehrere Persistenz-Backends. Alle funktionieren mit cap2UI5:
+CAP supports several persistence backends. All work with cap2UI5:
 
-| Backend | Treiber | Wann |
+| Backend | Driver | When |
 |---|---|---|
-| SQLite (in-memory) | `@cap-js/sqlite` | Dev-Default (`npx cds w`) |
-| SQLite (file) | `@cap-js/sqlite` | lokales Testen mit Persistenz |
-| HANA / HANA Cloud | `@cap-js/hana` | Production auf BTP |
-| PostgreSQL | `@cap-js/postgres` | Self-Hosted Cloud-Foundry / Kubernetes |
+| SQLite (in-memory) | `@cap-js/sqlite` | Dev default (`npx cds w`) |
+| SQLite (file) | `@cap-js/sqlite` | Local testing with persistence |
+| HANA / HANA Cloud | `@cap-js/hana` | Production on BTP |
+| PostgreSQL | `@cap-js/postgres` | Self-hosted Cloud Foundry / Kubernetes |
 
 In `package.json`:
 
@@ -65,42 +65,42 @@ In `package.json`:
 }
 ```
 
-Wechsel auf HANA in Production geht über `@sap/cds`-`profile`-Mechanismus, ohne Code-Änderung.
+Switching to HANA in production goes via the `@sap/cds` `profile` mechanism, no code changes.
 
-## Indizes & Performance
+## Indexes & performance
 
-Die Default-Schema-Generierung hat **nur den Primary-Key** auf `id`. Für Production-Loads empfehle ich:
+The default schema generation has **only the primary key** on `id`. For production loads I recommend:
 
-- **Index auf `id_prev`**, falls du je traversieren willst (Undo, Audit). Sonst nicht nötig.
-- Bei vielen parallelen Usern: das `INSERT` wird oft genug aufgerufen, dass HANA bei eingeschalteten Indizes drauf spürbar wird — halt deine Indizes minimal.
+- **Index on `id_prev`** if you ever want to traverse (undo, audit). Not needed otherwise.
+- With many parallel users: the `INSERT` is called often enough that HANA with indexes enabled becomes noticeable — keep your indexes minimal.
 
-CAP-Aspekt für CreatedAt-Tracking:
+CAP aspect for createdAt tracking:
 
 ```cds
-entity z2ui5_t_01 : managed {  // ← fügt createdAt/createdBy/modifiedAt/modifiedBy hinzu
+entity z2ui5_t_01 : managed {  // ← adds createdAt/createdBy/modifiedAt/modifiedBy
   key id      : UUID;
   id_prev     : UUID;
   data        : LargeString;
 }
 ```
 
-`managed`-Aspekt erfordert kein Code-Patch in cap2UI5 — die Engine ignoriert die zusätzlichen Felder beim Deserialize, da sie nur `data` ausliest.
+The `managed` aspect requires no code patch in cap2UI5 — the engine ignores the additional fields during deserialization since it only reads `data`.
 
-## Cleanup-Strategie
+## Cleanup strategy
 
-::: warning Tabelle wächst linear
-**Jeder Roundtrip = eine neue Row.** Eine 50-Klick-Session = 50 Rows. 1.000 Users mit je 50 Klicks = 50.000 Rows pro Tag.
+::: warning Table grows linearly
+**Each roundtrip = one new row.** A 50-click session = 50 rows. 1,000 users with 50 clicks each = 50,000 rows per day.
 :::
 
-### Option 1: Periodischer Job
+### Option 1: periodic job
 
 ```js
 // srv/cleanup.js
 const cds = require("@sap/cds");
 
 cds.on("served", () => {
-  const intervalMs = 60 * 60 * 1000;        // jede Stunde
-  const ttlMs      = 24 * 60 * 60 * 1000;   // 24h Retention
+  const intervalMs = 60 * 60 * 1000;        // every hour
+  const ttlMs      = 24 * 60 * 60 * 1000;   // 24h retention
 
   setInterval(async () => {
     const { z2ui5_t_01 } = cds.entities("my.domain");
@@ -110,34 +110,34 @@ cds.on("served", () => {
 });
 ```
 
-(Setzt voraus, dass du `z2ui5_t_01 : managed` aktiviert hast.)
+(Assumes you've enabled `z2ui5_t_01 : managed`.)
 
-### Option 2: DB-Side Job
+### Option 2: DB-side job
 
-In Production stark empfohlen: ein nightly cron auf der DB löscht ältere Rows.
+Strongly recommended in production: a nightly cron on the DB deletes older rows.
 
 ```sql
--- HANA Procedure (vereinfacht)
+-- HANA procedure (simplified)
 DELETE FROM "MY_DOMAIN_Z2UI5_T_01"
 WHERE "CREATEDAT" < ADD_DAYS(CURRENT_TIMESTAMP, -1);
 ```
 
-### Option 3: Begrenzung pro User
+### Option 3: limit per user
 
-Wenn du eine User-ID kennst (per `cds.context.user.id`), kannst du im Handler einen User-Spezifischen LIMIT erzwingen — älteste Rows pro User löschen.
+If you have a user ID (via `cds.context.user.id`), you can enforce a user-specific LIMIT in the handler — delete the oldest rows per user.
 
-Das erfordert ein Schema-Erweitern um `user_id` und einen Patch in `z2ui5_cl_core_srv_draft.saveApp` — aktuell nicht eingebaut.
+This requires extending the schema with `user_id` and patching `z2ui5_cl_core_srv_draft.saveApp` — currently not built in.
 
-## Wichtige Caveats
+## Important caveats
 
-- **Rows sind unveränderlich.** Niemals `UPDATE` auf eine bestehende Row — die Engine geht davon aus, dass jede ID **eine spezifische App-Instanz** identifiziert.
-- **`id_prev` ist NICHT eindeutig.** Wenn ein User per Browser-Back zwei verschiedene "next steps" probiert, gibt es zwei Rows mit demselben `id_prev`. Das ist gewollt — es ist eine Forking-History.
-- **Keine Foreign-Key-Constraint.** `id_prev` zeigt auf `id`, aber CAP wird das nicht erzwingen, wenn du das Schema unverändert lässt. Cleanup-Jobs können beliebige Sub-Trees orphanen.
+- **Rows are immutable.** Never `UPDATE` an existing row — the engine assumes that every ID identifies **a specific app instance**.
+- **`id_prev` is NOT unique.** If a user tries two different "next steps" via browser back, there are two rows with the same `id_prev`. That is intentional — it's a forking history.
+- **No foreign-key constraint.** `id_prev` points to `id`, but CAP won't enforce that if you leave the schema unchanged. Cleanup jobs can orphan arbitrary sub-trees.
 
-## Skalieren auf Multi-Tenant
+## Scaling to multi-tenant
 
-cap2UI5 ist out-of-box **multi-tenant fähig**, weil CAP es ist. Mit `@sap/cds-mtxs` läuft jede Mandanten-DB separat — kein Code-Patch nötig.
+cap2UI5 is **multi-tenant capable** out of the box, because CAP is. With `@sap/cds-mtxs` each tenant DB runs separately — no code patch needed.
 
-Pro Mandant siehst du dann eine eigene `z2ui5_t_01`-Tabelle. Cleanup-Strategien laufen pro Mandant.
+Per tenant you then see your own `z2ui5_t_01` table. Cleanup strategies run per tenant.
 
-→ Weiter mit dem [Deployment](./deployment).
+→ Continue with [Deployment](./deployment).

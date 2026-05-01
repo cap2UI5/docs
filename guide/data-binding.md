@@ -1,15 +1,15 @@
 # Data Binding
 
-Das Data-Binding ist der Trick, mit dem cap2UI5 ohne Modell-Boilerplate auskommt. Diese Seite erklärt, **wie es funktioniert** und **wann du was nutzt**.
+Data binding is the trick that lets cap2UI5 work without model boilerplate. This page explains **how it works** and **when you use what**.
 
-## Die zwei Bindings
+## The two bindings
 
 ```js
-client._bind(value)        // → "{/path}"      One-way (read-only im Frontend)
-client._bind_edit(value)   // → "{/XX/path}"  Two-way (Frontend kann zurückschreiben)
+client._bind(value)        // → "{/path}"      one-way (read-only on the frontend)
+client._bind_edit(value)   // → "{/XX/path}"  two-way (frontend can write back)
 ```
 
-Beide Methoden bekommen einen **Wert**, schauen in `client.oApp` (= deine App-Instanz) nach, **welches Property dieser Wert ist**, und geben einen UI5-Bindings-Pfad zurück.
+Both methods take a **value**, look in `client.oApp` (= your app instance) to find **which property that value is**, and return a UI5 binding path.
 
 ```js
 class my_app extends z2ui5_if_app {
@@ -23,115 +23,115 @@ class my_app extends z2ui5_if_app {
 }
 ```
 
-## Reference Equality
+## Reference equality
 
-Das Lookup ist **per Reference-Equality**: `Object.is(this.username, value)`. Für Primitivwerte (`string`, `number`, `boolean`) funktioniert das, weil dieselbe primitive Wert-Identität gilt — solange du den Wert aus der App-Instanz heraus übergibst:
+The lookup is **by reference equality**: `Object.is(this.username, value)`. For primitive values (`string`, `number`, `boolean`) this works because the same primitive value identity holds — as long as you pass the value out of the app instance:
 
 ```js
-client._bind_edit(this.username);          // ✓ findet "username"
-client._bind_edit("Alice");                // ✗ matched zwar (Wert ist "Alice"),
-                                           //   ABER: die Engine durchläuft alle Felder,
-                                           //   und das ERSTE mit Wert "Alice" gewinnt
-                                           //   → unzuverlässig
+client._bind_edit(this.username);          // ✓ finds "username"
+client._bind_edit("Alice");                // ✗ also matches (value is "Alice"),
+                                           //   BUT: the engine iterates all fields
+                                           //   and the FIRST one with value "Alice" wins
+                                           //   → unreliable
 ```
 
-Für **Objekte und Arrays** ist es eindeutig:
+For **objects and arrays** it is unambiguous:
 
 ```js
 this.users = [...];
-client._bind_edit(this.users);             // ✓ findet "users" (Array-Identity)
+client._bind_edit(this.users);             // ✓ finds "users" (array identity)
 ```
 
-::: warning Mehrere Felder mit gleichem Default
-Wenn zwei Felder beide `""` als Initialwert haben, weiß die Engine nicht, welches du meinst:
+::: warning Multiple fields with the same default
+If two fields both have `""` as the initial value, the engine doesn't know which one you mean:
 
 ```js
 class app extends z2ui5_if_app {
   first_name = "";
   last_name  = "";
   /* ... */
-  client._bind_edit(this.last_name);       // → matched 'first_name'!
+  client._bind_edit(this.last_name);       // → matches 'first_name'!
 }
 ```
 
-**Lösung:** unterschiedliche Defaults setzen (auch ein Leerzeichen reicht), oder _explizit_ den Pfad mitgeben:
+**Solution:** set different defaults (even a single space is enough), or _explicitly_ pass the path:
 
 ```js
 client._bind_edit(this.last_name, { path: "last_name" });
 ```
 :::
 
-## Was passiert auf der Wire?
+## What happens on the wire?
 
-Eine cap2UI5-Response enthält ein `MODEL`-Objekt, das im JSONModel des Frontends als **Default-Modell** gesetzt wird. Es hat zwei Bereiche:
+A cap2UI5 response contains a `MODEL` object that is set as the **default model** in the frontend's JSONModel. It has two areas:
 
 ```json
 {
   "MODEL": {
-    "users": [/* ... */],          // ← One-way-Bindings (top level)
+    "users": [/* ... */],          // ← one-way bindings (top level)
     "title": "Hello",
     "XX": {
-      "username": "Alice",         // ← Two-way-Bindings (XX namespace)
+      "username": "Alice",         // ← two-way bindings (XX namespace)
       "is_active": true
     }
   }
 }
 ```
 
-Wenn der User in einem `Input` tippt, schreibt UI5 den Wert nach `/XX/username` zurück. Beim nächsten Roundtrip schickt das Frontend ein **XX-Delta** mit allen geänderten Werten an den Server. Die Server-Engine (`z2ui5_cl_core_srv_model.main_json_to_attri`) wendet dieses Delta auf die deserialisierte App-Instanz an, **bevor** `main()` aufgerufen wird — heißt: in `main()` ist `this.username` bereits der vom User getippte neue Wert.
+When the user types in an `Input`, UI5 writes the value back to `/XX/username`. On the next roundtrip the frontend sends an **XX delta** with all changed values to the server. The server engine (`z2ui5_cl_core_srv_model.main_json_to_attri`) applies this delta to the deserialized app instance **before** `main()` is called — meaning: in `main()`, `this.username` is already the new value the user typed.
 
-## Optionen
+## Options
 
 ```js
 client._bind_edit(value, opts);
 ```
 
-| Option | Bedeutung |
+| Option | Meaning |
 |---|---|
-| `path: true` | gibt den **rohen Pfad** zurück (`"/XX/username"`), nicht in `{...}` gewrappt |
-| `path: "myField"` | überspringt das Reference-Lookup, nimmt den angegebenen Pfad |
-| `custom_mapper: ".fmt"` | Formatter-Funktionsname → Output: `{path: '...', formatter: '.fmt'}` |
-| `custom_mapper_back: ".fmtBack"` | Reverse-Formatter (Two-way only) |
-| `view: "POPUP"` | Ziel-View — selten nötig |
+| `path: true` | returns the **raw path** (`"/XX/username"`), not wrapped in `{...}` |
+| `path: "myField"` | skips the reference lookup and uses the given path |
+| `custom_mapper: ".fmt"` | formatter function name → output: `{path: '...', formatter: '.fmt'}` |
+| `custom_mapper_back: ".fmtBack"` | reverse formatter (two-way only) |
+| `view: "POPUP"` | target view — rarely needed |
 
-Beispiele:
+Examples:
 
 ```js
-// Roher Pfad für relative Bindings (Tabellen-Items)
+// raw path for relative bindings (table items)
 const tabPath = client._bind_edit(this.users, { path: true });
 // "/XX/users"
 
-// Innerhalb der Tabellen-Item-Struktur sind Felder relativ:
+// inside the table item structure, fields are relative:
 view.Table({ items: client._bind_edit(this.users) })
   .Column()
-    .Text({ text: "{name}" });   // ← '{name}' relativ zum Item
+    .Text({ text: "{name}" });   // ← '{name}' relative to the item
 ```
 
-## Lokale Bindings
+## Local bindings
 
-Manchmal willst du eine View-interne Variable, die _nicht_ als App-Property leben soll:
+Sometimes you want a view-internal variable that should _not_ live as an app property:
 
 ```js
 client._bind_local(initialValue);   // → "{/__local_3}"
 ```
 
-Erzeugt einen anonymen Pfad mit dem gegebenen Initialwert. Sinnvoll für visuelle Hilfsstates, die der Server nie braucht.
+Creates an anonymous path with the given initial value. Useful for visual helper state that the server never needs.
 
-## Auf Klicks reagieren: `_event`
+## Reacting to clicks: `_event`
 
-Bindings sind eine Hälfte; die andere ist `_event`:
+Bindings are one half; the other is `_event`:
 
 ```js
 view.Button({ text: "Save", press: client._event("BUTTON_SAVE") });
 ```
 
-`_event(name)` baut den UI5-Press-Handler-String zusammen, der das Event über den Roundtrip zurück an den Server schickt. Das eigentliche `BUTTON_SAVE` siehst du dann in `client.get().EVENT`.
+`_event(name)` builds the UI5 press handler string that sends the event back to the server via the roundtrip. The actual `BUTTON_SAVE` then shows up in `client.get().EVENT`.
 
-→ Mehr unter [Events](./events).
+→ More under [Events](./events).
 
-## Frontend-Only-Events: `_event_client`
+## Frontend-only events: `_event_client`
 
-Wenn das Event **nur im Frontend** ablaufen soll (kein Server-Roundtrip):
+When the event should run **only on the frontend** (no server roundtrip):
 
 ```js
 view.Button({
@@ -139,16 +139,16 @@ view.Button({
 });
 ```
 
-Der Frontend-Handler dispatched es lokal. Sehr ähnlich zu `client.open_new_tab()`, das aber den Roundtrip beendet — der Unterschied: `_event_client` macht es _bei einem Klick_, `open_new_tab` macht es _als Nebenwirkung dieses Roundtrips_.
+The frontend handler dispatches it locally. Very similar to `client.open_new_tab()`, which terminates the roundtrip — the difference: `_event_client` does it _on a click_, `open_new_tab` does it _as a side effect of this roundtrip_.
 
-→ Liste aller `cs_event`-Konstanten in [API: client](../api/client).
+→ List of all `cs_event` constants in [API: client](../api/client).
 
-## Beispiel: Komplette Form
+## Example: complete form
 
 ```js
 class profile extends z2ui5_if_app {
 
-  first_name = " ";    // ← unterschiedliche Defaults, damit Lookup eindeutig ist
+  first_name = " ";    // ← different defaults so the lookup is unambiguous
   last_name  = "  ";
   email      = "";
   active     = false;
@@ -161,9 +161,9 @@ class profile extends z2ui5_if_app {
     if (client.check_on_event("SAVE")) {
       if (!this.email.includes("@")) {
         this.validation.email_state = "Error";
-        this.validation.email_text  = "Bitte gültige E-Mail eingeben";
+        this.validation.email_text  = "Please enter a valid email";
       } else {
-        client.message_toast_display("Gespeichert");
+        client.message_toast_display("Saved");
       }
       this.render(client);
     }
@@ -171,21 +171,21 @@ class profile extends z2ui5_if_app {
 
   render(client) {
     const view = z2ui5_cl_xml_view.factory();
-    view.Page({ title: "Profil" })
+    view.Page({ title: "Profile" })
       .SimpleForm({ editable: true })
         .content()
-          .Label({ text: "Vorname"  }).Input({ value: client._bind_edit(this.first_name) })
-          .Label({ text: "Nachname" }).Input({ value: client._bind_edit(this.last_name) })
-          .Label({ text: "E-Mail"   }).Input({
+          .Label({ text: "First name" }).Input({ value: client._bind_edit(this.first_name) })
+          .Label({ text: "Last name"  }).Input({ value: client._bind_edit(this.last_name) })
+          .Label({ text: "Email"      }).Input({
               value:          client._bind_edit(this.email),
               valueState:     client._bind(this.validation.email_state),
               valueStateText: client._bind(this.validation.email_text)
             })
-          .Label({ text: "Aktiv"    }).CheckBox({ selected: client._bind_edit(this.active) })
-          .Button({ text: "Speichern", press: client._event("SAVE"), type: "Emphasized" });
+          .Label({ text: "Active"     }).CheckBox({ selected: client._bind_edit(this.active) })
+          .Button({ text: "Save", press: client._event("SAVE"), type: "Emphasized" });
     client.view_display(view.stringify());
   }
 }
 ```
 
-→ Weiter mit [**Events**](./events).
+→ Continue with [**Events**](./events).

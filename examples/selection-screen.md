@@ -1,6 +1,6 @@
 # Selection Screen
 
-Eine klassische Eingabe-Maske mit Combobox, DatePicker, Checkbox, Switch — vergleichbar mit einem ABAP-`SELECTION-SCREEN`. Zeigt das Pattern für **strukturierte App-Felder** (`s_screen` als Container), und wie du _innerhalb_ einer Struktur Sub-Pfade bindest.
+A classic input mask with combobox, DatePicker, checkbox, switch — comparable to an ABAP `SELECTION-SCREEN`. Shows the pattern for **structured app fields** (`s_screen` as a container) and how you bind sub-paths _within_ a structure.
 
 ## Code
 
@@ -73,13 +73,13 @@ class selection_screen extends z2ui5_if_app {
   on_event(client) {
     switch (client.get().EVENT) {
       case "BUTTON_SEND":
-        client.message_box_display("Werte an den Server gesendet");
+        client.message_box_display("Values sent to the server");
         break;
       case "BUTTON_CLEAR":
         for (const k of Object.keys(this.s_screen)) {
           this.s_screen[k] = typeof this.s_screen[k] === "boolean" ? false : "";
         }
-        client.message_toast_display("View zurückgesetzt");
+        client.message_toast_display("View reset");
         break;
     }
   }
@@ -92,7 +92,7 @@ class selection_screen extends z2ui5_if_app {
       showNavButton:  client.check_app_prev_stack(),
     });
 
-    // 1) Pfad auf s_screen herausziehen → Sub-Pfade dann manuell zusammenbauen
+    // 1) pull out the path to s_screen → manually build sub-paths
     const screenPath = client._bind_edit(this.s_screen, { path: true });
     const screen = (k) => `{${screenPath}/${k}}`;
 
@@ -102,7 +102,7 @@ class selection_screen extends z2ui5_if_app {
     sf1.Label({ text: "Color (with suggestions)" });
     sf1.Input({
       value:           screen("colour"),
-      placeholder:     "Lieblingsfarbe eingeben",
+      placeholder:     "Enter your favorite color",
       suggestionItems: client._bind(this.t_suggestions),
       showSuggestion:  true,
     }).get().suggestionItems().ListItem({ text: "{value}", additionalText: "{descr}" });
@@ -120,7 +120,7 @@ class selection_screen extends z2ui5_if_app {
       .content();
 
     content.Label({ text: "Active" });
-    content.CheckBox({ selected: screen("check_is_active"), text: "Aktiv", enabled: true });
+    content.CheckBox({ selected: screen("check_is_active"), text: "Active", enabled: true });
 
     content.Label({ text: "Combo" });
     content.ComboBox({
@@ -150,26 +150,26 @@ class selection_screen extends z2ui5_if_app {
 module.exports = selection_screen;
 ```
 
-## Das Sub-Pfad-Pattern
+## The sub-path pattern
 
-Der wichtigste Trick:
+The most important trick:
 
 ```js
 const screenPath = client._bind_edit(this.s_screen, { path: true });
 //                                                   ^^^^^^^^^^^
-//                                                   "gib mir den nackten Pfad,
-//                                                    nicht in {...} gewrappt"
+//                                                   "give me the bare path,
+//                                                    not wrapped in {...}"
 
 const screen = (k) => `{${screenPath}/${k}}`;
 //             screen("colour") === "{/XX/s_screen/colour}"
 ```
 
-`_bind_edit(this.s_screen)` liefert per Reference-Equality den Pfad zum gesamten Struktur-Objekt. Mit `{ path: true }` bekommst du ihn unverpackt — und kannst dann selbst Sub-Pfade dranhängen.
+`_bind_edit(this.s_screen)` returns the path to the entire structure object via reference equality. With `{ path: true }` you get it unwrapped — and can then append sub-paths yourself.
 
-Damit sparst du dir, **jedes Sub-Feld einzeln zu binden** — ein einziges Lookup, viele Bindings.
+This saves you from **binding every sub-field individually** — a single lookup, many bindings.
 
-## Zwei `BUTTON_*`-Events in einem Switch
+## Two `BUTTON_*` events in a switch
 
-In `on_event()` zeigt sich das Pattern, wenn du **viele** Events hast — ein `switch` über `client.get().EVENT` ist meist lesbarer als zehn `if (check_on_event(...))`-Blöcke.
+In `on_event()` the pattern shows up when you have **many** events — a `switch` over `client.get().EVENT` is usually more readable than ten `if (check_on_event(...))` blocks.
 
-→ Weiter zu [**List & Detail**](./list).
+→ Continue to [**List & Detail**](./list).

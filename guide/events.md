@@ -1,17 +1,17 @@
 # Events
 
-Events sind **die einzige Art, wie das Frontend dem Server etwas mitteilt** (außer dem stillen XX-Delta für Two-way-Bindings). Wenn der User klickt, swiped, eine Auswahl trifft oder Enter drückt, schickt das Frontend ein Event-Objekt im Roundtrip an den Server.
+Events are **the only way for the frontend to tell the server something** (besides the silent XX delta for two-way bindings). When the user clicks, swipes, makes a selection, or hits Enter, the frontend sends an event object to the server in the roundtrip.
 
-## Backend-Events: `_event(name)`
+## Backend events: `_event(name)`
 
 ```js
 view.Button({
-  text:  "Speichern",
+  text:  "Save",
   press: client._event("SAVE")
 });
 ```
 
-Server-Side bekommst du das Event in der nächsten `main()`-Runde:
+On the server side you receive the event in the next `main()` round:
 
 ```js
 if (client.check_on_event("SAVE")) {
@@ -19,21 +19,21 @@ if (client.check_on_event("SAVE")) {
 }
 ```
 
-`_event(name)` baut intern einen UI5-Bindings-String der Form:
+`_event(name)` internally builds a UI5 binding string of the form:
 
 ```
 .eB([['SAVE','','','']],...)
 ```
 
-Der Frontend-Handler `eB` (= "event Backend") ruft den Roundtrip-Endpoint mit dem Event-Namen und optionalen Argumenten auf.
+The frontend handler `eB` (= "event Backend") calls the roundtrip endpoint with the event name and optional arguments.
 
-## Event-Argumente
+## Event arguments
 
 ```js
 .Button({ press: client._event("ITEM_DELETE", [item.id, item.kind]) })
 ```
 
-Server-Side:
+Server side:
 
 ```js
 if (client.check_on_event("ITEM_DELETE")) {
@@ -42,43 +42,43 @@ if (client.check_on_event("ITEM_DELETE")) {
 }
 ```
 
-Oder (falls du das ABAP-Pattern bevorzugst):
+Or (if you prefer the ABAP pattern):
 
 ```js
-const id   = client.get_event_arg(1);   // 1-based wie ABAP
+const id   = client.get_event_arg(1);   // 1-based like ABAP
 const kind = client.get_event_arg(2);
 ```
 
-Argumente sind **immer Strings** auf der Wire — die Frontend-/Backend-Engine nimmt sie nicht typsicher auseinander.
+Arguments are **always strings** on the wire — the frontend/backend engine doesn't take them apart in a type-safe way.
 
-## Event-Control-Flags
+## Event control flags
 
-Optional kannst du Steuerflags mitgeben:
+Optionally you can pass control flags:
 
 ```js
 client._event("SAVE", [], {
-  bypass_busy:      true,    // Event auch dispatchen, wenn die App busy ist
-  force_main_model: true     // Force-binding auf das Main-View-Modell
+  bypass_busy:      true,    // dispatch event even when the app is busy
+  force_main_model: true     // force binding on the main view model
 });
 ```
 
-## Event-Daten (Objekt-Payload)
+## Event data (object payload)
 
-Manchmal brauchst du **mehr als nur Strings**. Mit dem 4. Argument von `_event` kannst du beliebige Daten anhängen:
+Sometimes you need **more than just strings**. With the 4th argument of `_event` you can attach arbitrary data:
 
 ```js
 client._event("SUBMIT", [], {}, { complex: { payload: [1, 2, 3] } });
 ```
 
-Server-Side:
+Server side:
 
 ```js
 const data = client.get().R_EVENT_DATA;
 ```
 
-## Frontend-only Events: `_event_client(name, args)`
+## Frontend-only events: `_event_client(name, args)`
 
-Manche Events sollen **gar nicht** den Server erreichen — z.B. "öffne diese URL in einem neuen Tab", "kopiere diesen Wert in die Zwischenablage". Dafür gibt es `_event_client`:
+Some events should **never** reach the server — e.g. "open this URL in a new tab", "copy this value to the clipboard". For those there is `_event_client`:
 
 ```js
 .Button({
@@ -87,69 +87,69 @@ Manche Events sollen **gar nicht** den Server erreichen — z.B. "öffne diese U
 });
 ```
 
-Dispatched ein Frontend-Action-Handler, kein Roundtrip.
+A frontend action handler dispatches it, no roundtrip.
 
-### Verfügbare `cs_event`-Konstanten
+### Available `cs_event` constants
 
-Aus `z2ui5_cl_core_client.js`:
+From `z2ui5_cl_core_client.js`:
 
-| Konstante | Wirkung |
+| Constant | Effect |
 |---|---|
-| `OPEN_NEW_TAB` | URL in neuem Tab öffnen |
-| `LOCATION_RELOAD` | Page neu laden auf URL |
+| `OPEN_NEW_TAB` | Open URL in a new tab |
+| `LOCATION_RELOAD` | Reload page on URL |
 | `HISTORY_BACK` | `history.back()` |
-| `CLIPBOARD_COPY` | Text in Clipboard kopieren |
-| `CLIPBOARD_APP_STATE` | Deep-Link der aktuellen App in Clipboard |
-| `DOWNLOAD_B64_FILE` | Base64-Data-URL als Datei downloaden |
-| `SYSTEM_LOGOUT` | Logout (FLP / URL-Redirect) |
-| `STORE_DATA` | Wert in Browser-Storage |
-| `SET_ODATA_MODEL` | Default-OData-Modell der View setzen |
+| `CLIPBOARD_COPY` | Copy text to clipboard |
+| `CLIPBOARD_APP_STATE` | Deep link of the current app to clipboard |
+| `DOWNLOAD_B64_FILE` | Download a base64 data URL as a file |
+| `SYSTEM_LOGOUT` | Logout (FLP / URL redirect) |
+| `STORE_DATA` | Value to browser storage |
+| `SET_ODATA_MODEL` | Set the view's default OData model |
 | `SET_SIZE_LIMIT` | JSONModel.setSizeLimit |
 | `URLHELPER` | URLHelper.redirect / triggerEmail / triggerSms / triggerTel |
-| `NAV_CONTAINER_TO` | NavContainer-Ziel ändern |
-| `POPUP_CLOSE`, `POPOVER_CLOSE` | aktuelles Popup/Popover schließen |
-| `IMAGE_EDITOR_POPUP_CLOSE` | Image-Editor schließen |
+| `NAV_CONTAINER_TO` | Change NavContainer destination |
+| `POPUP_CLOSE`, `POPOVER_CLOSE` | Close current popup/popover |
+| `IMAGE_EDITOR_POPUP_CLOSE` | Close image editor |
 
-## Convenience: Server-getriggerte Frontend-Actions
+## Convenience: server-triggered frontend actions
 
-Manchmal willst du **als Nebenwirkung deines Server-Codes** eine Frontend-Action auslösen — nicht als Reaktion auf einen Klick, sondern z.B. nach erfolgreichem Speichern:
+Sometimes you want to trigger a frontend action **as a side effect of your server code** — not in response to a click but, for example, after a successful save:
 
 ```js
 if (client.check_on_event("SAVE")) {
   await this.persist();
-  client.clipboard_copy_app_state();    // ← legt Deep-Link in Clipboard
-  client.message_toast_display("Gespeichert + Link kopiert");
+  client.clipboard_copy_app_state();    // ← puts deep link in the clipboard
+  client.message_toast_display("Saved + link copied");
 }
 ```
 
-Diese Methoden auf `client` sind die Server-Pendants zu `_event_client`:
+These methods on `client` are the server-side counterparts of `_event_client`:
 
-| Methode | Was passiert |
+| Method | What happens |
 |---|---|
-| `clipboard_copy(text)` | Text kopieren |
-| `clipboard_copy_app_state()` | aktuelle Deep-Link-URL kopieren |
-| `file_download(b64, filename)` | Datei downloaden |
-| `open_new_tab(url)` | neuen Tab öffnen |
-| `location_reload(url)` | Reload auf URL |
-| `history_back()` | History-Back |
+| `clipboard_copy(text)` | Copy text |
+| `clipboard_copy_app_state()` | Copy current deep-link URL |
+| `file_download(b64, filename)` | Download file |
+| `open_new_tab(url)` | Open new tab |
+| `location_reload(url)` | Reload to URL |
+| `history_back()` | History back |
 | `system_logout(url?)` | Logout |
-| `popup_close()`, `popover_close()` | Aktuelle Popups schließen |
-| `cross_app_nav_to_prev_app()` | FLP: zurück |
-| `cross_app_nav_to_ext(target, params, mode?)` | FLP: extern |
-| `storage_set(type, prefix, key, value)` | Browser-Storage Set |
-| `storage_remove(type, prefix, key)` | Browser-Storage Remove |
-| `set_odata_model(url, name?, anno?)` | OData-Modell setzen |
-| `set_size_limit(view, limit)` / `reset_size_limit(view)` | Size-Limit |
+| `popup_close()`, `popover_close()` | Close current popups |
+| `cross_app_nav_to_prev_app()` | FLP: back |
+| `cross_app_nav_to_ext(target, params, mode?)` | FLP: external |
+| `storage_set(type, prefix, key, value)` | Browser storage set |
+| `storage_remove(type, prefix, key)` | Browser storage remove |
+| `set_odata_model(url, name?, anno?)` | Set OData model |
+| `set_size_limit(view, limit)` / `reset_size_limit(view)` | Size limit |
 | `url_helper_redirect(url, new_window?)` | URLHelper.redirect |
 | `url_helper_email({email, subject, body, cc, bcc, new_window?})` | mailto: |
-| `url_helper_sms({telephone, message})` | SMS-Link |
-| `url_helper_tel(telephone)` | Tel-Link |
+| `url_helper_sms({telephone, message})` | SMS link |
+| `url_helper_tel(telephone)` | Tel link |
 
-Diese werden alle in `S_FOLLOW_UP_ACTION` der Response gesammelt und der Frontend-Treiber führt sie der Reihe nach aus.
+These all collect into `S_FOLLOW_UP_ACTION` of the response and the frontend driver runs them sequentially.
 
-## Spezial-Event: Nav-App-Leave
+## Special event: nav-app-leave
 
-Für den Page-Back-Button gibt es eine Convenience:
+For the page back button there is a convenience helper:
 
 ```js
 view.Page({
@@ -158,6 +158,6 @@ view.Page({
 });
 ```
 
-Das Event wird vom Framework **abgefangen**, bevor `main()` läuft — deine App sieht es nicht. Stattdessen führt der Handler ein `nav_app_leave()` aus, springt also auf die vorherige App im Stack. → Mehr in [Navigation](./navigation).
+The event is **intercepted** by the framework before `main()` runs — your app never sees it. Instead the handler executes a `nav_app_leave()`, jumping to the previous app on the stack. → More in [Navigation](./navigation).
 
-→ Weiter mit [**Navigation**](./navigation).
+→ Continue with [**Navigation**](./navigation).

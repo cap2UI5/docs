@@ -1,62 +1,62 @@
-# HTTP-Protokoll
+# HTTP Protocol
 
-Das Wire-Format zwischen Frontend und cap2UI5-Backend ist **identisch** zu abap2UI5. Diese Seite dokumentiert es als Referenz — du musst es als App-Entwickler nicht kennen, aber wenn du debuggst oder das Frontend austauscht, hilfreich.
+The wire format between the frontend and the cap2UI5 backend is **identical** to abap2UI5. This page documents it for reference — you don't need to know it as an app developer, but it's helpful when debugging or when swapping out the frontend.
 
 ## Endpoints
 
-| Methode | Pfad | Wirkung |
+| Method | Path | Effect |
 |---|---|---|
-| `GET`  | `/rest/root/z2ui5` | Bootstrap-HTML (lädt UI5 + Component) |
-| `HEAD` | `/rest/root/z2ui5` | CSRF-Token-Prefetch (`X-CSRF-Token: disabled`) |
-| `POST` | `/rest/root/z2ui5` | Roundtrip — JSON-Body siehe unten |
+| `GET`  | `/rest/root/z2ui5` | Bootstrap HTML (loads UI5 + Component) |
+| `HEAD` | `/rest/root/z2ui5` | CSRF token prefetch (`X-CSRF-Token: disabled`) |
+| `POST` | `/rest/root/z2ui5` | Roundtrip — JSON body see below |
 
 Mounts:
 
-- `GET`/`HEAD` werden in `srv/server.js` per `cds.on("bootstrap", ...)` registriert.
-- `POST` wird automatisch von CAP exponiert, weil `cat-service.cds` die Action `z2ui5(value: object)` deklariert.
+- `GET`/`HEAD` are registered in `srv/server.js` via `cds.on("bootstrap", ...)`.
+- `POST` is automatically exposed by CAP because `cat-service.cds` declares the action `z2ui5(value: object)`.
 
-## Request-Body
+## Request body
 
-Der Frontend-Treiber sendet immer `Content-Type: application/json`. Body-Struktur:
+The frontend driver always sends `Content-Type: application/json`. Body structure:
 
 ```json
 {
   "value": {
     "S_FRONT": {
-      "ID":            "<UUID der Vorgänger-App-Instanz oder leer>",
-      "APP":           "<Klassenname der aktuell geladenen App>",
-      "EVENT":         "<Event-Name oder leerer String>",
+      "ID":            "<UUID of the predecessor app instance, or empty>",
+      "APP":           "<class name of the currently loaded app>",
+      "EVENT":         "<event name or empty string>",
       "T_EVENT_ARG":   ["arg1", "arg2", ...],
-      "R_EVENT_DATA":  { /* optionales Objekt-Payload */ },
+      "R_EVENT_DATA":  { /* optional object payload */ },
       "ORIGIN":        "https://my-host.cf.eu10.hana.ondemand.com",
       "PATHNAME":      "/rest/root/z2ui5",
       "SEARCH":        "?app_start=...",
       "HASH":          "",
       "CONFIG":        { /* ComponentData */ }
     },
-    "XX":    { /* Two-way-Bindings: User-Edits */ },
-    "MODEL": { /* aktueller Modellstand des Frontends */ }
+    "XX":    { /* two-way bindings: user edits */ },
+    "MODEL": { /* current model state on the frontend */ }
   }
 }
 ```
 
-CDS verlangt durch die Action-Signatur `z2ui5(value: object)`, dass der eigentliche oBody als `value` eingewickelt ist. Der `z2ui5_cl_http_handler` packt das wieder aus.
+CDS requires, through the action signature `z2ui5(value: object)`, that the actual oBody be wrapped as `value`. The `z2ui5_cl_http_handler` unwraps it again.
 
-### `S_FRONT`-Felder
+### `S_FRONT` fields
 
-| Feld | Typ | Beschreibung |
+| Field | Type | Description |
 |---|---|---|
-| `ID` | `string` | UUID der zuletzt persistierten App-Instanz; leer beim ersten Roundtrip |
-| `APP` | `string` | Klassenname der aktuellen App (informativ) |
-| `EVENT` | `string` | Event-Name aus `_event(...)`. Leer beim Init-Aufruf. |
-| `T_EVENT_ARG` | `string[]` | Event-Argumente aus `_event(name, args)` |
-| `R_EVENT_DATA` | `any` | Optionaler Objekt-Payload aus `_event(name, args, ctrl, data)` |
-| `ORIGIN` / `PATHNAME` / `SEARCH` / `HASH` | `string` | Browser-`location` |
-| `CONFIG.ComponentData.startupParameters` | `object` | FLP-StartupParameters |
+| `ID` | `string` | UUID of the most recently persisted app instance; empty on the first roundtrip |
+| `APP` | `string` | Class name of the current app (informational) |
+| `EVENT` | `string` | Event name from `_event(...)`. Empty on init call. |
+| `T_EVENT_ARG` | `string[]` | Event arguments from `_event(name, args)` |
+| `R_EVENT_DATA` | `any` | Optional object payload from `_event(name, args, ctrl, data)` |
+| `ORIGIN` / `PATHNAME` / `SEARCH` / `HASH` | `string` | Browser `location` |
+| `CONFIG.ComponentData.startupParameters` | `object` | FLP startup parameters |
 
-### `XX` (Two-way-Delta)
+### `XX` (two-way delta)
 
-Plain JSON-Objekt mit den Feldern, die der User bearbeitet hat. Beispiel:
+Plain JSON object with the fields the user edited. Example:
 
 ```json
 "XX": {
@@ -66,15 +66,15 @@ Plain JSON-Objekt mit den Feldern, die der User bearbeitet hat. Beispiel:
 }
 ```
 
-Die Engine wendet das per `main_json_to_attri` auf die deserialisierte App an.
+The engine applies it to the deserialized app via `main_json_to_attri`.
 
-## Response-Body
+## Response body
 
 ```json
 {
   "S_FRONT": {
-    "APP":   "<Klassenname>",
-    "ID":    "<neue UUID>",
+    "APP":   "<class name>",
+    "ID":    "<new UUID>",
     "PARAMS": {
       "S_MSG_TOAST":         { "TEXT": "...", "AUTOCLOSE": "X", ... } | null,
       "S_MSG_BOX":           { "TEXT": "...", "TYPE": "warning", ... } | null,
@@ -91,11 +91,11 @@ Die Engine wendet das per `main_json_to_attri` auf die deserialisierte App an.
     }
   },
   "MODEL": {
-    /* One-way-Bindings auf Top-Level */
+    /* one-way bindings on top level */
     "users": [...],
     "title": "...",
     "XX": {
-      /* Two-way-Bindings */
+      /* two-way bindings */
       "username": "...",
       ...
     }
@@ -103,9 +103,9 @@ Die Engine wendet das per `main_json_to_attri` auf die deserialisierte App an.
 }
 ```
 
-### `MODEL`-Aufbau
+### `MODEL` structure
 
-Die Engine baut `MODEL` aus dem `aBind`-Array auf:
+The engine builds `MODEL` from the `aBind` array:
 
 ```js
 client.aBind = [
@@ -115,11 +115,11 @@ client.aBind = [
 ];
 ```
 
-One-way-Einträge landen direkt unter `MODEL`, Two-way-Einträge unter `MODEL.XX`. Der Frontend-JSONModel wird damit als Default-Modell der View gesetzt, woraus die Bindings (`{/...}` und `{/XX/...}`) auflösbar sind.
+One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. The frontend JSONModel is set as the default model on the view, from which the bindings (`{/...}` and `{/XX/...}`) resolve.
 
-## Beispiel-Roundtrip
+## Sample roundtrip
 
-### Initialer Roundtrip (Init)
+### Initial roundtrip (init)
 
 **Request:**
 ```json
@@ -144,7 +144,7 @@ One-way-Einträge landen direkt unter `MODEL`, Two-way-Einträge unter `MODEL.XX
 }
 ```
 
-### Button-Click-Roundtrip
+### Button-click roundtrip
 
 **Request:**
 ```json
@@ -169,12 +169,12 @@ One-way-Einträge landen direkt unter `MODEL`, Two-way-Einträge unter `MODEL.XX
 }
 ```
 
-## Frontend-Action-Strings (`eB`/`eF`)
+## Frontend action strings (`eB`/`eF`)
 
-Vom Server an den Frontend-Treiber wandern Action-Strings im UI5-Bindings-Slot (`press="..."`):
+Action strings travel from the server to the frontend driver in the UI5 binding slot (`press="..."`):
 
-- **`eB(...)`** = "event Backend" → triggert einen Roundtrip
-- **`eF(...)`** = "event Frontend" → läuft nur im Frontend
+- **`eB(...)`** = "event Backend" → triggers a roundtrip
+- **`eF(...)`** = "event Frontend" → runs only in the frontend
 
 Format:
 
@@ -184,9 +184,9 @@ Format:
                   |    |    |   force_main_model (truthy)
                   |    |    bypass_busy (truthy)
                   |    reserved
-                  event-name
+                  event name
 ```
 
-`_event(name, args, ctrl)` baut das automatisch — du brauchst die Innereien nur, wenn du das Frontend selbst extendst.
+`_event(name, args, ctrl)` builds this automatically — you only need the internals if you extend the frontend yourself.
 
-→ Weiter mit dem [Datenbankmodell](./database).
+→ Continue with the [Database Model](./database).

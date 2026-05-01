@@ -1,6 +1,6 @@
-# Statisches XML View
+# Static XML View
 
-Wenn du eine UI5-View bereits **als XML-Datei** hast — vom Designer exportiert, aus einer bestehenden App kopiert, oder weil dein Designer XML lieber liest als JS — kannst du sie 1:1 verwenden, ohne den View Builder zu nutzen.
+If you already have a UI5 view **as an XML file** — exported from a designer, copied from an existing app, or because your designer prefers reading XML over JS — you can use it 1:1 without going through the view builder.
 
 ## Code
 
@@ -24,7 +24,7 @@ module.exports = read_view;
 
 ## `View1.view.xml`
 
-Lege die Datei direkt neben deine App-Klasse (`srv/samples/View1.view.xml`):
+Place the file right next to your app class (`srv/samples/View1.view.xml`):
 
 ```xml
 <mvc:View
@@ -57,20 +57,20 @@ Lege die Datei direkt neben deine App-Klasse (`srv/samples/View1.view.xml`):
 </mvc:View>
 ```
 
-## Wann macht das Sinn?
+## When does this make sense?
 
-✅ **Migration einer bestehenden klassischen UI5-App.** Du willst sie von "drei-Schichten-OData-CRUD" auf cap2UI5 umstellen. Die XML-Views kannst du erstmal liegenlassen und nur die Controller-Logik in `main()` umziehen.
-✅ **Wireframe-Designs aus dem WYSIWYG-Tool.** Wenn dein UX-Team mit dem [SAP Build](https://sap.com/products/build.html) oder einem ähnlichen Designer arbeitet, hast du XML-Output.
-✅ **Komplexe statische Layouts**, bei denen der Builder umständlich wird (z.B. tief verschachtelte BlockLayouts mit vielen Custom-Klassen).
+✅ **Migrating an existing classical UI5 app.** You want to switch it from "three-layer OData CRUD" to cap2UI5. You can leave the XML views in place for now and only move the controller logic into `main()`.
+✅ **Wireframe designs from a WYSIWYG tool.** If your UX team works with [SAP Build](https://sap.com/products/build.html) or a similar designer, you'll have XML output.
+✅ **Complex static layouts** where the builder gets cumbersome (e.g. deeply nested BlockLayouts with many custom classes).
 
-## Wann nicht?
+## When not?
 
-❌ Wenn du **dynamische** UIs hast (Fields ein-/ausblenden je nach Zustand). Im JS-Builder ist das `if`/`switch`, in XML brauchst du `visible="{= ...}"`-Expressions oder Custom-Data.
-❌ Wenn du dein **Form je User-Eingabe** umbauen musst. Der Builder lebt davon, dass du in `main()` einen Tree neu zusammenbaust.
+❌ When you have **dynamic** UIs (showing/hiding fields based on state). In the JS builder that's `if`/`switch`; in XML you need `visible="{= ...}"` expressions or custom data.
+❌ When you have to **rebuild your form per user input**. The builder thrives on the fact that you reassemble a tree in `main()`.
 
-## Bindings im statischen XML
+## Bindings in static XML
 
-Die XML-View darf alle Bindings nutzen, die der View Builder erzeugen würde:
+The XML view may use any bindings the view builder would generate:
 
 ```xml
 <Input value="{/XX/username}" />
@@ -78,17 +78,17 @@ Die XML-View darf alle Bindings nutzen, die der View Builder erzeugen würde:
 <Button text="Save" press=".eB([['SAVE','','','']])" />
 ```
 
-Das ist allerdings spröde — die `.eB(...)`-Strings sind das interne Wire-Format, das der Builder normalerweise per `client._event(...)` für dich erzeugt. **Mein Tipp:** auch im Statisch-View-Fall die Event-Strings vom `client._event()` holen und per Modell-Bindings in die View injizieren, z.B. so:
+That is brittle, however — the `.eB(...)` strings are the internal wire format that the builder normally generates for you via `client._event(...)`. **My tip:** even in the static-view case, fetch the event strings from `client._event()` and inject them into the view via model bindings, e.g. like this:
 
 ```js
 const eventSave = client._event("SAVE");
 client.view_display(viewContent.replace("__EVENT_SAVE__", eventSave));
 ```
 
-Damit bleibt das Wire-Format gekapselt und du bist bei Updates auf der sicheren Seite.
+This keeps the wire format encapsulated and you stay safe across updates.
 
-## Hybrid: View-Builder + statische XML-Snippets
+## Hybrid: view builder + static XML snippets
 
-Manchmal willst du nur **ein Stück** der View aus XML laden — z.B. einen statischen Footer. Dann gibt es im Builder die `xml_load(...)`-Methode (siehe `z2ui5_cl_xml_view.js`), die ein XML-Fragment in die laufende View einbettet.
+Sometimes you only want to load **a piece** of the view from XML — e.g. a static footer. The builder has the `xml_load(...)` method (see `z2ui5_cl_xml_view.js`) which embeds an XML fragment into the running view.
 
-→ Du hast jetzt alle Beispiele durch. Weiter zur [**API-Referenz**](../api/client) für die vollständigen Methodenlisten.
+→ You're now through all the examples. Continue to the [**API reference**](../api/client) for full method listings.

@@ -1,8 +1,8 @@
-# Persistenz & Sessions
+# Persistence & Sessions
 
-cap2UI5-Apps sind **stateful**: ihre Felder überleben einen Roundtrip, einen Browser-Refresh, manchmal sogar einen Server-Restart. Diese Seite erklärt, wie die Persistenz funktioniert und wo die Grenzen liegen.
+cap2UI5 apps are **stateful**: their fields survive a roundtrip, a browser refresh, sometimes even a server restart. This page explains how persistence works and where its limits are.
 
-## Die Persistenz-Tabelle
+## The persistence table
 
 In `db/schema.cds`:
 
@@ -11,54 +11,54 @@ namespace my.domain;
 
 entity z2ui5_t_01 {
   key id      : UUID;
-  id_prev     : UUID;          // ← Vorgänger-ID, baut die History
-  data        : LargeString;   // ← serialisierte App-Instanz
+  id_prev     : UUID;          // ← predecessor ID, builds the history
+  data        : LargeString;   // ← serialized app instance
 }
 ```
 
-Bei jedem Roundtrip:
+On every roundtrip:
 
-1. Die App-Instanz wird **serialisiert** (`z2ui5_cl_core_srv_draft.serialize`).
-2. Eine neue UUID wird generiert.
-3. Es wird ein `INSERT` in `z2ui5_t_01` gemacht — `id_prev` zeigt auf die vorherige Instanz.
-4. Die neue UUID geht in die Response zurück (`S_FRONT.ID`).
-5. Frontend sendet diese ID im nächsten Roundtrip mit.
-6. Server lädt die Instanz wieder und appliziert das XX-Delta vor `main()`.
+1. The app instance is **serialized** (`z2ui5_cl_core_srv_draft.serialize`).
+2. A new UUID is generated.
+3. An `INSERT` is made into `z2ui5_t_01` — `id_prev` points to the previous instance.
+4. The new UUID goes back in the response (`S_FRONT.ID`).
+5. The frontend sends this ID along on the next roundtrip.
+6. The server loads the instance again and applies the XX delta before `main()`.
 
-Das ist eine **append-only History**. Wenn du willst, kannst du via `id_prev` durch die Vergangenheit traversieren — z.B. um einen "Undo"-Mechanismus zu bauen.
+This is an **append-only history**. If you want, you can traverse the past via `id_prev` — for example, to build an "undo" mechanism.
 
-## Was wird serialisiert?
+## What gets serialized?
 
-Die Engine geht über `Object.getOwnPropertyNames(oApp)` und nimmt alles auf, was:
+The engine walks `Object.getOwnPropertyNames(oApp)` and includes anything that:
 
-- **Keine Funktion** ist
-- **Nicht in der `SKIP_PROPS`-Set** ist (`["client"]`)
-- JSON-serialisierbar ist
+- Is **not a function**
+- Is **not in the `SKIP_PROPS` set** (`["client"]`)
+- Is JSON-serializable
 
-Heißt: deine **Datenfelder** überleben, **gebundene Methoden** und **Closures** nicht.
+That means: your **data fields** survive, **bound methods** and **closures** do not.
 
 ```js
 class my_app extends z2ui5_if_app {
 
-  username    = "Alice";        // ✓ persistiert
-  preferences = { lang: "de" }; // ✓ persistiert
-  computed    = null;           // ✓ persistiert (auch bei null)
+  username    = "Alice";        // ✓ persisted
+  preferences = { lang: "de" }; // ✓ persisted
+  computed    = null;           // ✓ persisted (even when null)
 
-  client      = null;           // ← übersprungen (in SKIP_PROPS)
+  client      = null;           // ← skipped (in SKIP_PROPS)
 
-  helper      = () => { … };    // ✗ Function — nicht persistiert
-  __cache     = new Map();      // ✗ Map ist nicht JSON-roundtrippable
-  conn        = await cds.connect.to(...); // ✗ Connection-Objekt
+  helper      = () => { … };    // ✗ function — not persisted
+  __cache     = new Map();      // ✗ Map is not JSON round-trippable
+  conn        = await cds.connect.to(...); // ✗ connection object
 }
 ```
 
-::: tip Faustregel
-Behalte App-Felder **JSON-pure**: Strings, Zahlen, Booleans, Arrays, Plain-Objects. Wenn du Maps, Sets, Connections oder Streams brauchst, lege sie als _lokale Variablen in `main()`_ an — sie leben dann genau einen Roundtrip lang.
+::: tip Rule of thumb
+Keep app fields **JSON pure**: strings, numbers, booleans, arrays, plain objects. If you need maps, sets, connections, or streams, declare them as _local variables in `main()`_ — they then live for exactly one roundtrip.
 :::
 
-## Klassen-Restaurierung
+## Class restoration
 
-Die Serialisierung schreibt zwei Meta-Felder in den Output:
+Serialization writes two meta fields into the output:
 
 ```json
 {
@@ -69,33 +69,33 @@ Die Serialisierung schreibt zwei Meta-Felder in den Output:
 }
 ```
 
-Beim Deserialize wird `__filePath` aufgelöst und `require()`d, dann eine neue Instanz erstellt und mit `Object.assign` befüllt.
+On deserialization, `__filePath` is resolved and `require()`d, then a new instance is created and populated with `Object.assign`.
 
-`__filePath` wird via `_findAppFile(className)` ermittelt. Aktuell durchsucht es:
+`__filePath` is determined via `_findAppFile(className)`. It currently searches:
 
 1. `srv/z2ui5/02/<className>.js`
 2. `srv/z2ui5/02/01/<className>.js`
 3. `srv/samples/<className>.js`
 
-::: warning Pflege deine Apps in den drei Pfaden
-Wenn du Apps **woanders** ablegen willst, musst du `_findAppFile` in `z2ui5_cl_core_srv_draft.js` erweitern, sonst schlägt der Reload fehl. Praktisch ist meist `srv/samples/` der einfachste Pfad.
+::: warning Keep your apps in the three paths
+If you want to put apps **somewhere else**, you'll need to extend `_findAppFile` in `z2ui5_cl_core_srv_draft.js`, otherwise the reload fails. In practice, `srv/samples/` is usually the simplest path.
 :::
 
-## Database-Backend
+## Database backend
 
-CAP-typisch wird das durch deinen `cds.requires.db`-Treiber abgedeckt:
+CAP-typically this is covered by your `cds.requires.db` driver:
 
-- **`@cap-js/sqlite`** in Dev (`npx cds w` startet automatisch ein In-Memory SQLite)
-- **HANA / HANA Cloud** in Prod
+- **`@cap-js/sqlite`** in dev (`npx cds w` automatically starts an in-memory SQLite)
+- **HANA / HANA Cloud** in prod
 - **PostgreSQL** via `@cap-js/postgres`
 
-Die Engine nutzt nur `INSERT.into(...)` und `SELECT.one.from(...)` — alle CDS-Service-Backends funktionieren.
+The engine uses only `INSERT.into(...)` and `SELECT.one.from(...)` — all CDS service backends work.
 
-## Aufräumen
+## Cleanup
 
-Da jeder Roundtrip einen neuen Eintrag in `z2ui5_t_01` schreibt, **wächst die Tabelle linear**. In Produktion brauchst du eine Cleanup-Strategie. Zwei Wege:
+Since every roundtrip writes a new entry into `z2ui5_t_01`, **the table grows linearly**. In production you need a cleanup strategy. Two ways:
 
-**1. CAP-Periodic-Job** (einfach):
+**1. CAP periodic job** (simple):
 
 ```js
 // srv/cleanup.js
@@ -110,35 +110,35 @@ cds.on("served", () => {
 });
 ```
 
-(Setzt voraus, dass du `@cds.persistence.journal` oder `cuid`-Aspect mit `createdAt` aktiviert hast, oder du loggst die Zeit selbst in `data`.)
+(Assumes you have enabled `@cds.persistence.journal` or the `cuid` aspect with `createdAt`, or are logging the time yourself in `data`.)
 
-**2. DB-Side-Job** mit deinem DB-Operator-Tooling, z.B. ein nightly cron auf HANA, der ältere Rows löscht.
+**2. DB-side job** with your DB operator tooling, e.g. a nightly cron on HANA that deletes older rows.
 
-Es gibt **derzeit kein eingebautes Cleanup** — das ist Absicht, weil die richtige Strategie projektabhängig ist.
+There is **currently no built-in cleanup** — that is intentional, because the right strategy is project-specific.
 
-## Sticky Sessions
+## Sticky sessions
 
-Manche Apps müssen sicherstellen, dass Roundtrips **strikt seriell** ankommen — z.B. ein Wizard, in dem Schritt 2 nie vor Schritt 1 zu Ende sein darf:
+Some apps need to ensure that roundtrips arrive **strictly serially** — e.g. a wizard where step 2 must never finish before step 1:
 
 ```js
 this.check_sticky = true;
 client.set_session_stateful(true);
 ```
 
-Das setzt im Frontend einen Flag, der beim nächsten Klick wartet, bis der vorherige Roundtrip durch ist — verhindert Race-Conditions bei schnellen Klickern.
+This sets a flag on the frontend that waits on the next click until the previous roundtrip is done — preventing race conditions for fast clickers.
 
-## Was passiert beim Server-Restart?
+## What happens on server restart?
 
-- **Apps in der DB überleben** (sind ja persistiert).
-- **In-flight-Promises gehen verloren** (logisch).
-- Das Frontend bemerkt das nicht — es schickt seine ID wie gehabt, und der Server lädt die App aus der DB neu.
+- **Apps in the DB survive** (they're persisted).
+- **In-flight promises are lost** (logical).
+- The frontend doesn't notice — it sends its ID as usual, and the server reloads the app from the DB.
 
-Heißt: cap2UI5-Apps sind **inhärent zustandslos auf Server-Ebene** (im Sinne von "kein In-Memory-State pro User"). Du kannst sie horizontal skalieren, sofern alle Instanzen am selben DB-Backend hängen.
+Meaning: cap2UI5 apps are **inherently stateless on the server level** (in the sense of "no in-memory state per user"). You can scale them horizontally, as long as all instances share the same DB backend.
 
-## Performance-Tipps
+## Performance tips
 
-- **Halte App-Instanzen klein**: persistier nur, was du wirklich für nachfolgende Roundtrips brauchst. Lade Datenbank-Resultate immer wieder frisch in `check_on_init()`, statt sie in der App zu cachen.
-- **Vermeide riesige Arrays als Felder**: 10.000 Zeilen `this.users` heißen 10.000 Zeilen pro Roundtrip in der DB — das addiert sich.
-- **Nutze Backed-Queries für Tabellen**: bind die `items` an einen OData-Service via `set_odata_model`, nicht an ein App-Array.
+- **Keep app instances small**: persist only what you really need for subsequent roundtrips. Reload database results fresh in `check_on_init()` instead of caching them in the app.
+- **Avoid huge arrays as fields**: 10,000 rows in `this.users` means 10,000 rows per roundtrip in the DB — that adds up.
+- **Use backed queries for tables**: bind `items` to an OData service via `set_odata_model` rather than to an app array.
 
-→ Weiter mit [**Popups & Toasts**](./popups).
+→ Continue with [**Popups & Toasts**](./popups).

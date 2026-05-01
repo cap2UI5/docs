@@ -1,72 +1,72 @@
-# Warum cap2UI5?
+# Why cap2UI5?
 
-Diese Seite richtet sich an **CAP-Entwickler**, die UI5-Apps anbieten müssen, aber das Tooling-Overhead, die doppelte Datenmodellierung und das XML-Pflegen leid sind.
+This page is aimed at **CAP developers** who need to deliver UI5 apps but are tired of the tooling overhead, duplicated data modeling and XML maintenance.
 
-## Das Problem in der klassischen Welt
+## The problem in the classical world
 
-Eine "kleine" UI5-App auf CAP zu starten, kostet dich heute:
+Starting a "small" UI5 app on CAP today costs you:
 
 ```
 my-cap-project/
 ├── srv/
-│   ├── catalog-service.cds          # Service-Definition
-│   ├── catalog-service.js           # Handler
+│   ├── catalog-service.cds          # service definition
+│   ├── catalog-service.js           # handler
 │   └── ...
 ├── app/
 │   └── catalog/
 │       ├── webapp/
-│       │   ├── Component.js         # ← Boilerplate
-│       │   ├── manifest.json        # ← Boilerplate
-│       │   ├── index.html           # ← Boilerplate
+│       │   ├── Component.js         # ← boilerplate
+│       │   ├── manifest.json        # ← boilerplate
+│       │   ├── index.html           # ← boilerplate
 │       │   ├── i18n/i18n.properties
 │       │   ├── controller/
 │       │   │   └── App.controller.js
 │       │   ├── view/
-│       │   │   └── App.view.xml     # ← XML pflegen
+│       │   │   └── App.view.xml     # ← maintain XML
 │       │   └── model/
 │       │       └── models.js
-│       ├── package.json             # ← zweite npm-Welt
-│       ├── ui5.yaml                 # ← UI5-Build-Tooling
+│       ├── package.json             # ← second npm world
+│       ├── ui5.yaml                 # ← UI5 build tooling
 │       └── xs-app.json
 └── package.json
 ```
 
-Das **erste klickbare UI** kostet dich locker eine Stunde Setup, bevor du eine Zeile Business-Logik geschrieben hast. Ändert sich später ein Feldname, musst du an _drei_ Stellen anfassen: CDS-Entity, Service-Handler, View.
+The **first clickable UI** easily costs you an hour of setup before you've written a single line of business logic. If a field name later changes, you have to touch _three_ places: CDS entity, service handler, view.
 
-## Was cap2UI5 ändert
+## What cap2UI5 changes
 
-Mit cap2UI5 reduziert sich die Struktur auf:
+With cap2UI5 the structure shrinks to:
 
 ```
 my-cap-project/
 ├── srv/
-│   ├── cat-service.cds              # ← + 4 Zeilen für die z2ui5-Action
-│   ├── cat-service.js               # ← + 1 Zeile srv.on('z2ui5', handler)
-│   ├── server.js                    # ← + bootstrap-HTML-Mount
+│   ├── cat-service.cds              # ← + 4 lines for the z2ui5 action
+│   ├── cat-service.js               # ← + 1 line srv.on('z2ui5', handler)
+│   ├── server.js                    # ← + bootstrap HTML mount
 │   ├── samples/
-│   │   └── my_app.js                # ← deine App. Eine Datei.
-│   └── z2ui5/                       # ← Library (ungeändert mitgezogen)
+│   │   └── my_app.js                # ← your app. One file.
+│   └── z2ui5/                       # ← library (carried along unchanged)
 └── app/
-    └── z2ui5/                       # ← statisches Frontend (ungeändert mitgezogen)
+    └── z2ui5/                       # ← static frontend (carried along unchanged)
 ```
 
-Eine neue UI = **eine neue JS-Datei in `srv/samples/`**. Aufrufbar sofort über `?app_start=my_app`.
+A new UI = **a new JS file in `srv/samples/`**. Available immediately via `?app_start=my_app`.
 
-## Konkrete Vorteile
+## Concrete advantages
 
-### 1. Einheitliche Sprache & Tooling
+### 1. Unified language & tooling
 
-Du arbeitest die ganze Zeit in **JavaScript** (oder TypeScript, falls gewünscht). Kein XML-Editor, kein UI5-CLI, kein doppeltes `npm install`. Dein vorhandener `cds watch`-Workflow reicht.
+You spend the entire time in **JavaScript** (or TypeScript, if you prefer). No XML editor, no UI5 CLI, no second `npm install`. Your existing `cds watch` workflow is enough.
 
 ```bash
 npx cds w
-# → CAP-Server läuft auf :4004
-# → öffne /rest/root/z2ui5 → fertig
+# → CAP server runs on :4004
+# → open /rest/root/z2ui5 → done
 ```
 
-### 2. Server-State = App-State
+### 2. Server state = app state
 
-Eine cap2UI5-App ist eine **Klasse mit Feldern**. Diese Felder sind dein State:
+A cap2UI5 app is a **class with fields**. These fields are your state:
 
 ```js
 class CustomerEdit extends z2ui5_if_app {
@@ -80,38 +80,38 @@ class CustomerEdit extends z2ui5_if_app {
 }
 ```
 
-Nach jedem Roundtrip wird die ganze Instanz **automatisch in der CDS-Entity `z2ui5_t_01` persistiert**. Beim nächsten Roundtrip wird sie deserialisiert, das Frontend-Delta (XX) angewendet, und `main()` läuft erneut. Du brauchst keinen JSONModel zu verwalten, keinen Reducer zu schreiben, keinen "Service Worker" für Offline-State — der Server hält alles.
+After every roundtrip the entire instance is **persisted automatically in the CDS entity `z2ui5_t_01`**. On the next roundtrip it is deserialized, the frontend delta (XX) is applied, and `main()` runs again. You don't need to manage a JSONModel, write a reducer, or build a "service worker" for offline state — the server holds everything.
 
-### 3. Reference-Equality-Bindings
+### 3. Reference-equality bindings
 
-Das ist das Kern-Pattern, das cap2UI5 (und abap2UI5) erst zu leichtem Code macht:
+This is the core pattern that makes cap2UI5 (and abap2UI5) lightweight code in the first place:
 
 ```js
 .Input({ value: client._bind_edit(this.name) })
 ```
 
-`_bind_edit(this.name)` schaut in deiner App-Instanz nach, **welches Property dem übergebenen Wert entspricht**, und gibt den Pfad als UI5-Bindings-Expression `{/XX/name}` zurück. Wenn der User tippt, wandert der Wert über das Delta zurück in `this.name`. Kein manuelles Mapping, keine Property-Strings, kein Sync-Code.
+`_bind_edit(this.name)` looks at your app instance to find **which property corresponds to the passed value** and returns the path as a UI5 binding expression `{/XX/name}`. When the user types, the value flows back through the delta into `this.name`. No manual mapping, no property strings, no sync code.
 
-→ Details unter [Data Binding](./data-binding).
+→ Details under [Data Binding](./data-binding).
 
-### 4. Kein OData-Layer für UI-Zwecke
+### 4. No OData layer for UI purposes
 
-In klassisch-CAP musst du für jedes Feld in der UI eine OData-fähige Entity bauen. Bei cap2UI5 ist die View an deinen **Server-State** gebunden — der kann beliebige JavaScript-Werte sein, auch geschachtelte Strukturen, die du _nie_ als CDS-Entity modellieren würdest:
+In classical CAP you have to build an OData-capable entity for every field in the UI. With cap2UI5 the view is bound to your **server state** — which can be arbitrary JavaScript values, including nested structures that you would _never_ model as a CDS entity:
 
 ```js
 this.wizard_state = {
   step: 2,
   inputs: { /* ... */ },
   errors: [],
-  preview: { /* berechnet aus inputs */ }
+  preview: { /* computed from inputs */ }
 };
 ```
 
-Du nutzt CDS-Entities da, wo es **fachlich Sinn macht** (Stammdaten, Geschäftsdaten) — nicht, weil das UI darauf besteht.
+You use CDS entities where it **makes business sense** (master data, business data) — not because the UI insists on it.
 
-### 5. Externe Calls nahtlos
+### 5. External calls seamlessly
 
-In `main()` kannst du **alles** machen, was Node.js erlaubt — natürlich auch CAP-Connections:
+Inside `main()` you can do **anything** Node.js allows — including, of course, CAP connections:
 
 ```js
 async main(client) {
@@ -123,26 +123,26 @@ async main(client) {
 }
 ```
 
-Der Server kennt schon Auth, Destinations, und alle CDS-Services. **Du musst nichts in die UI tunneln**, weil die UI-Logik direkt im Backend lebt.
+The server already knows auth, destinations, and all CDS services. **You don't have to tunnel anything through to the UI**, because the UI logic lives directly in the backend.
 
-### 6. Sicherheit per Default
+### 6. Secure by default
 
-Es gibt keinen "frei zugänglichen" OData-Endpoint, der für die UI da wäre. Der einzige offene Endpoint ist `POST /rest/root/z2ui5` — und der nimmt nur Frontend-Events entgegen, die der Server gerendert hat. Server-State, der nicht ge-bindet ist, ist auch nicht erreichbar.
+There is no "freely accessible" OData endpoint that exists for the UI. The only open endpoint is `POST /rest/root/z2ui5` — and it only accepts frontend events that the server has rendered. Server state that is not bound is also unreachable.
 
-→ Vergleich mit Fiori Elements: dort ist jede Spalte einer SmartTable ein OData-Endpoint, den ein Angreifer beliebig durchpaginieren kann.
+→ Compare to Fiori Elements: there every column of a SmartTable is an OData endpoint that an attacker can paginate through arbitrarily.
 
-### 7. Schnelles initiales Rendering
+### 7. Fast initial rendering
 
-Das UI5-Bundle wird einmal geladen. Danach gibt jedes Roundtrip nur **ein bisschen XML + ein JSON-Delta** zurück — keine Component-Initialisierung, keine zweite OData-Metadata-Round, keine i18n-Roundtrip.
+The UI5 bundle is loaded once. After that every roundtrip returns only **a bit of XML + a JSON delta** — no component initialization, no second OData metadata round, no i18n roundtrip.
 
-## Wo es unfair wird
+## Where it gets unfair
 
-cap2UI5 löst nicht jedes Problem. Konkret:
+cap2UI5 doesn't solve every problem. Specifically:
 
-- **Offline-Szenarien**: jede Interaktion ist ein Roundtrip. Wenn du offline-fähig sein musst, schreib Fiori Elements oder einen klassischen UI5-Aufbau.
-- **Pixel-Designs außerhalb von UI5-Standard**: der View Builder kennt `sap.m`, `sap.ui.layout`, `sap.tnt`, plus die z2ui5-Custom-Controls. Wenn du eigene, fremde JS-Bibliotheken einbinden willst, geht das — aber mit deutlich mehr Arbeit.
-- **Read-Heavy Listen** mit Live-Such-Filter über Millionen Zeilen: für jede Filteränderung ein Server-Roundtrip — das skaliert nicht so gut wie OData-Bindings, die der Frontend-Treiber lokal im JSONModel filtert.
+- **Offline scenarios**: every interaction is a roundtrip. If you need to be offline-capable, write Fiori Elements or a classical UI5 setup.
+- **Pixel designs outside UI5 standard**: the view builder knows `sap.m`, `sap.ui.layout`, `sap.tnt`, plus the z2ui5 custom controls. You can include your own foreign JS libraries — but with significantly more work.
+- **Read-heavy lists** with live search filter over millions of rows: every filter change is a server roundtrip — that doesn't scale as well as OData bindings, which the frontend driver filters locally in the JSONModel.
 
-Für **UI-zentrierte Backoffice-Apps**, die typischer CAP-Anwendungsfall sind, ist cap2UI5 fast immer die ergonomischere Wahl.
+For **UI-centric back-office apps**, which are the typical CAP use case, cap2UI5 is almost always the more ergonomic choice.
 
-→ Weiter mit dem [**Quickstart**](./getting-started) oder dem Architektur-Reference unter [Architektur](../reference/architecture).
+→ Continue with the [**Quickstart**](./getting-started) or the architecture reference at [Architecture](../reference/architecture).

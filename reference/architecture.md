@@ -1,13 +1,13 @@
-# Architektur
+# Architecture
 
-Diese Seite zeigt im Detail, **wie ein Roundtrip durch das System läuft** — vom Klick im Browser bis zur DB-Persistenz und zurück.
+This page shows in detail **how a roundtrip flows through the system** — from the click in the browser to DB persistence and back.
 
-## Komponenten-Übersicht
+## Component overview
 
 ```
 ┌────────── Browser ──────────┐
-│  Statisches UI5-Bundle      │
-│  (aus abap2UI5 mirror)      │
+│  Static UI5 bundle          │
+│  (from abap2UI5 mirror)     │
 │   ├ index.html              │
 │   ├ Component.js            │
 │   ├ Actions.js (eF/eB)      │
@@ -16,7 +16,7 @@ Diese Seite zeigt im Detail, **wie ein Roundtrip durch das System läuft** — v
              │ POST /rest/root/z2ui5
              │ { S_FRONT, XX, MODEL }
              ▼
-┌──────── CAP-Server ─────────┐
+┌──────── CAP server ─────────┐
 │  Express + @sap/cds         │
 │  cat-service.cds            │
 │   action z2ui5(value)       │
@@ -33,25 +33,25 @@ Diese Seite zeigt im Detail, **wie ein Roundtrip durch das System läuft** — v
 ┌──── z2ui5_cl_core_handler ──┐
 │  1. action.factory_main     │── ▶ DB.loadApp(id)
 │  2. validate                │
-│  3. apply XX-Delta          │
-│  4. await app.main(client)  │── ▶ deine App-Klasse
-│  5. nav-loop (falls aktiv)  │
+│  3. apply XX delta          │
+│  4. await app.main(client)  │── ▶ your app class
+│  5. nav loop (if active)    │
 │  6. db_save                 │── ▶ DB.saveApp
 │  7. build response          │
 └────────────┬────────────────┘
              │
              ▼
-┌────── CDS-Persistenz ───────┐
+┌────── CDS persistence ──────┐
 │  Entity z2ui5_t_01          │
 │  (UUID, id_prev, data)      │
 └─────────────────────────────┘
 ```
 
-## Roundtrip im Detail
+## Roundtrip in detail
 
-### 1. HTTP-Empfang
+### 1. HTTP reception
 
-Die `cat-service.cds` deklariert:
+The `cat-service.cds` declares:
 
 ```cds
 @protocol: 'rest'
@@ -61,14 +61,14 @@ service rootService {
 }
 ```
 
-CAP exponiert das automatisch unter `POST /rest/root/z2ui5`. Der Body landet als CDS-Action-Parameter `value` (Typ `object`).
+CAP automatically exposes this under `POST /rest/root/z2ui5`. The body lands as the CDS action parameter `value` (type `object`).
 
-Zusätzlich registriert `server.js` per `cds.on("bootstrap", ...)`:
+In addition, `server.js` registers via `cds.on("bootstrap", ...)`:
 
-- `GET /rest/root/z2ui5` → liefert das Bootstrap-HTML aus `z2ui5_cl_app_index_html.get_source()`
-- `HEAD /rest/root/z2ui5` → CSRF-Prefetch und sap-terminate ack
+- `GET /rest/root/z2ui5` → returns the bootstrap HTML from `z2ui5_cl_app_index_html.get_source()`
+- `HEAD /rest/root/z2ui5` → CSRF token prefetch and sap-terminate ack
 
-### 2. CDS-Action-Handler
+### 2. CDS action handler
 
 In `cat-service.js`:
 
@@ -76,7 +76,7 @@ In `cat-service.js`:
 srv.on("z2ui5", z2ui5_cl_http_handler);
 ```
 
-`z2ui5_cl_http_handler` macht nur das Action-Wrapper-Unwrapping:
+`z2ui5_cl_http_handler` only does the action wrapper unwrapping:
 
 ```js
 const oBody = req?.data?.value ?? req?.data ?? req;
@@ -85,74 +85,74 @@ const responseJson = await oHandler.main(oBody);
 return JSON.parse(responseJson);
 ```
 
-Es entkapselt den abap2UI5-kompatiblen Body aus dem CDS-Action-Wrapper. Damit ist `oBody` exakt das, was die abap2UI5-ICF-Schnittstelle direkt empfängt.
+It unwraps the abap2UI5-compatible body from the CDS action wrapper. With that, `oBody` is exactly what the abap2UI5 ICF interface receives directly.
 
-### 3. Roundtrip-Orchestrator
+### 3. Roundtrip orchestrator
 
-`z2ui5_cl_core_handler.main(body)` durchläuft sechs Phasen:
+`z2ui5_cl_core_handler.main(body)` runs through six phases:
 
-#### Phase 1 — App-Resolution
+#### Phase 1 — app resolution
 
 ```js
 let oApp = await Action.factory_main(oReq, oClient);
 ```
 
-`z2ui5_cl_core_action.factory_main` ermittelt, welche App diesen Roundtrip bedient:
+`z2ui5_cl_core_action.factory_main` determines which app serves this roundtrip:
 
-1. `oClient._navTarget` (in-memory, von vorherigem Hop) — selten
-2. `oReq.S_FRONT.ID` — DB-Load
-3. `?app_start=ClassName` URL-Parameter — RTTI-Lookup
-4. **Fallback**: `z2ui5_cl_app_startup` (eingebauter Launcher)
+1. `oClient._navTarget` (in-memory, from a previous hop) — rare
+2. `oReq.S_FRONT.ID` — DB load
+3. `?app_start=ClassName` URL parameter — RTTI lookup
+4. **Fallback**: `z2ui5_cl_app_startup` (built-in launcher)
 
-Außerdem rehydriert es den Nav-Stack aus `oApp.__navStackIds`.
+It also rehydrates the nav stack from `oApp.__navStackIds`.
 
-#### Phase 2 — Validierung
+#### Phase 2 — validation
 
 ```js
 z2ui5_cl_core_app.validate(oApp);
 ```
 
-Wirft, wenn die App nicht von `z2ui5_if_app` erbt.
+Throws if the app does not extend `z2ui5_if_app`.
 
-#### Phase 3 — XX-Delta anwenden
+#### Phase 3 — apply XX delta
 
 ```js
 z2ui5_cl_core_srv_model.main_json_to_attri(oApp, oReq.XX);
 ```
 
-Das `XX`-Objekt der Request enthält die User-Edits aus Two-way-Bindings (z.B. `{XX: { username: "Alice" }}`). Die Engine wendet sie auf die App-Instanz an (deep merge).
+The `XX` object on the request contains the user edits from two-way bindings (e.g. `{XX: { username: "Alice" }}`). The engine applies them to the app instance (deep merge).
 
-#### Phase 4 — `main()` aufrufen
+#### Phase 4 — call `main()`
 
 ```js
 await oApp.main(oClient);
 oApp.check_initialized = true;
 ```
 
-Hier landet deine eigene App-Logik. Während `main()` läuft, schreibt sie über `client.view_display(...)`, `client.message_toast_display(...)` etc. Slots in `oClient`.
+This is where your own app logic runs. While `main()` runs, it writes slots into `oClient` via `client.view_display(...)`, `client.message_toast_display(...)` etc.
 
-#### Phase 5 — Nav-Loop
+#### Phase 5 — nav loop
 
-Wenn `main()` ein `nav_app_call(...)` oder `nav_app_leave()` ausgelöst hat, ist `oClient._navTarget` gesetzt. Der Handler "tritt einen Schritt weiter":
+If `main()` triggered a `nav_app_call(...)` or `nav_app_leave()`, `oClient._navTarget` is set. The handler "takes one step further":
 
 ```js
 while (oClient._navTarget) {
-  // ... push / pop Stack ...
+  // ... push / pop stack ...
   await z2ui5_cl_core_app.run(navApp, oClient, oReq, true);
 }
 ```
 
-Heißt: bis zu N nested Navigationen können in **einem einzigen** Roundtrip stattfinden — z.B. "öffne Picker → User klickt sofort einen Default → schließe Picker → kehre zurück".
+That means: up to N nested navigations can take place in **a single** roundtrip — e.g. "open picker → user immediately clicks a default → close picker → return".
 
-#### Phase 6 — Persistenz
+#### Phase 6 — persistence
 
 ```js
 const generatedId = await z2ui5_cl_core_app.db_save(oApp, oClient, previousId);
 ```
 
-Erst die Stack-Apps, dann die finale App. Stack-IDs werden auf `oApp.__navStackIds` festgehalten.
+First the stack apps, then the final app. Stack IDs are recorded on `oApp.__navStackIds`.
 
-#### Phase 7 — Response bauen
+#### Phase 7 — build response
 
 ```js
 const oResponse = {
@@ -162,58 +162,58 @@ const oResponse = {
 return JSON.stringify(oResponse);
 ```
 
-`MODEL` wird aus den `aBind`-Einträgen aufgebaut, die der Builder während `main()` registriert hat. Das ist das JSONModel, das im Frontend als Default-Modell läuft.
+`MODEL` is built from the `aBind` entries that the builder registered during `main()`. That's the JSONModel that runs as the default model on the frontend.
 
-## Klassen-Architektur
+## Class architecture
 
-Die `cap2UI5/srv/z2ui5/`-Library spiegelt **abap2UI5s Schichtmodell**:
+The `cap2UI5/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 
 ```
-00 — Pure Utilities (keine Framework-Abhängigkeiten)
-└─ 03/z2ui5_cl_util              RTTI, Class-Lookup, URL-Builder
+00 — Pure utilities (no framework dependencies)
+└─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
 
 01 — Core
-├─ 01/z2ui5_cl_core_srv_draft    Serialize / Deserialize / DB
-├─ 02/z2ui5_cl_core_handler      Roundtrip-Orchestrator
-├─ 02/z2ui5_cl_core_action       App-Resolution
-├─ 02/z2ui5_cl_core_app          Lifecycle-Helper
-├─ 02/z2ui5_cl_core_client       die Client-Klasse (deine API)
-├─ 02/z2ui5_cl_core_srv_bind     _bind / _bind_edit Implementierung
-├─ 02/z2ui5_cl_core_srv_event    _event String-Builder
-├─ 02/z2ui5_cl_core_srv_model    XX-Delta + Response-Modell
-├─ 02/z2ui5_if_core_types        interne Typ-Container
-└─ 03/z2ui5_cl_app_index_html    Bootstrap-HTML als JS-Modul
+├─ 01/z2ui5_cl_core_srv_draft    Serialize / deserialize / DB
+├─ 02/z2ui5_cl_core_handler      Roundtrip orchestrator
+├─ 02/z2ui5_cl_core_action       App resolution
+├─ 02/z2ui5_cl_core_app          Lifecycle helper
+├─ 02/z2ui5_cl_core_client       The client class (your API)
+├─ 02/z2ui5_cl_core_srv_bind     _bind / _bind_edit implementation
+├─ 02/z2ui5_cl_core_srv_event    _event string builder
+├─ 02/z2ui5_cl_core_srv_model    XX delta + response model
+├─ 02/z2ui5_if_core_types        internal type containers
+└─ 03/z2ui5_cl_app_index_html    bootstrap HTML as a JS module
 
-02 — Public API (App-Entwickler-Imports)
-├─ z2ui5_if_app                  Basisklasse für deine Apps
-├─ z2ui5_cl_http_handler         CDS-Action-Adapter
+02 — Public API (app developer imports)
+├─ z2ui5_if_app                  Base class for your apps
+├─ z2ui5_cl_http_handler         CDS action adapter
 ├─ z2ui5_cl_xml_view             View Builder
-├─ z2ui5_cl_xml_view_cc          Custom-Control-Decorator
-├─ z2ui5_cl_app_startup          eingebauter Launcher
-├─ z2ui5_cl_app_hello_world      Mini-Beispiel
-└─ 01/z2ui5_cl_pop_*             Pop-Helper
+├─ z2ui5_cl_xml_view_cc          Custom control decorator
+├─ z2ui5_cl_app_startup          Built-in launcher
+├─ z2ui5_cl_app_hello_world      Mini example
+└─ 01/z2ui5_cl_pop_*             Pop helpers
 ```
 
-Die Schichtung ist **kein Zufall** — es ist die abap2UI5-Konvention, in JS portiert. Wenn du dich in einem dieser Files einliest, findest du dasselbe Layout im abap2UI5-Repo wieder.
+The layering is **no accident** — it's the abap2UI5 convention, ported to JS. If you read into one of these files, you'll find the same layout in the abap2UI5 repo.
 
-## Wire-Format-Kompatibilität
+## Wire-format compatibility
 
-Das **Frontend-Bundle** unter `app/z2ui5/` wird per CI-Workflow (`npm run mirror_frontend` in `cap2UI5/package.json`) aus dem abap2UI5-Repo gespiegelt. Das heißt: jeder Patch im abap2UI5-Frontend-Code wandert nach hier rüber.
+The **frontend bundle** under `app/z2ui5/` is mirrored from the abap2UI5 repo via a CI workflow (`npm run mirror_frontend` in `cap2UI5/package.json`). This means: every patch in the abap2UI5 frontend code flows over here.
 
-Damit das funktioniert, muss cap2UI5s Backend **bit-genau dasselbe Wire-Format** sprechen wie abap2UI5s ABAP-Backend:
+For that to work, cap2UI5's backend must speak **bit-exact the same wire format** as abap2UI5's ABAP backend:
 
-- `S_FRONT.ID`, `S_FRONT.EVENT`, `S_FRONT.T_EVENT_ARG` — alle Großschreibung
-- `MODEL.XX.<path>` für Two-way, `MODEL.<path>` für One-way
+- `S_FRONT.ID`, `S_FRONT.EVENT`, `S_FRONT.T_EVENT_ARG` — all uppercase
+- `MODEL.XX.<path>` for two-way, `MODEL.<path>` for one-way
 - `S_VIEW.XML`, `S_POPUP.XML`, `S_POPOVER.XML`
-- `S_FOLLOW_UP_ACTION.CUSTOM_JS` als Array
-- `S_MSG_TOAST`, `S_MSG_BOX` mit ABAP-typischen `"X"`/`""`-Booleans
+- `S_FOLLOW_UP_ACTION.CUSTOM_JS` as an array
+- `S_MSG_TOAST`, `S_MSG_BOX` with ABAP-typical `"X"`/`""` booleans
 
-Das ist sichtbar im Code (siehe `z2ui5_cl_core_handler.main` ganz unten).
+This is visible in the code (see `z2ui5_cl_core_handler.main` at the bottom).
 
-## CAP-Spezifika
+## CAP-specific notes
 
-- **CDS-REST-Action statt eigenes Express-Routing**: macht den z2ui5-Endpoint zu einem ganz normalen CAP-Service-Eintrag — auth, auditing, tracing greifen automatisch.
-- **CDS-Entity statt eigene SQL-Tabelle**: die App-Persistenz nutzt die normale CAP-DB-Anbindung. Deploy auf SQLite (Dev), HANA (Cloud), Postgres — funktioniert ohne Code-Änderung.
-- **`cds.connect.to(...)` in `main()`**: deine Apps haben sofort Zugriff auf alle deklarierten externen Services, ohne separate Connection-Registrierung.
+- **CDS REST action instead of custom Express routing**: makes the z2ui5 endpoint an ordinary CAP service entry — auth, auditing, tracing apply automatically.
+- **CDS entity instead of a custom SQL table**: app persistence uses the normal CAP DB connection. Deploy on SQLite (dev), HANA (cloud), Postgres — works without code changes.
+- **`cds.connect.to(...)` in `main()`**: your apps have immediate access to all declared external services, without separate connection registration.
 
-→ Weiter mit dem [HTTP-Protokoll](./protocol).
+→ Continue with the [HTTP Protocol](./protocol).

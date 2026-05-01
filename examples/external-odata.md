@@ -1,8 +1,8 @@
-# Externer OData-Service
+# External OData Service
 
-cap2UI5-Apps haben vollen Zugriff auf das CAP-Connection-Pool. Du kannst beliebige **externe OData-Services** konsumieren — der Aufruf wandert _innerhalb_ deines `main()` über die normale `cds.connect.to(...)`-API.
+cap2UI5 apps have full access to the CAP connection pool. You can consume any **external OData service** — the call goes _inside_ your `main()` via the normal `cds.connect.to(...)` API.
 
-## Konfiguration
+## Configuration
 
 In `package.json`:
 
@@ -22,9 +22,9 @@ In `package.json`:
 }
 ```
 
-Das CSN-Modell wird normal mit `cds import https://services.odata.org/V2/Northwind/Northwind.svc/` erzeugt und unter `srv/external/northwind.csn` abgelegt.
+The CSN model is generated as usual with `cds import https://services.odata.org/V2/Northwind/Northwind.svc/` and saved at `srv/external/northwind.csn`.
 
-## App-Code
+## App code
 
 ```js
 // srv/samples/read_odata.js
@@ -60,8 +60,8 @@ class read_odata extends z2ui5_if_app {
 
     } else if (client.check_on_event("SAVE_BACK")) {
       const northwind = await cds.connect.to("northwind");
-      // … this.customers enthält die User-Edits dank Two-way-Binding
-      // … pro Row UPDATE auf den Service ausführen
+      // … this.customers contains the user edits thanks to two-way binding
+      // … run an UPDATE on the service for each row
     }
   }
 }
@@ -69,18 +69,18 @@ class read_odata extends z2ui5_if_app {
 module.exports = read_odata;
 ```
 
-## Was hier neu ist
+## What's new here
 
-### 1. CDS-Connection inline
+### 1. CDS connection inline
 
 ```js
 const northwind = await cds.connect.to("northwind");
 this.customers  = await northwind.run(SELECT.from("Customers").limit(50));
 ```
 
-Der gleiche Code, den du in einem `srv/cat-service.js`-Handler schreiben würdest. **In `main()` ist alles erlaubt, was Node.js erlaubt** — fetch, OData, file system, Redis, MQ.
+The same code you would write in a `srv/cat-service.js` handler. **Anything Node.js allows is allowed inside `main()`** — fetch, OData, file system, Redis, MQ.
 
-### 2. Two-way auf eine Liste
+### 2. Two-way on a list
 
 ```js
 .Table({ items: client._bind_edit(this.customers) })
@@ -88,16 +88,16 @@ Der gleiche Code, den du in einem `srv/cat-service.js`-Handler schreiben würdes
   .Input({ value: "{CompanyName}", enabled: true })
 ```
 
-Da das Array per `_bind_edit` two-way gebunden ist, schreibt UI5 User-Edits **auf jedem Item-Property** zurück in das XX-Delta. Im nächsten Roundtrip ist `this.customers` der modifizierte Stand.
+Because the array is two-way bound via `_bind_edit`, UI5 writes user edits **on every item property** back into the XX delta. On the next roundtrip `this.customers` holds the modified state.
 
-### 3. Persistenz-Caveat
+### 3. Persistence caveat
 
-Das gesamte `this.customers`-Array wird zwischen Roundtrips serialisiert und wieder deserialisiert. Bei 50 Rows: kein Problem. Bei 50.000 Rows: spürbar. Faustregeln:
+The entire `this.customers` array is serialized and deserialized between roundtrips. With 50 rows: no problem. With 50,000 rows: noticeable. Rules of thumb:
 
-- **Lade frisch in `check_on_init()`** statt das Array dauerhaft als App-State zu halten.
-- Für **read-heavy** Listen mit Sort/Filter/Paging: das `set_odata_model`-Pattern (siehe [Events](../guide/events#convenience-server-getriggerte-frontend-actions)) — dann lebt das Array im Frontend-Treiber, nicht in der App-Instanz.
+- **Reload fresh in `check_on_init()`** instead of holding the array as long-lived app state.
+- For **read-heavy** lists with sort/filter/paging: the `set_odata_model` pattern (see [Events](../guide/events#convenience-server-triggered-frontend-actions)) — then the array lives in the frontend driver, not the app instance.
 
-Beispiel mit OData-Backed-Table:
+Example with an OData-backed table:
 
 ```js
 async main(client) {
@@ -107,7 +107,7 @@ async main(client) {
     const view = z2ui5_cl_xml_view.factory();
     view.Page({ title: "Customers (OData)" })
       .Table({ items: "{/NorthwindCustomers}" })
-        // ↑ kein _bind_edit, sondern statisches OData-Pfad-Binding
+        // ↑ no _bind_edit, but a static OData path binding
         .columns().Column().Text({ text: "Company" });
 
     client.view_display(view.stringify());
@@ -115,7 +115,7 @@ async main(client) {
 }
 ```
 
-Du brauchst dann eine eigene CAP-Service-Action `NorthwindCustomers` in `cat-service.js`:
+You then need your own CAP service action `NorthwindCustomers` in `cat-service.js`:
 
 ```js
 srv.on("READ", "NorthwindCustomers", async (req) => {
@@ -124,4 +124,4 @@ srv.on("READ", "NorthwindCustomers", async (req) => {
 });
 ```
 
-→ Weiter mit [**Statisches XML View**](./static-xml-view).
+→ Continue with [**Static XML View**](./static-xml-view).

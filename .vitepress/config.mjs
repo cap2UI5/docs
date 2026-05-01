@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'cap2UI5',
   description: 'Bringing the abap2UI5 concept to CAP / Node.js — server-driven UI5 apps written in pure JavaScript',
-  lang: 'de-DE',
+  lang: 'en-US',
   base: '/docs/',
   cleanUrls: true,
   lastUpdated: true,
@@ -47,28 +47,28 @@ export default defineConfig({
     sidebar: {
       '/guide/': [
         {
-          text: 'Einstieg',
+          text: 'Getting Started',
           items: [
-            { text: 'Was ist cap2UI5?',     link: '/guide/what-is-cap2ui5' },
-            { text: 'Warum cap2UI5?',       link: '/guide/why-cap2ui5' },
+            { text: 'What is cap2UI5?',     link: '/guide/what-is-cap2ui5' },
+            { text: 'Why cap2UI5?',         link: '/guide/why-cap2ui5' },
             { text: 'Quickstart',           link: '/guide/getting-started' },
-            { text: 'Projektstruktur',      link: '/guide/project-structure' }
+            { text: 'Project Structure',    link: '/guide/project-structure' }
           ]
         },
         {
-          text: 'Konzepte',
+          text: 'Concepts',
           items: [
-            { text: 'App-Lifecycle',        link: '/guide/lifecycle' },
+            { text: 'App Lifecycle',        link: '/guide/lifecycle' },
             { text: 'View Builder',         link: '/guide/views' },
             { text: 'Data Binding',         link: '/guide/data-binding' },
             { text: 'Events',               link: '/guide/events' },
             { text: 'Navigation',           link: '/guide/navigation' },
-            { text: 'Persistenz & Sessions',link: '/guide/persistence' },
+            { text: 'Persistence & Sessions', link: '/guide/persistence' },
             { text: 'Popups & Toasts',      link: '/guide/popups' }
           ]
         },
         {
-          text: 'Vergleich',
+          text: 'Comparison',
           items: [
             { text: 'cap2UI5 vs. Fiori Elements', link: '/guide/vs-fiori-elements' },
             { text: 'cap2UI5 vs. abap2UI5',       link: '/guide/vs-abap2ui5' }
@@ -78,20 +78,20 @@ export default defineConfig({
 
       '/examples/': [
         {
-          text: 'Beispiele',
+          text: 'Examples',
           items: [
             { text: 'Hello World',          link: '/examples/hello-world' },
             { text: 'Selection Screen',     link: '/examples/selection-screen' },
             { text: 'List & Detail',        link: '/examples/list' },
-            { text: 'Externer OData-Call',  link: '/examples/external-odata' },
-            { text: 'Statisches XML View',  link: '/examples/static-xml-view' }
+            { text: 'External OData Call',  link: '/examples/external-odata' },
+            { text: 'Static XML View',      link: '/examples/static-xml-view' }
           ]
         }
       ],
 
       '/api/': [
         {
-          text: 'API-Referenz',
+          text: 'API Reference',
           items: [
             { text: 'client',               link: '/api/client' },
             { text: 'View Builder',         link: '/api/view-builder' },
@@ -104,9 +104,9 @@ export default defineConfig({
         {
           text: 'Reference',
           items: [
-            { text: 'Architektur',          link: '/reference/architecture' },
-            { text: 'HTTP-Protokoll',       link: '/reference/protocol' },
-            { text: 'Datenbankmodell',      link: '/reference/database' },
+            { text: 'Architecture',         link: '/reference/architecture' },
+            { text: 'HTTP Protocol',        link: '/reference/protocol' },
+            { text: 'Database Model',       link: '/reference/database' },
             { text: 'Deployment',           link: '/reference/deployment' }
           ]
         }
@@ -128,7 +128,7 @@ export default defineConfig({
 
     editLink: {
       pattern: 'https://github.com/cap2UI5/docs/edit/main/:path',
-      text: 'Diese Seite auf GitHub bearbeiten'
+      text: 'Edit this page on GitHub'
     }
   }
 })

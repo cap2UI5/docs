@@ -1,18 +1,18 @@
 # Deployment
 
-cap2UI5-Apps deployen wie jedes andere CAP-Projekt — mit ein paar Kleinigkeiten beim Frontend-Bundle. Diese Seite zeigt den Standard-Cloud-Foundry-Pfad.
+cap2UI5 apps deploy like any other CAP project — with a few caveats around the frontend bundle. This page shows the standard Cloud Foundry path.
 
-## Lokal
+## Locally
 
 ```bash
 npx cds w
-# oder
+# or
 npm start
 ```
 
-Default ist SQLite-In-Memory. Das passt für Dev, alle App-Instanzen verschwinden beim Restart.
+The default is in-memory SQLite. That fits dev — all app instances vanish on restart.
 
-Wenn du **persistent lokal** willst:
+If you want **persistent local**:
 
 ```json
 "cds": {
@@ -22,93 +22,93 @@ Wenn du **persistent lokal** willst:
 }
 ```
 
-`cds deploy` einmal ausführen, fertig.
+Run `cds deploy` once, done.
 
 ## Cloud Foundry (BTP)
 
-Das Referenz-Projekt enthält eine `mta.yaml` mit allen Standard-Modulen:
+The reference project contains an `mta.yaml` with all standard modules:
 
 ```yaml
 modules:
-- name: abap2UI5-srv               # CAP-Service
-- name: abap2UI5                   # HTML5-Module mit dem Frontend
-- name: abap2UI5-app-deployer      # HTML5-Repo-Push
-- name: abap2UI5-destinations      # FLP-Destinations
+- name: abap2UI5-srv               # CAP service
+- name: abap2UI5                   # HTML5 module with the frontend
+- name: abap2UI5-app-deployer      # HTML5 repo push
+- name: abap2UI5-destinations      # FLP destinations
 
 resources:
-- name: abap2UI5-destination       # Destination-Service
-- name: abap2UI5-html5-repo-host   # HTML5-Repo
+- name: abap2UI5-destination       # destination service
+- name: abap2UI5-html5-repo-host   # HTML5 repo
 - name: abap2UI5-auth              # XSUAA
 ```
 
-Build & Deploy:
+Build & deploy:
 
 ```bash
-npm run build       # → mbt build, erzeugt mta_archives/archive.mtar
+npm run build       # → mbt build, produces mta_archives/archive.mtar
 npm run deploy      # → cf deploy mta_archives/archive.mtar
 ```
 
-Voraussetzungen:
+Prerequisites:
 
-- **Multi-Target-Build-Tool**: `npm i -g mbt`
-- **CF-CLI** mit MTA-Plugin: `cf install-plugin multiapps`
-- BTP-Subaccount mit Berechtigungen für Destination + HTML5-Apps + XSUAA
+- **Multi-Target Build Tool**: `npm i -g mbt`
+- **CF CLI** with MTA plugin: `cf install-plugin multiapps`
+- BTP subaccount with permissions for destination + HTML5 apps + XSUAA
 
-Nach dem Deploy ist die App über die FLP-URL aufrufbar (Standard-Pattern: `https://<subdomain>.launchpad.cfapps.<region>.hana.ondemand.com`).
+After deploy, the app is reachable via the FLP URL (standard pattern: `https://<subdomain>.launchpad.cfapps.<region>.hana.ondemand.com`).
 
 ## Kyma / Kubernetes
 
-CAP unterstützt seit `@sap/cds ^7` direktes Kyma-Deployment. Setup ist:
+CAP supports direct Kyma deployment since `@sap/cds ^7`. Setup:
 
-1. CAP-typischer Container-Build (Multi-Stage Dockerfile)
-2. HANA-Cloud-Connection via `cds.requires.db.kind = "hana"`
-3. XSUAA-Service-Binding über das Kyma-Operator-Pattern
+1. CAP-typical container build (multi-stage Dockerfile)
+2. HANA Cloud connection via `cds.requires.db.kind = "hana"`
+3. XSUAA service binding via the Kyma operator pattern
 
-Die `app/z2ui5/`-Frontend-Files können entweder:
+The `app/z2ui5/` frontend files can either:
 
-- **Als Static-Assets** im selben Container ausgeliefert werden (Express-Static)
-- **Über einen separaten Nginx-Pod** gehostet werden, mit Reverse-Proxy auf den CAP-Service
+- **Be served as static assets** in the same container (Express static)
+- **Be hosted by a separate Nginx pod** with a reverse proxy to the CAP service
 
-Im einfachsten Fall: `srv/server.js` lässt CAP automatisch `app/`-Verzeichnis statisch servieren. Der `GET /rest/root/z2ui5` liefert das Bootstrap-HTML, das auf relative Pfade zu UI5 verweist (CDN oder lokales Bundle).
+In the simplest case: `srv/server.js` lets CAP serve the `app/` directory statically. The `GET /rest/root/z2ui5` returns the bootstrap HTML, which references relative UI5 paths (CDN or local bundle).
 
-## Self-Hosted Express
+## Self-hosted Express
 
-Wenn du komplett ohne BTP-Plumbing leben willst:
+If you want to live without BTP plumbing entirely:
 
 ```bash
 node srv/server.js
 ```
 
-Damit läuft CAP als ganz normaler Node.js-Server auf Port 4004. Hinter einem Nginx oder direkt — beides geht.
+This runs CAP as a normal Node.js server on port 4004. Behind an Nginx or directly — either works.
 
-Dann brauchst du:
+You then need:
 
-- DB selbst hosten (Postgres / SQLite-File / HANA-Express)
-- Auth selbst implementieren (`cds.requires.auth.kind = "mocked"` für lokal, anders für Prod)
-- Frontend-Assets ausliefern (Express-Static auf `app/`)
+- Host the DB yourself (Postgres / SQLite file / HANA Express)
+- Implement auth yourself (`cds.requires.auth.kind = "mocked"` for local, something else for prod)
+- Serve frontend assets (Express static on `app/`)
 
-## Frontend-Update
+## Frontend update
 
-Das `app/z2ui5/`-Verzeichnis wird **nicht von Hand gepflegt**. Im Repo gibt es einen `mirror_frontend`-Workflow:
+The `app/z2ui5/` directory is **not maintained by hand**. The repo has a `mirror_frontend` workflow:
 
 ```bash
 # in cap2UI5/
 npm run mirror_frontend
 ```
 
-Das Script:
+The script:
 
-1. clont `https://github.com/abap2UI5/abap2UI5`
-2. löscht `app/z2ui5/webapp`
-3. kopiert `abap2UI5/app/webapp` als neuer Stand
-4. überschreibt `index.html` und `manifest.json` mit den cap2UI5-Versionen aus `app/backup/`
-5. verwirft den geclonten Ordner
+1. Clones `https://github.com/abap2UI5/abap2UI5`
+2. Deletes `app/z2ui5/webapp`
+3. Copies `abap2UI5/app/webapp` as the new state
+4. Overwrites `index.html` and `manifest.json` with the cap2UI5 versions from `app/backup/`
+5. Discards the cloned folder
 
-Im CI lebt das als GitHub-Action (`.github/workflows/mirror_frontend.yml`). Du kannst es manuell triggern, wenn ein Frontend-Patch angesteuert werden soll.
+In CI it runs as a GitHub Action (`.github/workflows/mirror_frontend.yml`). You can trigger it manually when a frontend patch needs to be pulled in.
 
-## Sticky-Session-Empfehlung
+## Sticky session recommendation
 
-Wenn deine Apps File-Uploads, Wizards mit knappen Roundtrips oder ähnliches haben, will der Frontend-Treiber Roundtrips sequentialisieren. Auf Cloud Foundry geht das per:
+If your apps have file uploads, wizards with tight roundtrips, or similar, the frontend driver wants to serialize roundtrips. On Cloud Foundry that goes via:
 
 ```yaml
 # mta.yaml — abap2UI5-srv
@@ -118,36 +118,36 @@ parameters:
       route_service_url: https://stickysession.cfapps.eu10.hana.ondemand.com
 ```
 
-Oder per Cloud-Foundry-Sticky-Cookie: das Default-Login-Setup von XSUAA setzt eh `JSESSIONID`, was für Sticky-Routing reicht.
+Or via a Cloud Foundry sticky cookie: the default XSUAA login setup already sets `JSESSIONID`, which is enough for sticky routing.
 
 ## Auth & XSUAA
 
-Im Referenz-Projekt:
+In the reference project:
 
 ```json
 {
   "cds": {
     "requires": { /* ... */ },
     "[production]": {
-      "auth": false   // ← absichtlich aus, da der z2ui5-Endpoint öffentlich sein darf
+      "auth": false   // ← deliberately off, since the z2ui5 endpoint may be public
     }
   }
 }
 ```
 
-::: warning Auth-Defaults prüfen
-Das `auth: false` in Production ist ein **Standard-Setting für Demo-Zwecke**. Für echte Apps:
+::: warning Check auth defaults
+The `auth: false` in production is a **default setting for demo purposes**. For real apps:
 
 ```json
 "[production]": { "auth": "xsuaa" }
 ```
 
-Damit landest du im UAA-Login-Flow, bevor `/rest/root/z2ui5` erreichbar wird. Im `z2ui5_cl_http_handler` kannst du dann `cds.context.user.id` lesen, um Multi-User-Trennung zu machen.
+This puts you in the UAA login flow before `/rest/root/z2ui5` becomes reachable. In `z2ui5_cl_http_handler` you can then read `cds.context.user.id` to do multi-user separation.
 :::
 
 ## CI/CD
 
-Für GitHub-Actions ein Beispiel-Workflow:
+For GitHub Actions a sample workflow:
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -167,6 +167,6 @@ jobs:
       - run: npm run deploy
 ```
 
-Die Secrets (CF_USER, CF_PASSWORD, …) kommen aus den GitHub-Repo-Settings.
+The secrets (CF_USER, CF_PASSWORD, …) come from the GitHub repo settings.
 
-→ Du hast jetzt das ganze Reference-Set durch. Zurück zu den [**Beispielen**](../examples/hello-world) oder zur [**API-Referenz**](../api/client).
+→ You're now through the entire reference set. Back to the [**examples**](../examples/hello-world) or to the [**API reference**](../api/client).

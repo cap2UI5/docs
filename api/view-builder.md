@@ -1,29 +1,29 @@
 # API: View Builder
 
-Der View Builder erzeugt UI5-XML-Views aus JavaScript-Aufrufen. Quelle: [`srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view.js).
+The view builder generates UI5 XML views from JavaScript calls. Source: [`srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view.js).
 
 ## Factories
 
 ```js
 const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
 
-z2ui5_cl_xml_view.factory();          // normale View
-z2ui5_cl_xml_view.factory_popup();    // Popup-/Dialog-View
+z2ui5_cl_xml_view.factory();          // normal view
+z2ui5_cl_xml_view.factory_popup();    // popup/dialog view
 ```
 
-`factory()` liefert eine View-Instanz. Jede Builder-Methode emit das jeweilige UI5-Element und gibt eine Builder-Instanz zurück, die als neuer Knoten dient.
+`factory()` returns a view instance. Each builder method emits the corresponding UI5 element and returns a builder instance that serves as the new node.
 
 ## Output
 
 ```js
-view.stringify();   // → kompletter <mvc:View>...</mvc:View>-XML-String
+view.stringify();   // → complete <mvc:View>...</mvc:View> XML string
 ```
 
-Den gibst du an `client.view_display(...)`, `client.popup_display(...)` etc. weiter.
+You pass that to `client.view_display(...)`, `client.popup_display(...)` etc.
 
-## Container-Methoden (Auswahl)
+## Container methods (selection)
 
-Die Builder-Methoden mappen 1:1 auf UI5-Control-Namen. Eine kuratierte Liste:
+The builder methods map 1:1 to UI5 control names. A curated list:
 
 ### sap.m
 
@@ -45,82 +45,82 @@ Die Builder-Methoden mappen 1:1 auf UI5-Control-Namen. Eine kuratierte Liste:
 
 `Calendar`, `Menu`, `MenuItem`, `MenuTextFieldItem`, `Shell`, `ShellOverlay`, `FileUploader`, …
 
-> Komplette Liste: einfach in `z2ui5_cl_xml_view.js` nach `cc(` oder `_emit_method` greppen — die Generator-Sektion listet alle Mapping-Methoden auf.
+> Full list: just grep for `cc(` or `_emit_method` inside `z2ui5_cl_xml_view.js` — the generator section lists all mapping methods.
 
-## Aggregations-Methoden (kleingeschrieben)
+## Aggregation methods (lowercase)
 
-| Methode | Slot |
+| Method | Slot |
 |---|---|
 | `.content()` | `<…:content>` |
 | `.items()` | `<…:items>` |
 | `.columns()` | `<…:columns>` |
 | `.cells()` | `<…:cells>` |
-| `.headerContent()` | Page-Header |
-| `.subHeader()` | Page-SubHeader |
-| `.footer()` | Page-Footer |
-| `.beginButton()` / `.endButton()` | Dialog-Buttons |
-| `.buttons()` | MessageBox-Buttons |
-| `.suggestionItems()` | Input-Suggestions |
-| `.dependents()` | Control-Dependents |
-| `.tooltip()` | Tooltip-Slot |
+| `.headerContent()` | Page header |
+| `.subHeader()` | Page sub-header |
+| `.footer()` | Page footer |
+| `.beginButton()` / `.endButton()` | Dialog buttons |
+| `.buttons()` | MessageBox buttons |
+| `.suggestionItems()` | Input suggestions |
+| `.dependents()` | Control dependents |
+| `.tooltip()` | Tooltip slot |
 
-## Navigation in der Builder-Hierarchie
+## Navigation in the builder hierarchy
 
-| Methode | Returns |
+| Method | Returns |
 |---|---|
-| `.get()` | aktuelles Control |
-| `.get_parent()` | Eltern-Control |
-| `.get_root()` | View-Root |
+| `.get()` | current control |
+| `.get_parent()` | parent control |
+| `.get_root()` | view root |
 
 ```js
 view
   .Page()
     .Title({ text: "..." })
-    .get_parent()       // ← zurück zu Page
-    .Button({ ... });   // ← Sibling zum Title
+    .get_parent()       // ← back to Page
+    .Button({ ... });   // ← sibling of Title
 ```
 
-In den meisten Fällen brauchst du das nicht — die Builder-Methoden geben die "richtige" Position für das nächste Sibling automatisch.
+In most cases you don't need this — builder methods automatically place the next sibling at the "right" position.
 
-## Custom-Controls (`z2ui5:`-Namespace)
+## Custom controls (`z2ui5:` namespace)
 
-Über `view._z2ui5()` bekommst du den Custom-Control-Decorator (siehe [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
+Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
 
-| Methode | Custom-Control |
+| Method | Custom control |
 |---|---|
-| `.approve_popover({...})` | Confirm-Popover-Pattern |
-| `.binding_update({path, changed})` | erzwungenes Modell-Update |
-| `.bwip_js({bcid, text, scale, height})` | Barcode-Generator |
-| `.camera_picture({...})` | Kamera-Foto |
-| `.camera_selector({...})` | Kamera-Selector |
+| `.approve_popover({...})` | Confirm popover pattern |
+| `.binding_update({path, changed})` | Forced model update |
+| `.bwip_js({bcid, text, scale, height})` | Barcode generator |
+| `.camera_picture({...})` | Camera photo |
+| `.camera_selector({...})` | Camera selector |
 | `.chartjs({canvas_id, view, config, height, width, style})` | Chart.js |
-| `.dirty({isdirty})` | Dirty-Flag |
-| `.favicon({favicon})` | Favicon-Setzer |
-| `.file_uploader({...})` | File-Upload mit Direct-Upload-Option |
-| `.focus({setupdate, selectionstart, selectionend, focusid})` | Programmatic Focus |
+| `.dirty({isdirty})` | Dirty flag |
+| `.favicon({favicon})` | Favicon setter |
+| `.file_uploader({...})` | File upload with direct-upload option |
+| `.focus({setupdate, selectionstart, selectionend, focusid})` | Programmatic focus |
 | `.geolocation({...})` | GPS |
-| `.history({search})` | URL-Search-Trigger |
-| `.info_frontend({...})` | UI5-Version, Device-Info |
-| `.lp_title(title, fullwidth)` | FLP-Title-Setter |
+| `.history({search})` | URL search trigger |
+| `.info_frontend({...})` | UI5 version, device info |
+| `.lp_title(title, fullwidth)` | FLP title setter |
 | `.message_manager({items})` | MessageManager |
-| `.messaging({items})` | Messaging-Container |
-| `.multiinput_ext({...})` / `.smartmultiinput_ext({...})` | Erweiterte MultiInputs |
-| `.scrolling({setupdate, items})` | Scroll-Position |
-| `.spreadsheet_export({...})` | Excel-Export-Button |
-| `.storage({...})` | Browser-Storage-Wrapper |
-| `.timer({delayms, finished, checkactive, checkrepeat})` | Timer-Trigger |
-| `.title(title)` | Document-Title |
-| `.tree({tree_id})` | Tree-Hilfs-Control |
-| `.uitableext({tableid})` | UI Table-Extensions |
-| `.websocket({value, path, received, checkactive, checkrepeat})` | WebSocket-Bridge |
+| `.messaging({items})` | Messaging container |
+| `.multiinput_ext({...})` / `.smartmultiinput_ext({...})` | Extended MultiInputs |
+| `.scrolling({setupdate, items})` | Scroll position |
+| `.spreadsheet_export({...})` | Excel export button |
+| `.storage({...})` | Browser storage wrapper |
+| `.timer({delayms, finished, checkactive, checkrepeat})` | Timer trigger |
+| `.title(title)` | Document title |
+| `.tree({tree_id})` | Tree helper control |
+| `.uitableext({tableid})` | UI Table extensions |
+| `.websocket({value, path, received, checkactive, checkrepeat})` | WebSocket bridge |
 
-## Hilfsmethoden
+## Helper methods
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `view.cc(name, props)` | beliebiges Control mit `z2ui5:`/`m:`/`f:`-Namespace einfügen |
-| `view.boolean_abap_2_json(val)` | konvertiert truthy → `"true"` / falsy → `"false"` (für Boolean-Attribute) |
-| `view.xml_load(xml)` | rohes XML-Fragment einbetten |
-| `view.stringify()` | finalen XML-String erzeugen |
-| `view.factory_popup()` | static — Popup-Variante |
-| `view.factory()` | static — normale View |
+| `view.cc(name, props)` | Insert any control with `z2ui5:`/`m:`/`f:` namespace |
+| `view.boolean_abap_2_json(val)` | Converts truthy → `"true"` / falsy → `"false"` (for boolean attributes) |
+| `view.xml_load(xml)` | Embed raw XML fragment |
+| `view.stringify()` | Produce final XML string |
+| `view.factory_popup()` | static — popup variant |
+| `view.factory()` | static — normal view |

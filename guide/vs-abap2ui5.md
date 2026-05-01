@@ -1,60 +1,60 @@
 # cap2UI5 vs. abap2UI5
 
-cap2UI5 ist eine **JavaScript-Portierung** des [abap2UI5](https://github.com/abap2UI5/abap2UI5)-Frameworks. Wenn du eines kennst, kennst du das andere zu 90%. Diese Seite zeigt die Gemeinsamkeiten, die kleinen Unterschiede und warum es überhaupt eine zweite Implementierung gibt.
+cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) framework. If you know one, you know the other 90%. This page shows the commonalities, the small differences, and why a second implementation exists in the first place.
 
-## Gemeinsamkeiten
+## Commonalities
 
-- **Identisches Frontend-Bundle.** cap2UI5 zieht das `app/webapp/`-Verzeichnis aus dem abap2UI5-Repo per CI ein. Das heißt: dasselbe UI5-Bundle, dieselben Custom-Controls, derselbe `Actions.js`-Handler, dasselbe Index-HTML-Boot-Pattern.
-- **Identisches Wire-Protokoll.** `POST /rest/root/z2ui5` mit `{ S_FRONT, XX, MODEL }` — Frontend kann nicht unterscheiden, ob ABAP oder Node.js antwortet.
-- **Identische Entwickler-API.** Klassennamen, Methoden, Pattern (`check_on_init`, `_bind_edit`, `_event`, `nav_app_call`) sind 1:1.
-- **Identisches Custom-Control-Set.** `geolocation`, `chartjs`, `file_uploader`, … alle laufen im Frontend identisch — der Server muss nur das XML korrekt rendern.
+- **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via CI. That means: same UI5 bundle, same custom controls, same `Actions.js` handler, same index HTML boot pattern.
+- **Identical wire protocol.** `POST /rest/root/z2ui5` with `{ S_FRONT, XX, MODEL }` — the frontend cannot tell whether ABAP or Node.js is responding.
+- **Identical developer API.** Class names, methods, patterns (`check_on_init`, `_bind_edit`, `_event`, `nav_app_call`) are 1:1.
+- **Identical custom control set.** `geolocation`, `chartjs`, `file_uploader`, … all run identically on the frontend — the server only has to render the XML correctly.
 
-## Unterschiede
+## Differences
 
-### Sprache & Typsystem
+### Language & type system
 
 | | abap2UI5 | cap2UI5 |
 |---|---|---|
-| Sprache | ABAP OO | JavaScript |
-| Typen   | statisch, mit Interface-Verträgen | dynamisch, JSDoc + duck typing |
-| Klassen-Lookup | RTTI über CCDIR | RTTI über file-system + `require` |
-| Persistenz | DB-Tabelle Z2UI5_T_01 in HANA | CDS-Entity `z2ui5_t_01` (CAP-DB) |
+| Language | ABAP OO | JavaScript |
+| Types   | static, with interface contracts | dynamic, JSDoc + duck typing |
+| Class lookup | RTTI via CCDIR | RTTI via file system + `require` |
+| Persistence | DB table Z2UI5_T_01 in HANA | CDS entity `z2ui5_t_01` (CAP DB) |
 
-### Backend-Hosting
+### Backend hosting
 
 | | abap2UI5 | cap2UI5 |
 |---|---|---|
 | Server | SAP NetWeaver / S/4 / RAP / BTP-ABAP | Node.js / CAP / Cloud Foundry |
-| Endpoint | ICF-Service (z.B. `/sap/bc/z2ui5`) | CDS-REST-Action (`/rest/root/z2ui5`) |
-| Auth | SAP-User, X.509, OAuth über SICF | XSUAA, IAS, Mock-Auth |
-| Externe Calls | `cl_http_client`, RFC, Service-Consumer | `cds.connect.to`, `fetch`, `axios` |
-| Datenzugriff | OpenSQL, AMDP | CDS-Queries (`SELECT.from(...)`), HANA-CCL |
+| Endpoint | ICF service (e.g. `/sap/bc/z2ui5`) | CDS REST action (`/rest/root/z2ui5`) |
+| Auth | SAP user, X.509, OAuth via SICF | XSUAA, IAS, mock auth |
+| External calls | `cl_http_client`, RFC, service consumer | `cds.connect.to`, `fetch`, `axios` |
+| Data access | OpenSQL, AMDP | CDS queries (`SELECT.from(...)`), HANA CCL |
 
-### Build & Deployment
+### Build & deployment
 
 | | abap2UI5 | cap2UI5 |
 |---|---|---|
-| Build | abapGit-Pull, Transport | `npm install`, `cds build` |
+| Build | abapGit pull, transport | `npm install`, `cds build` |
 | Deploy | STMS / abapGit / GCTS | `cf deploy mta_archives/...` |
-| Sticky-Sessions | ABAP-Session-Stickiness | Cloud-Foundry `RouteServiceUrl` |
-| HOT-Reload-DEV | inkrementelle Aktivierung | `npx cds w` |
+| Sticky sessions | ABAP session stickiness | Cloud Foundry `RouteServiceUrl` |
+| Hot-reload dev | incremental activation | `npx cds w` |
 
 ### Tooling
 
-abap2UI5-Apps schreibt man im SAP GUI / ADT. cap2UI5-Apps schreibt man in **VS Code, JetBrains, Cursor** — mit allen modernen JS-Tools (ESLint, Prettier, Jest, Debugger, Source Maps).
+abap2UI5 apps are written in SAP GUI / ADT. cap2UI5 apps are written in **VS Code, JetBrains, Cursor** — with all modern JS tooling (ESLint, Prettier, Jest, debugger, source maps).
 
-## Welche soll ich wählen?
+## Which should I choose?
 
-Das hängt **nicht** davon ab, welches Framework "besser" ist — beide sind 1:1-Äquivalente. Es hängt davon ab, **welcher Server-Stack zu deinem Projekt passt**:
+That **doesn't** depend on which framework is "better" — both are 1:1 equivalents. It depends on **which server stack fits your project**:
 
-- Du hast ein **bestehendes ABAP-System** und willst keine zweite Plattform → **abap2UI5**.
-- Du baust eine **neue Cloud-Anwendung** auf BTP / Cloud Foundry / Kyma → **cap2UI5**.
-- Du brauchst **CAP-Features** (Multi-Tenancy, OData v4 out-of-box, JS-Toolchain, async event mesh) → **cap2UI5**.
-- Du arbeitest in einer **Mixed-Landscape** und willst eine UI-Komponente, die in beiden Welten gleich aussieht → kannst du _exakt dieselbe_ App in beiden Frameworks deployen, da die Wire kompatibel ist.
+- You have an **existing ABAP system** and don't want a second platform → **abap2UI5**.
+- You're building a **new cloud application** on BTP / Cloud Foundry / Kyma → **cap2UI5**.
+- You need **CAP features** (multi-tenancy, OData v4 out of the box, JS toolchain, async event mesh) → **cap2UI5**.
+- You work in a **mixed landscape** and want a UI component that looks the same in both worlds → you can deploy _exactly the same_ app in both frameworks, since the wire is compatible.
 
-## Code-Vergleich
+## Code comparison
 
-ABAP-Version (`z2ui5_cl_app_hello_world.clas.abap`):
+ABAP version (`z2ui5_cl_app_hello_world.clas.abap`):
 
 ```abap
 CLASS z2ui5_cl_app_hello_world DEFINITION PUBLIC.
@@ -83,7 +83,7 @@ CLASS z2ui5_cl_app_hello_world IMPLEMENTATION.
 ENDCLASS.
 ```
 
-JS-Version (cap2UI5):
+JS version (cap2UI5):
 
 ```js
 class z2ui5_cl_app_hello_world extends z2ui5_if_app {
@@ -110,18 +110,18 @@ class z2ui5_cl_app_hello_world extends z2ui5_if_app {
 }
 ```
 
-Die Struktur ist **identisch**. Nur die Sprach-Idiome unterscheiden sich.
+The structure is **identical**. Only the language idioms differ.
 
 ## Migration ABAP → CAP
 
-Da Wire-Format und API kompatibel sind, ist eine Migration einer existierenden abap2UI5-App nach cap2UI5 mechanisch:
+Because the wire format and API are compatible, migrating an existing abap2UI5 app to cap2UI5 is mechanical:
 
-1. ABAP-Klasse in JS-Klasse umschreiben (Mapping ist 1:1)
-2. Datenzugriffe von OpenSQL auf CDS-Queries umstellen
-3. Externe Calls von `cl_http_client` auf `fetch`/`cds.connect.to` umstellen
-4. Im JS-Projekt `require` einbauen, in `srv/samples/` ablegen
-5. Aufrufen — fertig.
+1. Rewrite the ABAP class as a JS class (the mapping is 1:1)
+2. Convert data access from OpenSQL to CDS queries
+3. Convert external calls from `cl_http_client` to `fetch`/`cds.connect.to`
+4. Wire up `require` in the JS project, drop into `srv/samples/`
+5. Run it — done.
 
-Das gleiche statische Frontend rendert beide ohne Änderung.
+The same static frontend renders both without changes.
 
-→ Schau dir die [**Beispiele**](../examples/hello-world) an oder gehe direkt zur [**API-Referenz**](../api/client).
+→ Have a look at the [**examples**](../examples/hello-world) or jump straight to the [**API reference**](../api/client).

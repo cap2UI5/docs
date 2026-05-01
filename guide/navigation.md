@@ -1,6 +1,6 @@
 # Navigation
 
-cap2UI5-Apps können untereinander navigieren — der Server führt einen **Stack** der App-Instanzen, sodass Forward- und Back-Navigation natürlich funktionieren.
+cap2UI5 apps can navigate between each other — the server keeps a **stack** of app instances, so forward and back navigation work naturally.
 
 ## Forward: `nav_app_call(newApp)`
 
@@ -12,7 +12,7 @@ if (client.check_on_event("OPEN_DETAILS")) {
 }
 ```
 
-Das **schiebt die aktuelle App auf den Stack** und macht `detail` zur neuen Hauptapp. Der Handler-Loop wird die `main()` von `detail` direkt im selben Roundtrip aufrufen — `check_on_init()` ist dort `true`.
+This **pushes the current app onto the stack** and makes `detail` the new main app. The handler loop will call `main()` of `detail` directly within the same roundtrip — `check_on_init()` is `true` there.
 
 ## Back: `nav_app_leave()`
 
@@ -22,17 +22,17 @@ if (client.check_on_event("CANCEL")) {
 }
 ```
 
-**Pop**t die oberste App vom Stack zurück. Wenn der Stack leer ist, fällt das Framework auf den Startup-App zurück.
+**Pops** the topmost app off the stack. If the stack is empty, the framework falls back to the startup app.
 
-Optional kannst du eine **explizite App** angeben, zu der du zurück willst:
+Optionally you can specify an **explicit app** to jump back to:
 
 ```js
 client.nav_app_leave(some_specific_app);
 ```
 
-## Convenience: Page-Back-Button
+## Convenience: page back button
 
-Praktisch jede App will einen Page-Back-Button, der auf die vorherige App zurückspringt:
+Practically every app wants a page back button that jumps to the previous app:
 
 ```js
 view.Page({
@@ -42,23 +42,23 @@ view.Page({
 });
 ```
 
-`_event_nav_app_leave()` baut ein Spezial-Event, das **das Framework abfängt** — deine `main()` sieht es nicht. Es führt direkt ein `nav_app_leave()` aus.
+`_event_nav_app_leave()` builds a special event that **the framework intercepts** — your `main()` never sees it. It performs `nav_app_leave()` directly.
 
-`check_app_prev_stack()` liefert `true`, wenn der Stack nicht leer ist — gut, um den Button nur zu zeigen, wenn er sinnvoll ist.
+`check_app_prev_stack()` returns `true` when the stack is not empty — useful so the button is only shown when it makes sense.
 
-## Pop-Result: `get_app_prev()`
+## Pop result: `get_app_prev()`
 
-Das klassische Pattern: eine App öffnet einen "Selector", der eine Auswahl zurückliefert.
+The classic pattern: an app opens a "selector" that returns a selection.
 
 ```js
-// Hauptapp
+// main app
 if (client.check_on_event("PICK_USER")) {
   const picker = new user_picker();
   picker.search_term = this.search;
   client.nav_app_call(picker);
 }
 
-// nach Rückkehr aus Picker
+// after returning from picker
 if (client.check_on_navigated()) {
   const prev = client.get_app_prev();
   if (prev instanceof user_picker && prev.result?.confirmed) {
@@ -67,50 +67,50 @@ if (client.check_on_navigated()) {
 }
 ```
 
-`get_app_prev()` liefert die **gerade verlassene** App (nicht den Stack-Top). Sie ist nach einem Back-Nav für genau einen Roundtrip lesbar — danach wird sie verworfen.
+`get_app_prev()` returns the **just-left** app (not the stack top). It is readable for exactly one roundtrip after a back-nav — afterwards it is discarded.
 
-## App-Home & App-Back
+## App home & app back
 
-Zwei weitere Convenience-Methoden:
+Two more convenience methods:
 
 ```js
-client.nav_app_home();   // ← springt zum Startup, leert den Stack
-client.nav_app_back();   // ← genau ein Pop, fällt auf Home zurück, wenn leer
+client.nav_app_home();   // ← jumps to startup, clears the stack
+client.nav_app_back();   // ← single pop; falls back to home if empty
 ```
 
-Der Unterschied zu `nav_app_leave()`: `nav_app_back()` setzt zusätzlich das Flag `_navTargetIsLeave = true`, sodass der Stack-Pointer nicht erneut gepusht wird.
+Difference from `nav_app_leave()`: `nav_app_back()` additionally sets the flag `_navTargetIsLeave = true`, so the stack pointer is not pushed again.
 
-## Routing per URL
+## Routing via URL
 
-Du kannst per URL-Parameter direkt eine bestimmte App starten:
+You can directly start a specific app via URL parameter:
 
 ```
 /rest/root/z2ui5?app_start=my_app_name
 ```
 
-Das funktioniert über `factory_first_start` in `z2ui5_cl_core_action.js` — beim ersten Roundtrip ohne `S_FRONT.ID` schaut der Handler auf den Query-String, sucht die Klasse via RTTI und instanziiert sie.
+This works through `factory_first_start` in `z2ui5_cl_core_action.js` — on the first roundtrip without `S_FRONT.ID` the handler looks at the query string, finds the class via RTTI, and instantiates it.
 
-## Browser-History
+## Browser history
 
-Wenn du den Verlauf an die Browser-History koppeln willst:
+If you want to couple the history with the browser history:
 
 ```js
 client.set_push_state(true);
 ```
 
-Pusht den aktuellen Server-Zustand in `history.pushState`. Damit funktioniert der Browser-Back-Button — er löst dann ein Reload mit der vorherigen `S_FRONT.ID` aus.
+Pushes the current server state into `history.pushState`. With this the browser back button works — it then triggers a reload with the previous `S_FRONT.ID`.
 
-## Stack-Persistenz
+## Stack persistence
 
-Der Nav-Stack lebt über Roundtrips hinweg, weil:
+The nav stack survives across roundtrips because:
 
-1. Beim `db_save` der aktuellen App werden auch alle Apps im `_navStack` persistiert.
-2. Ihre IDs werden in `oApp.__navStackIds` gespeichert.
-3. Beim nächsten Load liest `_rehydrate_nav_stack` diese IDs und lädt die Stack-Apps neu.
+1. On `db_save` of the current app, all apps in the `_navStack` are also persisted.
+2. Their IDs are stored in `oApp.__navStackIds`.
+3. On the next load, `_rehydrate_nav_stack` reads these IDs and reloads the stack apps.
 
-Heißt: ein User kann den Browser refreshen, und der gesamte Navigation-Verlauf ist wiederhergestellt.
+Meaning: a user can refresh the browser and the entire navigation history is restored.
 
-## Beispiel: Master-Detail mit Picker
+## Example: master-detail with picker
 
 ```js
 class my_master extends z2ui5_if_app {
@@ -163,4 +163,4 @@ class my_user_picker extends z2ui5_if_app {
 }
 ```
 
-→ Weiter mit [**Persistenz & Sessions**](./persistence).
+→ Continue with [**Persistence & Sessions**](./persistence).

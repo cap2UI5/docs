@@ -1,131 +1,131 @@
 # API: `client`
 
-Das `client`-Objekt ist die einzige Schnittstelle, die deine App während eines Roundtrips zur Welt hat. Es wird als einziges Argument an `main(client)` übergeben.
+The `client` object is the only interface your app has to the outside world during a roundtrip. It is passed as the sole argument to `main(client)`.
 
-> Quelle: [`srv/z2ui5/02/z2ui5_cl_core_client.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/01/02/z2ui5_cl_core_client.js)
+> Source: [`srv/z2ui5/02/z2ui5_cl_core_client.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/01/02/z2ui5_cl_core_client.js)
 
-## Lifecycle-Checks
+## Lifecycle checks
 
-| Methode | Returns | Beschreibung |
+| Method | Returns | Description |
 |---|---|---|
-| `check_on_init()` | `boolean` | `true` beim ersten `main()` einer frischen App-Instanz |
-| `check_on_event(name?)` | `boolean` | `true` wenn das übergebene Event aktuell ist (oder, ohne Argument, ob _irgendein_ Event vorliegt) |
-| `check_on_navigated()` | `boolean` | `true` direkt nach `nav_app_call`/`nav_app_leave` |
-| `check_app_prev_stack()` | `boolean` | `true` wenn der Nav-Stack nicht leer ist |
+| `check_on_init()` | `boolean` | `true` on the first `main()` of a fresh app instance |
+| `check_on_event(name?)` | `boolean` | `true` if the given event is current (or, without an argument, whether _any_ event is present) |
+| `check_on_navigated()` | `boolean` | `true` directly after `nav_app_call`/`nav_app_leave` |
+| `check_app_prev_stack()` | `boolean` | `true` when the nav stack is not empty |
 
-## Data Binding
+## Data binding
 
-| Methode | Returns | Beschreibung |
+| Method | Returns | Description |
 |---|---|---|
-| `_bind(value, opts?)` | `string` | One-way-Binding → `{/path}` |
-| `_bind_edit(value, opts?)` | `string` | Two-way-Binding → `{/XX/path}` |
-| `_bind_local(value)` | `string` | Lokales Binding ohne App-Property |
+| `_bind(value, opts?)` | `string` | One-way binding → `{/path}` |
+| `_bind_edit(value, opts?)` | `string` | Two-way binding → `{/XX/path}` |
+| `_bind_local(value)` | `string` | Local binding without an app property |
 
-**`opts`** für `_bind` / `_bind_edit`:
-- `path: true` → liefert nackten Pfad ohne `{...}`
-- `path: "name"` → expliziter Pfad, kein Reference-Lookup
-- `custom_mapper: ".fmt"` → Formatter-Funktionsname
-- `custom_mapper_back: ".fmtBack"` → Reverse-Formatter (only `_bind_edit`)
-- `custom_filter: ".f"` / `custom_filter_back: ".fb"` → Aliase
-- `view: "POPUP"` → Ziel-View (selten nötig)
+**`opts`** for `_bind` / `_bind_edit`:
+- `path: true` → returns the bare path without `{...}`
+- `path: "name"` → explicit path, no reference lookup
+- `custom_mapper: ".fmt"` → formatter function name
+- `custom_mapper_back: ".fmtBack"` → reverse formatter (only `_bind_edit`)
+- `custom_filter: ".f"` / `custom_filter_back: ".fb"` → aliases
+- `view: "POPUP"` → target view (rarely needed)
 
 ## Events
 
-| Methode | Returns | Beschreibung |
+| Method | Returns | Description |
 |---|---|---|
-| `_event(name, args?, ctrl?, data?)` | `string` | Backend-Event (Roundtrip) |
-| `_event_client(name, args?)` | `string` | Frontend-Only-Event |
-| `_event_nav_app_leave()` | `string` | Spezial-Event für Page-Back-Button |
+| `_event(name, args?, ctrl?, data?)` | `string` | Backend event (roundtrip) |
+| `_event_client(name, args?)` | `string` | Frontend-only event |
+| `_event_nav_app_leave()` | `string` | Special event for the page back button |
 
-`ctrl` Optionen: `{ bypass_busy, force_main_model }`.
+`ctrl` options: `{ bypass_busy, force_main_model }`.
 
-`get_event_arg(n)` liest 1-basiert wie ABAP — JS-Style geht über `client.get().T_EVENT_ARG[index]`.
+`get_event_arg(n)` reads 1-based like ABAP — JS-style goes via `client.get().T_EVENT_ARG[index]`.
 
-## Request-Context
+## Request context
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `get()` | liefert `{ EVENT, T_EVENT_ARG, S_CONFIG, S_DRAFT, CHECK_LAUNCHPAD_ACTIVE, CHECK_ON_NAVIGATED, _S_NAV, R_EVENT_DATA }` |
-| `get_event_arg(n)` | n-tes Event-Arg (1-basiert) |
-| `get_frontend_data()` | rohes `S_FRONT`-Objekt |
-| `get_app(id?)` | aktuelle App-Instanz (oder `null` mit ID) |
-| `get_app_prev()` | vorherige App (vor Nav-Leave) |
+| `get()` | returns `{ EVENT, T_EVENT_ARG, S_CONFIG, S_DRAFT, CHECK_LAUNCHPAD_ACTIVE, CHECK_ON_NAVIGATED, _S_NAV, R_EVENT_DATA }` |
+| `get_event_arg(n)` | n-th event arg (1-based) |
+| `get_frontend_data()` | raw `S_FRONT` object |
+| `get_app(id?)` | current app instance (or `null` with an ID) |
+| `get_app_prev()` | previous app (before nav-leave) |
 
-## View-Slots
+## View slots
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `view_display(xml, anno?, modelPath?)` | Hauptview rendern |
-| `view_model_update()` | nur Modell-Delta rendern |
-| `view_destroy()` | Hauptview löschen |
-| `nest_view_display(xml, id, m_ins, m_dest?)` | Nested-View 1 |
-| `nest_view_model_update()` / `nest_view_destroy()` | dito |
-| `nest2_view_display(...)` / ... | Nested-View 2 |
-| `popup_display(xml)` | Popup öffnen |
-| `popup_model_update()` / `popup_destroy()` | dito |
-| `popover_display(xml, byId)` | Popover anzeigen |
-| `popover_model_update()` / `popover_destroy()` | dito |
+| `view_display(xml, anno?, modelPath?)` | Render main view |
+| `view_model_update()` | Render only the model delta |
+| `view_destroy()` | Remove main view |
+| `nest_view_display(xml, id, m_ins, m_dest?)` | Nested view 1 |
+| `nest_view_model_update()` / `nest_view_destroy()` | ditto |
+| `nest2_view_display(...)` / ... | Nested view 2 |
+| `popup_display(xml)` | Open popup |
+| `popup_model_update()` / `popup_destroy()` | ditto |
+| `popover_display(xml, byId)` | Show popover |
+| `popover_model_update()` / `popover_destroy()` | ditto |
 
 ## Messages
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `message_toast_display(text, opts?)` | kurzer Toast |
-| `message_box_display(text, type?, title?, ...)` | modales MessageBox |
+| `message_toast_display(text, opts?)` | Short toast |
+| `message_box_display(text, type?, title?, ...)` | Modal MessageBox |
 
-`opts` für Toast: `duration, width, my, at, of, offset, collision, animation_duration, animation_timing_function, onclose, autoclose, closeonbrowsernavigation, class`.
+`opts` for toast: `duration, width, my, at, of, offset, collision, animation_duration, animation_timing_function, onclose, autoclose, closeonbrowsernavigation, class`.
 
-`message_box_display`-Argumente in Reihenfolge: `text, type, title, styleclass, onclose, actions, emphasizedaction, initialfocus, textdirection, icon, details, closeonnavigation`.
+`message_box_display` arguments in order: `text, type, title, styleclass, onclose, actions, emphasizedaction, initialfocus, textdirection, icon, details, closeonnavigation`.
 
 ## Navigation
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `nav_app_call(app)` | forward — `app` auf Stack pushen |
-| `nav_app_leave(app?)` | back — Stack-Top oder explizite App |
-| `nav_app_home()` | zurück zum Startup |
-| `nav_app_back()` | identisch zu `nav_app_leave()`, aber explizit als "Back" markiert |
+| `nav_app_call(app)` | Forward — push `app` onto the stack |
+| `nav_app_leave(app?)` | Back — stack top or explicit app |
+| `nav_app_home()` | Back to startup |
+| `nav_app_back()` | Identical to `nav_app_leave()` but explicitly marked as "back" |
 
-## State-Setter
+## State setters
 
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `set_session_stateful(bool)` | sticky-Session aktivieren |
-| `set_app_state_active(bool)` | App-State im Frontend aktivieren |
-| `set_nav_back(bool)` | Browser-Back-Button-Verhalten |
-| `set_push_state(value)` | Browser-History-Push |
-| `follow_up_action(rawString)` | beliebige `eF`-Action queuen |
+| `set_session_stateful(bool)` | Activate sticky session |
+| `set_app_state_active(bool)` | Activate app state on the frontend |
+| `set_nav_back(bool)` | Browser back-button behavior |
+| `set_push_state(value)` | Browser history push |
+| `follow_up_action(rawString)` | Queue arbitrary `eF` action |
 
-## Frontend-Convenience-Methoden
+## Frontend convenience methods
 
-Alle queuen `eF`-Calls in `_follow_up_actions[]`. Werden in der Response als `S_FOLLOW_UP_ACTION.CUSTOM_JS` gesendet, der Frontend-Treiber führt sie sequentiell aus.
+All queue `eF` calls into `_follow_up_actions[]`. They are sent in the response as `S_FOLLOW_UP_ACTION.CUSTOM_JS`, and the frontend driver runs them sequentially.
 
-| Methode | Wirkung |
+| Method | Effect |
 |---|---|
-| `clipboard_copy(text)` | Text kopieren |
-| `clipboard_copy_app_state()` | aktuelle Deep-Link-URL kopieren |
-| `file_download(b64Url, filename)` | Datei downloaden |
-| `open_new_tab(url)` | Tab öffnen |
-| `location_reload(url)` | Page-Reload auf URL |
+| `clipboard_copy(text)` | Copy text |
+| `clipboard_copy_app_state()` | Copy current deep-link URL |
+| `file_download(b64Url, filename)` | Download file |
+| `open_new_tab(url)` | Open tab |
+| `location_reload(url)` | Page reload to URL |
 | `history_back()` | `history.back()` |
-| `system_logout(url?)` | Logout über FLP / URL |
-| `popup_close()`, `popover_close()` | aktuelles Popup/Popover schließen |
-| `cross_app_nav_to_prev_app()` | FLP: zurück |
-| `cross_app_nav_to_ext(target, params, mode?)` | FLP: extern |
-| `storage_set(type, prefix, key, value)` | Browser-Storage Set |
-| `storage_remove(type, prefix, key)` | Browser-Storage Remove |
-| `set_odata_model(url, name?, anno?)` | OData-Modell setzen |
-| `set_size_limit(view, limit)` / `reset_size_limit(view)` | Size-Limit |
+| `system_logout(url?)` | Logout via FLP / URL |
+| `popup_close()`, `popover_close()` | Close current popup/popover |
+| `cross_app_nav_to_prev_app()` | FLP: back |
+| `cross_app_nav_to_ext(target, params, mode?)` | FLP: external |
+| `storage_set(type, prefix, key, value)` | Browser storage set |
+| `storage_remove(type, prefix, key)` | Browser storage remove |
+| `set_odata_model(url, name?, anno?)` | Set OData model |
+| `set_size_limit(view, limit)` / `reset_size_limit(view)` | Size limit |
 | `url_helper_redirect(url, new_window?)` | URLHelper.redirect |
 | `url_helper_email({email, subject?, body?, cc?, bcc?, new_window?})` | mailto: |
-| `url_helper_sms({telephone, message?})` | SMS-Link |
-| `url_helper_tel(telephone)` | Tel-Link |
+| `url_helper_sms({telephone, message?})` | SMS link |
+| `url_helper_tel(telephone)` | Tel link |
 
-## Konstanten
+## Constants
 
-| | Wert |
+| | Value |
 |---|---|
-| `client.cs_event` (Instance-Getter) | `CS_EVENT` (siehe [Events](../guide/events#frontend-only-events-_event_client-name-args)) |
+| `client.cs_event` (instance getter) | `CS_EVENT` (see [Events](../guide/events#frontend-only-events-_event_client-name-args)) |
 | `client.cs_view` | `{ MAIN, NESTED, NESTED2, POPUP, POPOVER }` |
 | Static `z2ui5_cl_core_client.CS_BIND_TYPE` | `{ one_way, two_way }` |
-| Static `z2ui5_cl_core_client.EVENT_NAV_APP_LEAVE` | Reserved Event-Name |
+| Static `z2ui5_cl_core_client.EVENT_NAV_APP_LEAVE` | Reserved event name |

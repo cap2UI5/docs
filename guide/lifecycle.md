@@ -1,8 +1,8 @@
-# App-Lifecycle
+# App Lifecycle
 
-Eine cap2UI5-App ist eine JavaScript-Klasse mit einer einzigen Pflicht-Methode: `async main(client)`. Wann genau diese aufgerufen wird, was beim ersten Mal passiert, was bei nachfolgenden Roundtrips passiert — das ist der App-Lifecycle.
+A cap2UI5 app is a JavaScript class with a single mandatory method: `async main(client)`. When exactly it is called, what happens the first time, what happens on subsequent roundtrips — that is the app lifecycle.
 
-## Die Methode `main(client)`
+## The `main(client)` method
 
 ```js
 class my_app extends z2ui5_if_app {
@@ -10,30 +10,30 @@ class my_app extends z2ui5_if_app {
   some_field = "";
 
   async main(client) {
-    // wird bei JEDEM Roundtrip aufgerufen
+    // called on EVERY roundtrip
   }
 }
 ```
 
-Sie wird **bei jedem Roundtrip** aufgerufen — initialer Load, Button-Click, Selection-Change, Navigation, Popup-Schließen, … alles geht durch `main()`. Die Differenzierung machst du über die `check_*`-Methoden des `client`-Objekts.
+It is called **on every roundtrip** — initial load, button click, selection change, navigation, popup close, … everything goes through `main()`. You differentiate via the `check_*` methods of the `client` object.
 
-## Die drei Hauptzustände
+## The three main states
 
 ```js
 async main(client) {
 
   if (client.check_on_init()) {
-    // erster Aufruf der App-Instanz
+    // first call of the app instance
     return;
   }
 
   if (client.check_on_navigated()) {
-    // App wurde nach einem nav_app_call/leave gerade aktiviert
+    // app was just activated after a nav_app_call/leave
     return;
   }
 
   if (client.check_on_event("MY_EVENT")) {
-    // ein konkretes Event ist eingetreten
+    // a specific event has occurred
     return;
   }
 }
@@ -41,11 +41,11 @@ async main(client) {
 
 ### `check_on_init()`
 
-Liefert `true` **nur beim ersten** `main()`-Aufruf einer frischen App-Instanz. Das ist der Moment, in dem du:
+Returns `true` **only on the first** `main()` call of a fresh app instance. This is the moment when you:
 
-- Default-Werte setzt
-- Externe Daten lädst (`cds.connect.to(...)`)
-- Die initiale View renderst
+- Set default values
+- Load external data (`cds.connect.to(...)`)
+- Render the initial view
 
 ```js
 if (client.check_on_init()) {
@@ -56,11 +56,11 @@ if (client.check_on_init()) {
 }
 ```
 
-Intern: `check_on_init()` gibt `true` zurück, solange `oApp.check_initialized` falsy ist **und** kein Event-Name vorliegt. Nach `main()` setzt der Handler `check_initialized = true`, persistiert die Instanz und liefert die Response. Beim nächsten Roundtrip wird die Instanz aus der DB geladen — dann ist `check_initialized` bereits `true`, und `check_on_init()` liefert `false`.
+Internally: `check_on_init()` returns `true` as long as `oApp.check_initialized` is falsy **and** there is no event name. After `main()`, the handler sets `check_initialized = true`, persists the instance, and returns the response. On the next roundtrip the instance is loaded from the DB — by then `check_initialized` is already `true` and `check_on_init()` returns `false`.
 
 ### `check_on_event(name?)`
 
-Mit Argument: testet, ob das angegebene Event aktuell aktiv ist.
+With argument: tests whether the given event is currently active.
 
 ```js
 if (client.check_on_event("BUTTON_SAVE")) {
@@ -68,7 +68,7 @@ if (client.check_on_event("BUTTON_SAVE")) {
 }
 ```
 
-Ohne Argument: testet, ob _irgendein_ Event aktiv ist.
+Without argument: tests whether _any_ event is active.
 
 ```js
 if (client.check_on_event()) {
@@ -79,11 +79,11 @@ if (client.check_on_event()) {
 }
 ```
 
-Welcher Stil schöner ist, ist Geschmackssache — beide funktionieren identisch.
+Which style is nicer is a matter of taste — both work identically.
 
 ### `check_on_navigated()`
 
-Liefert `true` direkt nach einem `nav_app_call(...)` oder `nav_app_leave(...)`. In der hineinnavigierten App kannst du damit auf den Result eines Popups oder einer Sub-App reagieren:
+Returns `true` directly after a `nav_app_call(...)` or `nav_app_leave(...)`. In the navigated-into app you can use it to react to the result of a popup or a sub-app:
 
 ```js
 if (client.check_on_navigated()) {
@@ -94,16 +94,16 @@ if (client.check_on_navigated()) {
 }
 ```
 
-→ Mehr in [Navigation](./navigation).
+→ More in [Navigation](./navigation).
 
-## Was zwischen Roundtrips passiert
+## What happens between roundtrips
 
-Der Lifecycle einer App-Instanz:
+The lifecycle of an app instance:
 
 ```
             ┌──────────────────────────────────────┐
-            │ Erstes GET → Frontend lädt           │
-            │ Erster POST (S_FRONT.ID = "")        │
+            │ First GET → frontend loads           │
+            │ First POST (S_FRONT.ID = "")         │
             ▼                                      │
         action_factory                             │
         → factory_first_start (?app_start=…)       │
@@ -113,7 +113,7 @@ Der Lifecycle einer App-Instanz:
         new MyApp()                                │
             │                                      │
             ▼                                      │
-        apply XX delta (initial = leer)            │
+        apply XX delta (initial = empty)           │
             │                                      │
             ▼                                      │
         main(client)  ← check_on_init() === true   │
@@ -122,16 +122,16 @@ Der Lifecycle einer App-Instanz:
         check_initialized = true                   │
             │                                      │
             ▼                                      │
-        DB.saveApp() → neue UUID erzeugt           │
+        DB.saveApp() → new UUID generated          │
             │                                      │
             ▼                                      │
         Response: { S_FRONT: { ID: <uuid>, … } }   │
             │                                      │
             ▼                                      │
-        Browser zeigt View an                      │
+        Browser shows view                         │
             │                                      │
             ▼                                      │
-        User klickt Button                         │
+        User clicks button                         │
             │                                      │
             ▼                                      │
         POST { S_FRONT: { ID: <uuid>, EVENT, … }, XX: { … delta … } }
@@ -140,31 +140,31 @@ Der Lifecycle einer App-Instanz:
         action_factory → DB.loadApp(uuid)          │
             │                                      │
             ▼                                      │
-        deserialize → my_app-Instanz mit altem State
+        deserialize → my_app instance with old state
             │                                      │
             ▼                                      │
-        apply XX delta (User-Eingaben fließen ein) │
+        apply XX delta (user inputs flow in)       │
             │                                      │
             ▼                                      │
         main(client)  ← check_on_event(...) === true
             │                                      │
             ▼                                      │
-        DB.saveApp() → neue UUID                   │
+        DB.saveApp() → new UUID                    │
             └──────────────────────────────────────┘
 ```
 
-Wichtig:
+Important:
 
-1. **Die App-Instanz lebt nur für einen Roundtrip** im Speicher. Danach wird sie serialisiert.
-2. **Felder, die JSON-serialisierbar sind, überleben.** Funktionen, Closures, DOM-Refs, externe Connection-Objekte → nicht.
-3. **Properties wie `client` werden geskippt** (siehe `SKIP_PROPS` in `z2ui5_cl_core_srv_draft.js`), damit kein zyklischer Graph entsteht.
+1. **The app instance only lives for one roundtrip** in memory. Afterwards it is serialized.
+2. **Fields that are JSON-serializable survive.** Functions, closures, DOM refs, external connection objects → do not.
+3. **Properties like `client` are skipped** (see `SKIP_PROPS` in `z2ui5_cl_core_srv_draft.js`) so that no cyclic graph is created.
 
-## Pattern: Felder ↔ Reference-Equality-Bindings
+## Pattern: fields ↔ reference-equality bindings
 
 ```js
 class search_form extends z2ui5_if_app {
 
-  search    = "";    // ← bind_edit findet 'search' per Reference-Equality
+  search    = "";    // ← bind_edit finds 'search' via reference equality
   results   = [];
   page_size = 25;
 
@@ -186,7 +186,7 @@ class search_form extends z2ui5_if_app {
 }
 ```
 
-Felder, die du über Bindings exposierst, **müssen Direkt-Properties** der App sein. `_bind_edit(this.deep.path.field)` funktioniert _nicht_ für tief geschachtelte Werte — du würdest `this.deep` exposieren und den Sub-Pfad als String binden:
+Fields you expose via bindings **must be direct properties** of the app. `_bind_edit(this.deep.path.field)` does _not_ work for deeply nested values — you would expose `this.deep` and bind the sub-path as a string:
 
 ```js
 const path = client._bind_edit(this.deep, { path: true });
@@ -194,11 +194,11 @@ const path = client._bind_edit(this.deep, { path: true });
 .Input({ value: `{${path}/path/field}` })
 ```
 
-→ Vollständige Erklärung in [Data Binding](./data-binding).
+→ Full explanation in [Data Binding](./data-binding).
 
-## Framework-Felder (nicht selbst nutzen)
+## Framework fields (don't use yourself)
 
-Diese Properties auf `z2ui5_if_app` sind reserviert:
+These properties on `z2ui5_if_app` are reserved:
 
 ```js
 id_draft          = "";
@@ -207,7 +207,7 @@ check_initialized = false;
 check_sticky      = false;
 ```
 
-Nicht überschreiben — die Binding-Engine schließt sie explizit aus dem Reference-Lookup aus (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`), aber benutze sie nicht als eigenen App-State.
+Don't override — the binding engine explicitly excludes them from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`), but don't use them as your own app state either.
 
 ## Stickiness (optional)
 
@@ -216,6 +216,6 @@ this.check_sticky = true;
 client.set_session_stateful(true);
 ```
 
-Setzt eine sticky-Session — der Frontend-Treiber serialisiert dann die Roundtrips strenger nacheinander. Für Apps mit kritischer Reihenfolge oder File-Upload-Sequenzen sinnvoll, sonst nicht nötig.
+Sets a sticky session — the frontend driver then serializes roundtrips more strictly back-to-back. Useful for apps with critical ordering or file upload sequences, otherwise unnecessary.
 
-→ Weiter mit [**View Builder**](./views).
+→ Continue with [**View Builder**](./views).

@@ -1,6 +1,6 @@
 # Hello World
 
-Die einfachste Variante einer cap2UI5-App: Ein Eingabefeld, ein Button, eine Bestätigungs-Box.
+The simplest variation of a cap2UI5 app: an input field, a button, a confirmation box.
 
 ## Code
 
@@ -37,27 +37,27 @@ class z2ui5_cl_app_hello_world extends z2ui5_if_app {
 module.exports = z2ui5_cl_app_hello_world;
 ```
 
-## Was passiert
+## What happens
 
-| Phase | Was läuft ab |
+| Phase | What runs |
 |---|---|
-| **Initial Load** | Frontend POSTet leerer Body. Server hat keine `S_FRONT.ID`, fällt auf den Startup-App zurück. User klickt "Hello World"-Link. |
-| **App-Start** | Neuer `app_start=z2ui5_cl_app_hello_world` startet. `check_on_init() === true`, View wird gerendert. |
-| **User tippt** | Two-way-Binding via `client._bind_edit(this.name)` — Wert wandert ins XX-Delta. |
-| **User klickt "Send"** | Frontend schickt `S_FRONT.EVENT = "BUTTON_POST"` + XX-Delta mit `name`. Server appliziert Delta auf `this.name`, ruft `main()` auf. |
-| **`check_on_event("BUTTON_POST")`** | Wahr → `message_box_display(...)` mit dem aktuellen Namen. |
+| **Initial load** | Frontend POSTs an empty body. Server has no `S_FRONT.ID`, falls back to the startup app. User clicks the "Hello World" link. |
+| **App start** | New `app_start=z2ui5_cl_app_hello_world` starts. `check_on_init() === true`, view is rendered. |
+| **User types** | Two-way binding via `client._bind_edit(this.name)` — value flows into the XX delta. |
+| **User clicks "Send"** | Frontend sends `S_FRONT.EVENT = "BUTTON_POST"` + XX delta with `name`. Server applies the delta to `this.name` and calls `main()`. |
+| **`check_on_event("BUTTON_POST")`** | True → `message_box_display(...)` with the current name. |
 
-## Aufrufen
+## Launch
 
 ```
 http://localhost:4004/rest/root/z2ui5?app_start=z2ui5_cl_app_hello_world
 ```
 
-## Was du daraus lernen kannst
+## What you can take away from this
 
-- **Eine Datei = eine App.** Klassennamen passen zu Dateinamen.
-- **Zwei Phasen.** `check_on_init()` für die initiale View, `check_on_event(...)` für Events.
-- **Reference-Equality-Bindings**. `client._bind_edit(this.name)` findet den Pfad `/XX/name` selbst.
-- **Pure JavaScript.** Kein Manifest, keine Component, kein OData-Layer.
+- **One file = one app.** Class names match file names.
+- **Two phases.** `check_on_init()` for the initial view, `check_on_event(...)` for events.
+- **Reference-equality bindings.** `client._bind_edit(this.name)` finds the path `/XX/name` itself.
+- **Pure JavaScript.** No manifest, no component, no OData layer.
 
-→ Weiter mit [**Selection Screen**](./selection-screen) für eine reichere Form mit verschiedenen Control-Typen.
+→ Continue with [**Selection Screen**](./selection-screen) for a richer form with various control types.
