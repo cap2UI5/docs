@@ -20,7 +20,7 @@ export default defineConfig({
   },
 
   head: [
-    ['meta', { name: 'theme-color', content: '#1873B4' }],
+    ['meta', { name: 'theme-color', content: '#d03c4a' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'cap2UI5 — Server-driven UI5 for CAP' }],
     ['meta', { property: 'og:description', content: 'Build full UI5 applications from your CAP backend in JavaScript — no separate frontend project, no XML hand-crafting.' }]
@@ -127,7 +127,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/cap2UI5/docs/edit/main/:path',
+      pattern: 'https://github.com/cap2UI5/docs/edit/main/docs/:path',
       text: 'Edit this page on GitHub'
     }
   }

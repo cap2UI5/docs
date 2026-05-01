@@ -14,7 +14,7 @@ Opens the docs at http://localhost:5173.
 ## Build
 
 ```bash
-npm run docs:build       # → .vitepress/dist
+npm run docs:build       # → docs/.vitepress/dist
 npm run docs:preview     # → preview server
 ```
 
@@ -22,13 +22,17 @@ npm run docs:preview     # → preview server
 
 ```
 .
-├── .vitepress/config.mjs    # VitePress configuration
-├── index.md                 # Landing page
-├── guide/                   # Concepts, quickstart, lifecycle, bindings, …
-├── examples/                # End-to-end example apps
-├── api/                     # API reference (client, View Builder, App Interface)
-├── reference/               # Architecture, protocol, DB, deployment
-└── public/                  # Static assets
+├── docs/
+│   ├── .vitepress/
+│   │   ├── config.mjs       # VitePress configuration
+│   │   └── theme/           # Custom theme (red brand color)
+│   ├── index.md             # Landing page
+│   ├── guide/               # Concepts, quickstart, lifecycle, bindings, …
+│   ├── examples/            # End-to-end example apps
+│   ├── api/                 # API reference (client, View Builder, App Interface)
+│   └── reference/           # Architecture, protocol, DB, deployment
+├── package.json
+└── README.md
 ```
 
 ## License
