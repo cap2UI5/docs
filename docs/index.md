@@ -15,9 +15,6 @@ hero:
     - theme: alt
       text: What is cap2UI5?
       link: /guide/what-is-cap2ui5
-    - theme: alt
-      text: GitHub
-      link: https://github.com/cap2UI5/dev
 
 features:
   - title: Pure JavaScript apps
