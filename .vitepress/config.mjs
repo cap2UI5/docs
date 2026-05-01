@@ -7,6 +7,17 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
 
+  ignoreDeadLinks: [
+    /^https?:\/\/localhost/,
+    /\/LICENSE$/
+  ],
+
+  markdown: {
+    languageAlias: {
+      cds: 'js'
+    }
+  },
+
   head: [
     ['meta', { name: 'theme-color', content: '#1873B4' }],
     ['meta', { property: 'og:type', content: 'website' }],
