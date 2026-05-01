@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'cap2UI5',
   description: 'Bringing the abap2UI5 concept to CAP / Node.js — server-driven UI5 apps written in pure JavaScript',
   lang: 'de-DE',
+  base: '/docs/',
   cleanUrls: true,
   lastUpdated: true,
 
