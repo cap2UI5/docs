@@ -5,6 +5,9 @@ hero:
   name: "cap2UI5"
   text: "Server-driven UI5 for CAP"
   tagline: Build complete SAPUI5 apps directly from your CAP backend in JavaScript — no separate frontend project, no hand-crafted XML, no manifest tuning.
+  image:
+    src: /logo.jpeg
+    alt: cap2UI5
   actions:
     - theme: brand
       text: Quickstart
