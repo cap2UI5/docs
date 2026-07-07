@@ -85,7 +85,7 @@ Difference from `nav_app_leave()`: `nav_app_back()` additionally sets the flag `
 You can directly start a specific app via URL parameter:
 
 ```
-/rest/root/z2ui5?app_start=my_app_name
+/z2ui5/webapp/index.html?app_start=my_app_name
 ```
 
 This works through `factory_first_start` in `z2ui5_cl_core_action.js` — on the first roundtrip without `S_FRONT.ID` the handler looks at the query string, finds the class via RTTI, and instantiates it.

@@ -2,7 +2,7 @@
 
 The `client` object is the only interface your app has to the outside world during a roundtrip. It is passed as the sole argument to `main(client)`.
 
-> Source: [`srv/z2ui5/02/z2ui5_cl_core_client.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/01/02/z2ui5_cl_core_client.js)
+> Source: [`srv/z2ui5/02/z2ui5_cl_core_client.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/01/02/z2ui5_cl_core_client.js)
 
 ## Lifecycle checks
 

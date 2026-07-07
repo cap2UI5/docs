@@ -1,10 +1,10 @@
 # cap2UI5 vs. abap2UI5
 
-cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) framework. If you know one, you know the other 90%. This page shows the commonalities, the small differences, and why a second implementation exists in the first place.
+cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) framework. If you know one, you know the other 90%. This page shows the commonalities, the small differences, and why a second implementation exists in the first place. (New to abap2UI5 entirely? Start with [Where cap2UI5 comes from](./where-it-comes-from).)
 
 ## Commonalities
 
-- **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via CI. That means: same UI5 bundle, same custom controls, same `Actions.js` handler, same index HTML boot pattern.
+- **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via the automated [sync pipeline](./where-it-comes-from#how-the-port-actually-works). That means: same UI5 bundle, same custom controls, same `Actions.js` handler, same index HTML boot pattern.
 - **Identical wire protocol.** `POST /rest/root/z2ui5` with `{ S_FRONT, XX, MODEL }` — the frontend cannot tell whether ABAP or Node.js is responding.
 - **Identical developer API.** Class names, methods, patterns (`check_on_init`, `_bind_edit`, `_event`, `nav_app_call`) are 1:1.
 - **Identical custom control set.** `geolocation`, `chartjs`, `file_uploader`, … all run identically on the frontend — the server only has to render the XML correctly.
@@ -112,14 +112,24 @@ class z2ui5_cl_app_hello_world extends z2ui5_if_app {
 
 The structure is **identical**. Only the language idioms differ.
 
+## How the two stay in sync
+
+cap2UI5 is not a one-time fork. The [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5) runs an automated pipeline that mirrors abap2UI5 on every upstream push and **transpiles the ABAP sources to JavaScript** with *abap2js* (built on the [@abaplint](https://github.com/abaplint/abaplint) parser):
+
+- the **frontend** is taken over 1:1 (only the CDN bootstrap URL and the backend endpoint are patched),
+- the **sample apps** are fully machine-transpiled — that's why `srv/samples/` contains hundreds of `z2ui5_cl_demo_app_*` classes,
+- the **framework core** under `srv/z2ui5/` is a hand-maintained CAP adaptation; transpiled classes are only ever *added*, never overwrite the curated files.
+
+A jest suite gates every sync — only a green build is committed.
+
 ## Migration ABAP → CAP
 
 Because the wire format and API are compatible, migrating an existing abap2UI5 app to cap2UI5 is mechanical:
 
-1. Rewrite the ABAP class as a JS class (the mapping is 1:1)
+1. Rewrite the ABAP class as a JS class (the mapping is 1:1) — or let the transpiler do a first pass: `npm run transpile -- path/to/z2ui5_cl_my_app.clas.abap --stdout` in the repo root emits JavaScript, marking unsupported statements as `// TODO(abap2js)` comments instead of dropping them
 2. Convert data access from OpenSQL to CDS queries
 3. Convert external calls from `cl_http_client` to `fetch`/`cds.connect.to`
-4. Wire up `require` in the JS project, drop into `srv/samples/`
+4. Drop the file into `srv/samples/` (or a [registered app folder](./project-structure#srv-samples-your-apps-and-the-demos))
 5. Run it — done.
 
 The same static frontend renders both without changes.
