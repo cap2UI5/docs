@@ -89,22 +89,18 @@ You then need:
 
 ## Frontend update
 
-The `app/z2ui5/` directory is **not maintained by hand**. The repo has a `mirror_frontend` workflow:
+The `app/z2ui5/webapp` directory is **not maintained by hand** — it's a 1:1 mirror of abap2UI5's `app/webapp`, refreshed by the sync pipeline in the [repository root](https://github.com/cap2UI5/cap2UI5):
 
 ```bash
-# in cap2UI5/
-npm run mirror_frontend
+# in the repository root (one level above cap2UI5/)
+npm run mirror_abap2ui5   # snapshot the abap2UI5 repo into input/
+npm run prepare_app       # input/abap2UI5/app/webapp + patches → output/app/
+npm run copy_into_cap     # output/app → cap2UI5/app/z2ui5/webapp (replace)
 ```
 
-The script:
+Only two values are patched in (`scripts/patch-frontend.js`): the UI5 CDN bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json`. Everything else stays identical to upstream.
 
-1. Clones `https://github.com/abap2UI5/abap2UI5`
-2. Deletes `app/z2ui5/webapp`
-3. Copies `abap2UI5/app/webapp` as the new state
-4. Overwrites `index.html` and `manifest.json` with the cap2UI5 versions from `app/backup/`
-5. Discards the cloned folder
-
-In CI it runs as a GitHub Action (`.github/workflows/mirror_frontend.yml`). You can trigger it manually when a frontend patch needs to be pulled in.
+In CI the whole pipeline (`sync.yml`, steps 1–6) runs automatically on every abap2UI5 upstream push, plus a weekly safety-net cron; each step can also be dispatched manually. A jest suite gates the sync commit — only a green build is pushed. See [Where cap2UI5 comes from](../guide/where-it-comes-from#how-the-port-actually-works) for the full picture.
 
 ## Sticky session recommendation
 

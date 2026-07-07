@@ -1,11 +1,11 @@
 # API: View Builder
 
-The view builder generates UI5 XML views from JavaScript calls. Source: [`srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view.js).
+The view builder generates UI5 XML views from JavaScript calls. Source: [`srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view.js).
 
 ## Factories
 
 ```js
-const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
+const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
 z2ui5_cl_xml_view.factory();          // normal view
 z2ui5_cl_xml_view.factory_popup();    // popup/dialog view
@@ -84,7 +84,7 @@ In most cases you don't need this — builder methods automatically place the ne
 
 ## Custom controls (`z2ui5:` namespace)
 
-Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
+Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
 
 | Method | Custom control |
 |---|---|

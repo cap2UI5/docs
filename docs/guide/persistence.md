@@ -71,14 +71,17 @@ Serialization writes two meta fields into the output:
 
 On deserialization, `__filePath` is resolved and `require()`d, then a new instance is created and populated with `Object.assign`.
 
-`__filePath` is determined via `_findAppFile(className)`. It currently searches:
+`__filePath` is determined by the class lookup in `z2ui5_cl_util`. It searches, in order (first hit wins):
 
-1. `srv/z2ui5/02/<className>.js`
-2. `srv/z2ui5/02/01/<className>.js`
-3. `srv/samples/<className>.js`
+1. Framework built-ins: `srv/z2ui5/02/` and `srv/z2ui5/02/01/`
+2. The bundled `srv/samples/` folder
+3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — shortcut: `require("abap2UI5/register-apps")(dir)`
+4. Directories listed in the `Z2UI5_APP_DIRS` environment variable
 
-::: warning Keep your apps in the three paths
-If you want to put apps **somewhere else**, you'll need to extend `_findAppFile` in `z2ui5_cl_core_srv_draft.js`, otherwise the reload fails. In practice, `srv/samples/` is usually the simplest path.
+All directories are searched **recursively**; within one directory, a file at the top level wins over one in a subfolder. Classes registered directly via `z2ui5_cl_util.register_app_class(name, Cls)` bypass the filesystem entirely (that's how the [browser playground](./playground) works without a filesystem).
+
+::: warning File name = class name
+The lookup matches files by name, so a class is only found (and reloadable after a roundtrip) if its file is named `<className>.js` and lives in one of the paths above. If reloading fails, this convention is the first thing to check.
 :::
 
 ## Database backend

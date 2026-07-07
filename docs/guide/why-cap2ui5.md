@@ -1,6 +1,6 @@
 # Why cap2UI5?
 
-This page is aimed at **CAP developers** who need to deliver UI5 apps but are tired of the tooling overhead, duplicated data modeling and XML maintenance.
+This page is aimed at **CAP developers** who need to deliver UI5 apps but are tired of the tooling overhead, duplicated data modeling and XML maintenance. It assumes you've read [Server-Driven UI, Explained](./server-driven-ui) — the short version: between annotation-driven Fiori Elements and full freestyle UI5 projects there was no lightweight middle ground in the CAP world, and cap2UI5 fills exactly that gap.
 
 ## The problem in the classical world
 
@@ -50,7 +50,7 @@ my-cap-project/
     └── z2ui5/                       # ← static frontend (carried along unchanged)
 ```
 
-A new UI = **a new JS file in `srv/samples/`**. Available immediately via `?app_start=my_app`.
+A new UI = **a new JS file in `srv/samples/`** (or any [registered app folder](./project-structure#srv-samples-your-apps-and-the-demos)). Available immediately via `?app_start=my_app`.
 
 ## Concrete advantages
 
@@ -59,9 +59,9 @@ A new UI = **a new JS file in `srv/samples/`**. Available immediately via `?app_
 You spend the entire time in **JavaScript** (or TypeScript, if you prefer). No XML editor, no UI5 CLI, no second `npm install`. Your existing `cds watch` workflow is enough.
 
 ```bash
-npx cds w
+npx cds watch
 # → CAP server runs on :4004
-# → open /rest/root/z2ui5 → done
+# → open /z2ui5/webapp/index.html?app_start=my_app → done
 ```
 
 ### 2. Server state = app state

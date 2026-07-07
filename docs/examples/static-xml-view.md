@@ -8,7 +8,7 @@ If you already have a UI5 view **as an XML file** — exported from a designer, 
 // srv/samples/read_view.js
 const fs                = require("fs");
 const path              = require("path");
-const z2ui5_if_app      = require("../z2ui5/02/z2ui5_if_app");
+const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 
 class read_view extends z2ui5_if_app {
 

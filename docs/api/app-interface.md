@@ -1,11 +1,11 @@
 # API: App Interface
 
-Every cap2UI5 app must extend `z2ui5_if_app`. Source: [`srv/z2ui5/02/z2ui5_if_app.js`](https://github.com/cap2UI5/dev/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_if_app.js).
+Every cap2UI5 app must extend `z2ui5_if_app`. Source: [`srv/z2ui5/02/z2ui5_if_app.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_if_app.js).
 
 ## Definition
 
 ```js
-const z2ui5_if_app = require("../z2ui5/02/z2ui5_if_app");
+const z2ui5_if_app = require("abap2UI5/z2ui5_if_app");
 
 class my_app extends z2ui5_if_app {
   async main(client) {
@@ -93,6 +93,6 @@ new broken();  // ❌ "broken must implement async main(client)"
 
 abap2UI5 convention is `z2ui5_cl_app_xyz`. cap2UI5 sticks to that for library apps (Startup, Hello World, Pop helpers), but **your own apps** can be named however you like. Important:
 
-- **Class name === file name** (otherwise `_findAppFile` won't find the class on reload).
-- The file must live in one of the three lookup paths (`srv/z2ui5/02/`, `srv/z2ui5/02/01/`, `srv/samples/`) or you extend `_findAppFile`.
+- **Class name === file name** (otherwise the class lookup won't find the class on reload).
+- The file must live in one of the lookup paths: the framework folders (`srv/z2ui5/02/`, `srv/z2ui5/02/01/`), `srv/samples/`, a directory registered via `z2ui5_cl_util.register_app_dir(...)` / `require("abap2UI5/register-apps")(dir)`, or a path listed in `Z2UI5_APP_DIRS` — see [Persistence](../guide/persistence#class-restoration).
 - Class names should be **case-sensitive unique** — the lookup forces lowercase, so `MyApp` and `myapp` collide.

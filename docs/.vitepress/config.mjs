@@ -34,12 +34,14 @@ export default defineConfig({
       { text: 'Examples', link: '/examples/hello-world' },
       { text: 'API', link: '/api/client' },
       { text: 'Reference', link: '/reference/architecture' },
+      { text: 'Playground', link: 'https://cap2ui5.github.io/web-cap2UI5/' },
       {
         text: 'Links',
         items: [
-          { text: 'GitHub (dev)',  link: 'https://github.com/cap2UI5/dev' },
-          { text: 'GitHub (docs)', link: 'https://github.com/cap2UI5/docs' },
-          { text: 'abap2UI5',      link: 'https://github.com/abap2UI5/abap2UI5' }
+          { text: 'GitHub (cap2UI5)',     link: 'https://github.com/cap2UI5/cap2UI5' },
+          { text: 'GitHub (web-cap2UI5)', link: 'https://github.com/cap2UI5/web-cap2UI5' },
+          { text: 'GitHub (docs)',        link: 'https://github.com/cap2UI5/docs' },
+          { text: 'abap2UI5',             link: 'https://github.com/abap2UI5/abap2UI5' }
         ]
       }
     ],
@@ -49,10 +51,13 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: 'What is cap2UI5?',     link: '/guide/what-is-cap2ui5' },
-            { text: 'Why cap2UI5?',         link: '/guide/why-cap2ui5' },
-            { text: 'Quickstart',           link: '/guide/getting-started' },
-            { text: 'Project Structure',    link: '/guide/project-structure' }
+            { text: 'What is cap2UI5?',            link: '/guide/what-is-cap2ui5' },
+            { text: 'Server-Driven UI, Explained', link: '/guide/server-driven-ui' },
+            { text: 'Where cap2UI5 Comes From',    link: '/guide/where-it-comes-from' },
+            { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
+            { text: 'Try It in the Browser',       link: '/guide/playground' },
+            { text: 'Quickstart',                  link: '/guide/getting-started' },
+            { text: 'Project Structure',           link: '/guide/project-structure' }
           ]
         },
         {
@@ -114,7 +119,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/cap2UI5/dev' }
+      { icon: 'github', link: 'https://github.com/cap2UI5/cap2UI5' }
     ],
 
     footer: {

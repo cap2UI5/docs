@@ -6,8 +6,8 @@ A list with a selection-change event that reacts to a row selection. Shows the p
 
 ```js
 // srv/samples/my_list.js
-const z2ui5_if_app      = require("../z2ui5/02/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
+const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
 class my_list extends z2ui5_if_app {
 

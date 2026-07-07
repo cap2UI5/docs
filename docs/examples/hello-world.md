@@ -6,8 +6,8 @@ The simplest variation of a cap2UI5 app: an input field, a button, a confirmatio
 
 ```js
 // srv/samples/z2ui5_cl_app_hello_world.js
-const z2ui5_if_app      = require("../z2ui5/02/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
+const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
 class z2ui5_cl_app_hello_world extends z2ui5_if_app {
 
@@ -50,7 +50,13 @@ module.exports = z2ui5_cl_app_hello_world;
 ## Launch
 
 ```
-http://localhost:4004/rest/root/z2ui5?app_start=z2ui5_cl_app_hello_world
+http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world
+```
+
+Or, without installing anything, in the [browser playground](../guide/playground):
+
+```
+https://cap2ui5.github.io/web-cap2UI5/?app_start=z2ui5_cl_app_hello_world
 ```
 
 ## What you can take away from this

@@ -2,18 +2,24 @@
 
 This page takes you from "empty directory" to "clickable cap2UI5 app" in under five minutes.
 
+::: tip No installation at all?
+If you just want to *see* cap2UI5 first, open the [**browser playground**](./playground) — the whole stack, including all sample apps, runs on GitHub Pages.
+:::
+
 ## Prerequisites
 
-- **Node.js ≥ 20** (cap2UI5 builds on `@sap/cds ^9` and `express ^5`)
-- **`@sap/cds-dk`** installed globally: `npm i -g @sap/cds-dk`
+- **Node.js ≥ 20**
+- Internet access (the frontend loads SAPUI5 from the SAP CDN)
+
+That's it. No database setup (CAP starts an in-memory SQLite automatically), no global CLI installs (`@sap/cds-dk` is a dev dependency of the project).
 
 ## 1. Clone the project
 
-The easiest path is to clone the reference project from the dev repo:
+Clone the reference project — the CAP application lives in the `cap2UI5/` subfolder of the repo:
 
 ```bash
-git clone https://github.com/cap2UI5/dev.git my-cap2ui5-app
-cd my-cap2ui5-app/cap2UI5
+git clone https://github.com/cap2UI5/cap2UI5.git
+cd cap2UI5/cap2UI5
 npm install
 ```
 
@@ -22,37 +28,44 @@ The `cap2UI5/` subdirectory is a complete, self-contained CAP project:
 ```
 cap2UI5/
 ├── srv/
-│   ├── cat-service.cds         # service definitions incl. z2ui5 action
+│   ├── cat-service.cds         # service definitions incl. the z2ui5 action
 │   ├── cat-service.js          # service handler bindings
-│   ├── server.js               # CAP bootstrap with z2ui5 HTML endpoint
-│   ├── samples/                # example apps
-│   └── z2ui5/                  # framework code (don't touch)
+│   ├── server.js               # CAP bootstrap (HTML + CSRF endpoints)
+│   ├── samples/                # hundreds of demo apps (from abap2UI5)
+│   └── z2ui5/                  # framework library (don't touch)
 ├── db/
 │   └── schema.cds              # CDS entity z2ui5_t_01 for persistence
 ├── app/
-│   └── z2ui5/                  # static frontend bundle
+│   └── z2ui5/                  # static UI5 frontend (don't touch)
 └── package.json
 ```
 
 ## 2. Start
 
 ```bash
-npx cds w
-# or: npm start
+npx cds watch
+# or: start and open the app in the browser right away
+npm run watch-z2ui5
 ```
 
-Open the browser at [http://localhost:4004/rest/root/z2ui5](http://localhost:4004/rest/root/z2ui5).
+The server listens on [http://localhost:4004](http://localhost:4004):
 
-You'll see the **startup screen** (`z2ui5_cl_app_startup`) with an input field for the app name. By default it shows `z2ui5_cl_app_hello_world` — click **Check** → **Link to the Application** → done.
+| URL | What you get |
+|---|---|
+| [`/z2ui5/webapp/index.html`](http://localhost:4004/z2ui5/webapp/index.html) | the app — without a parameter, the startup launcher is shown |
+| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_demo_app_001` |
+| `/rest/root/z2ui5` | the roundtrip endpoint the frontend talks to |
+
+Click around the demo apps first — everything you see in `srv/samples/` can be started via `?app_start=<class_name>`.
 
 ## 3. Your first own app
 
-Inside the folder `srv/samples/` (or any other folder that the `_findAppFile` lookup finds — see [Persistence](./persistence)) create a new file `my_first_app.js`:
+Create a new file `my_first_app.js` in `srv/samples/`:
 
 ```js
 // srv/samples/my_first_app.js
-const z2ui5_if_app      = require("../z2ui5/02/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("../z2ui5/02/z2ui5_cl_xml_view");
+const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
 class my_first_app extends z2ui5_if_app {
 
@@ -96,19 +109,39 @@ class my_first_app extends z2ui5_if_app {
 module.exports = my_first_app;
 ```
 
+Two things worth noting:
+
+- The imports use the project's package exports (`require("abap2UI5/...")`) — no fragile relative paths. All bundled samples use the same style.
+- **File name = class name.** That convention is how the framework finds your class (see [Persistence](./persistence)).
+
 ## 4. Launch it
 
-In the startup screen enter `my_first_app` → **Check** → **Link to the Application**.
-
-Or directly via deep link: [http://localhost:4004/rest/root/z2ui5?app_start=my_first_app](http://localhost:4004/rest/root/z2ui5?app_start=my_first_app).
+Open [http://localhost:4004/z2ui5/webapp/index.html?app_start=my_first_app](http://localhost:4004/z2ui5/webapp/index.html?app_start=my_first_app) — done. (`cds watch` picks the new file up automatically.)
 
 ## What you just built
 
 In about 25 lines of JS you built a **stateful UI5 app** that:
 
 - Two-way-binds `who` to an input field (you type, the server receives it)
-- Persists `count` across roundtrips (the click counter even survives a browser refresh — the server stores the app instance in `z2ui5_t_01`)
-- No migration, no OData service definition, no manifest entry, no controller class
+- Persists `count` across roundtrips — the click counter even survives a browser refresh, because the server stores the app instance in the database
+- Needed no OData service, no manifest, no controller, no frontend build
+
+## Where do my apps live long-term?
+
+`srv/samples/` is the quickest place to start, but it's also where the sync pipeline maintains the transpiled abap2UI5 demos. For your own project you can keep apps in **any folder** and register it:
+
+```js
+// srv/server.js (or any file loaded at startup)
+require("abap2UI5/register-apps")(__dirname + "/my-apps");
+```
+
+or via environment variable, without touching code:
+
+```bash
+Z2UI5_APP_DIRS=/abs/path/to/my-apps npx cds watch
+```
+
+Registered directories are searched recursively; the file-name-equals-class-name convention still applies.
 
 ## Next steps
 

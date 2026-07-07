@@ -198,7 +198,7 @@ The layering is **no accident** — it's the abap2UI5 convention, ported to JS. 
 
 ## Wire-format compatibility
 
-The **frontend bundle** under `app/z2ui5/` is mirrored from the abap2UI5 repo via a CI workflow (`npm run mirror_frontend` in `cap2UI5/package.json`). This means: every patch in the abap2UI5 frontend code flows over here.
+The **frontend webapp** under `app/z2ui5/webapp` is mirrored 1:1 from the abap2UI5 repo by the [sync pipeline](../guide/where-it-comes-from#how-the-port-actually-works) that lives in the repository root (workflows `1 mirror abap2UI5` … `6 copy into cap`, or locally `npm run mirror_abap2ui5 && npm run prepare_app && npm run copy_into_cap`). Only the UI5 CDN bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json` are patched. This means: every patch in the abap2UI5 frontend code flows over here automatically.
 
 For that to work, cap2UI5's backend must speak **bit-exact the same wire format** as abap2UI5's ABAP backend:
 
@@ -215,5 +215,14 @@ This is visible in the code (see `z2ui5_cl_core_handler.main` at the bottom).
 - **CDS REST action instead of custom Express routing**: makes the z2ui5 endpoint an ordinary CAP service entry — auth, auditing, tracing apply automatically.
 - **CDS entity instead of a custom SQL table**: app persistence uses the normal CAP DB connection. Deploy on SQLite (dev), HANA (cloud), Postgres — works without code changes.
 - **`cds.connect.to(...)` in `main()`**: your apps have immediate access to all declared external services, without separate connection registration.
+
+## Extension hooks
+
+Two additive hooks decouple the framework core from Node/CAP specifics:
+
+- **`z2ui5_cl_util.register_app_class(name, Cls)` / `register_app_dir(dir)`** — plug app classes or directories into the class lookup without touching framework files (see [Persistence](../guide/persistence#class-restoration)).
+- **`z2ui5_cl_core_srv_draft.set_store(store)`** — swap the draft persistence backend (default: the CDS entity `z2ui5_t_01`).
+
+These two hooks are all it takes to run the entire backend **without CAP and without a filesystem** — that's how the [browser playground](../guide/playground) bundles the stack into a static site.
 
 → Continue with the [HTTP Protocol](./protocol).
