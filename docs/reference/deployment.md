@@ -89,18 +89,18 @@ You then need:
 
 ## Frontend update
 
-The `app/z2ui5/webapp` directory is **not maintained by hand** — it's a 1:1 mirror of abap2UI5's `app/webapp`, refreshed by the sync pipeline in the [repository root](https://github.com/cap2UI5/cap2UI5):
+The `app/z2ui5/webapp` directory is **not maintained by hand** — it's a 1:1 mirror of abap2UI5's `app/webapp`, refreshed by the sync pipeline in [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js):
 
 ```bash
-# in the repository root (one level above cap2UI5/)
-npm run mirror_abap2ui5   # snapshot the abap2UI5 repo into input/
-npm run prepare_app       # input/abap2UI5/app/webapp + patches → output/app/
-npm run copy_into_cap     # output/app → cap2UI5/app/z2ui5/webapp (replace)
+# in a builder-abap2UI5-js checkout
+npm run mirror_app        # snapshot the abap2UI5 webapp into the input mirror
+npm run prepare_app       # webapp + patches → prepared output
+npm run build_core        # assemble + publish → core/app/z2ui5/webapp
 ```
 
-Only two values are patched in (`scripts/patch-frontend.js`): the UI5 CDN bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json`. Everything else stays identical to upstream.
+Only two values are patched in (`scripts/patch-frontend.js`): the UI5 bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json`. Everything else stays identical to upstream.
 
-In CI the whole pipeline (`sync.yml`, steps 1–6) runs automatically on every abap2UI5 upstream push, plus a weekly safety-net cron; each step can also be dispatched manually. A jest suite gates the sync commit — only a green build is pushed. See [Where cap2UI5 comes from](../guide/where-it-comes-from#how-the-port-actually-works) for the full picture.
+In CI the `update_frontend` workflow (mirror → prepare → build core) runs nightly and can be dispatched manually; [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5)'s `update_cap` workflow then rebuilds the CAP app and publishes it 1:1 into the [cap2UI5 repo](https://github.com/cap2UI5/cap2UI5). A jest suite gates the sync commit — only a green build is pushed. See [Where cap2UI5 comes from](../guide/where-it-comes-from#how-the-port-actually-works) for the full picture.
 
 ## Sticky session recommendation
 

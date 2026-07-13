@@ -49,7 +49,7 @@ view
 They are lowercase to distinguish them from the control methods (`PascalCase`).
 
 ::: info Two method styles
-Besides the `PascalCase` methods used in these docs, the builder also offers **lowercase, abap2UI5-style methods** (`.shell().page().input(...)`) — the transpiled sample apps in `srv/samples/` use that style, since it maps 1:1 to the ABAP originals. Both styles produce the same XML; pick whichever reads better to you.
+Besides the `PascalCase` methods used in these docs, the builder also offers **lowercase, abap2UI5-style methods** (`.shell().page().input(...)`) — the transpiled sample apps in `core/srv/app/samples/` use that style, since it maps 1:1 to the ABAP originals. Both styles produce the same XML; pick whichever reads better to you.
 :::
 
 ## Common controls
@@ -119,7 +119,7 @@ Available custom controls (selection):
 - `spreadsheet_export` — Excel export
 - `multiinput_ext`, `smartmultiinput_ext` — extended MultiInputs
 
-All docs: [`srv/z2ui5/02/z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js).
+All docs: [`core/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js).
 
 ## Embedding static XML
 

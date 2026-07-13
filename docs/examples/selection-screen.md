@@ -5,7 +5,7 @@ A classic input mask with combobox, DatePicker, checkbox, switch — comparable 
 ## Code
 
 ```js
-// srv/samples/selection_screen.js
+// srv/app/selection_screen.js
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 

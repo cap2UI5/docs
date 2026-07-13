@@ -27,7 +27,7 @@ Three fields, nothing more. Every roundtrip performs an `INSERT.into(z2ui5_t_01)
 ```json
 {
   "__className": "my_app",
-  "__filePath":  "../../samples/my_app.js",
+  "__filePath":  "../../../app/samples/my_app.js",
   "id_draft":    "",
   "id_app":      "",
   "check_initialized": true,

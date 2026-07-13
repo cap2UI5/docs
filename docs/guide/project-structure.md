@@ -1,6 +1,6 @@
 # Project Structure
 
-A cap2UI5 project is a **completely ordinary CAP project** with two additional building blocks: the `z2ui5/` framework folder under `srv/` and the static frontend under `app/z2ui5/`. This page shows what lives where and why.
+A cap2UI5 project is a **completely ordinary CAP project** with two additional building blocks: the vendored framework package at `core/` and the static frontend under `app/z2ui5/`. This page shows what lives where and why.
 
 ## Top level
 
@@ -11,17 +11,23 @@ cap2UI5/
 ├── db/
 │   └── schema.cds              # ← persistence table z2ui5_t_01
 ├── srv/
-│   ├── cat-service.cds         # ← CDS service definitions
-│   ├── cat-service.js          # ← service handlers
+│   ├── z2ui5-service.cds       # ← CDS service definitions
+│   ├── z2ui5-service.js        # ← service handlers
 │   ├── server.js               # ← CAP bootstrap
-│   ├── samples/                # ← demo apps + a good place for your own
-│   └── z2ui5/                  # ← framework library
+│   ├── app/                    # ← your own apps (user-owned)
+│   └── external/               # ← imported external service models
+├── core/                       # ← the vendored abap2UI5 framework package
+├── test/                       # ← jest suite
 ├── mta.yaml                    # ← Cloud Foundry deployment
 ├── xs-security.json
-└── package.json
+└── package.json                # ← depends on "abap2UI5": "file:./core"
 ```
 
-## `srv/cat-service.cds` — the service
+::: info Generated repository
+The whole [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5) is **generated** by [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5). Hand-written changes to the app skeleton belong in `builder-cap2UI5`'s `src/`; changes to the framework belong in [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js)'s `src/`. In your **own** project, `srv/app/` (and your own services) are of course yours to edit.
+:::
+
+## `srv/z2ui5-service.cds` — the service
 
 The file declares two services. The first (`AdminService`) is optional — it is the "normal" CDS interface for external OData consumers. The second (`rootService`) is the **heart of cap2UI5**:
 
@@ -41,11 +47,11 @@ A single action `z2ui5(value)` — the entire roundtrip runs through here. CAP i
 
 → More in [HTTP Protocol](../reference/protocol).
 
-## `srv/cat-service.js` — the handler
+## `srv/z2ui5-service.js` — the handler
 
 ```js
 const cds = require("@sap/cds");
-const z2ui5_cl_http_handler = require("./z2ui5/02/z2ui5_cl_http_handler");
+const z2ui5_cl_http_handler = require("abap2UI5/z2ui5_cl_http_handler");
 
 module.exports = cds.service.impl(async function (srv) {
   srv.on("z2ui5", z2ui5_cl_http_handler);
@@ -62,7 +68,7 @@ CDS REST actions only understand POST, so `server.js` registers two extra routes
 - `GET /rest/root/z2ui5` — delivers the bootstrap HTML (with security headers, theme, and CSP resolved through the framework's exit/config mechanism, mirroring abap2UI5's `_http_get`)
 - `HEAD /rest/root/z2ui5` — answers the frontend's CSRF prefetch
 
-You rarely need to touch this file — except to [register your own app directories](#srv-samples-your-apps-and-the-demos).
+It also serves the local UI5 runtime at `/resources` and injects the CAP-backed draft store into the framework engine. You rarely need to touch this file — except to [register your own app directories](#srv-app-your-apps-and-the-bundled-demos).
 
 ## `db/schema.cds` — the persistence
 
@@ -80,28 +86,45 @@ This is where the **serialized app instances** land between roundtrips. Every re
 
 → Details in [Database Model](../reference/database).
 
-## `srv/z2ui5/` — the framework
+## `core/` — the framework
+
+The framework is a **vendored npm package** named `abap2UI5`, wired up as an ordinary dependency in `package.json`:
+
+```json
+"dependencies": {
+  "abap2UI5": "file:./core"
+}
+```
 
 ```
-srv/z2ui5/
-├── 00/                                  # pure utilities (ajson, sorting, util)
-│   └── 03/z2ui5_cl_util.js              # RTTI / class lookup / app registry
-├── 01/                                  # core plumbing
-│   ├── 01/z2ui5_cl_core_srv_draft.js    # serialize / DB persistence
-│   ├── 02/z2ui5_cl_core_handler.js      # roundtrip orchestrator
-│   ├── 02/z2ui5_cl_core_client.js       # the client class (your API)
-│   ├── 02/z2ui5_cl_core_srv_bind.js     # _bind / _bind_edit implementation
-│   ├── 02/…                             # action, model, event services
-│   └── 03/z2ui5_cl_app_index_html.js    # bootstrap HTML as a JS module
-├── 02/                                  # public API
-│   ├── z2ui5_if_app.js                  # base class for apps
-│   ├── z2ui5_cl_http_handler.js         # CDS action adapter
-│   ├── z2ui5_cl_xml_view.js             # view builder
-│   ├── z2ui5_cl_xml_view_cc.js          # custom control decorator
-│   ├── z2ui5_cl_app_startup.js          # built-in launcher
-│   ├── z2ui5_cl_app_hello_world.js      # mini example
-│   └── 01/z2ui5_cl_pop_*.js             # popup helpers
-└── register-apps.js                     # convenience hook for external app repos
+core/                                        # npm package "abap2UI5"
+├── package.json                             # exports map for require("abap2UI5/…")
+├── app/
+│   └── z2ui5/webapp/                        # frontend source (mirrored to app/z2ui5/)
+└── srv/
+    ├── app/
+    │   └── samples/                         # bundled demo apps (pipeline-owned)
+    └── z2ui5/
+        ├── 00/                              # pure utilities (ajson, sorting, util)
+        │   └── 03/z2ui5_cl_util.js          # RTTI / class lookup / app registry
+        ├── 01/                              # core plumbing
+        │   ├── 01/z2ui5_cl_core_srv_draft.js   # serialize / DB persistence
+        │   ├── 02/z2ui5_cl_core_handler.js     # roundtrip orchestrator
+        │   ├── 02/z2ui5_cl_core_client.js      # the client class (your API)
+        │   ├── 02/z2ui5_cl_core_srv_bind.js    # _bind / _bind_edit implementation
+        │   ├── 02/…                            # action, model, event services
+        │   └── 03/z2ui5_cl_app_index_html.js   # bootstrap HTML as a JS module
+        ├── 02/                              # public API
+        │   ├── z2ui5_if_app.js              # base class for apps
+        │   ├── z2ui5_cl_http_handler.js     # CDS action adapter
+        │   ├── z2ui5_cl_xml_view.js         # view builder
+        │   ├── z2ui5_cl_xml_view_cc.js      # custom control decorator
+        │   ├── z2ui5_cl_app_startup.js      # built-in launcher
+        │   └── z2ui5_cl_app_hello_world.js  # mini example
+        ├── 99/                              # add-ons
+        │   └── 02/z2ui5_cl_pop_*.js         # popup helpers
+        ├── engine.js                        # platform-neutral surface (roundtrip, bootstrap, ports)
+        └── register-apps.js                 # convenience hook for external app repos
 ```
 
 The numbering `00/`, `01/`, `02/` mirrors the abap2UI5 layering (see [Where cap2UI5 comes from](./where-it-comes-from)):
@@ -109,42 +132,43 @@ The numbering `00/`, `01/`, `02/` mirrors the abap2UI5 layering (see [Where cap2
 - **`00/`** — pure utilities, no dependencies into the system
 - **`01/`** — core plumbing (persistence, handler, binding engine, HTML bootstrap)
 - **`02/`** — everything app developers **import directly**
+- **`99/`** — add-ons (utility classes, popup helpers)
 
-As an app developer you almost always need exactly two imports, via the project's package exports:
+As an app developer you almost always need exactly two imports, via the package's exports:
 
 ```js
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 ```
 
-(The package is named `abap2UI5` — Node's self-reference feature makes these exports available inside the project itself, and external app repos can depend on it the same way.)
+(The package is named `abap2UI5` and linked into the project via `"abap2UI5": "file:./core"` — a real, vendored dependency. Requires like `require("abap2UI5/z2ui5_if_app")` resolve through the exports map in `core/package.json`, and external app repos can depend on the same package the same way.)
 
 ::: warning Hands off the framework tree
-`srv/z2ui5/` is maintained as a port of abap2UI5 and updated by the [sync pipeline](./where-it-comes-from#how-the-port-actually-works). Treat it as a library: read it, learn from it, but don't edit it.
+`core/` is generated by [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) and refreshed by the [sync pipeline](./where-it-comes-from#how-the-port-actually-works). Treat it as a library: read it, learn from it, but don't edit it.
 :::
 
-## `srv/samples/` — your apps and the demos
+## `srv/app/` — your apps and the bundled demos
 
-A flat folder of `*.js` files, each containing _one_ app class. Convention: **file name = class name**.
+This is where **your own** app files go: a folder of `*.js` files, each containing _one_ app class. Convention: **file name = class name**. It is scanned automatically (registered in `srv/server.js` via `engine.register_app_dir(...)`), is not touched by the sync workflows, and ships with `z2ui5_cl_app_read_odata.js` as a starting point.
 
-It ships with hundreds of `z2ui5_cl_demo_app_*` classes — the transpiled [abap2UI5 samples](https://github.com/abap2UI5/samples), a live cookbook you can start via `?app_start=z2ui5_cl_demo_app_001` etc. Note that the sync pipeline owns these files: they are overwritten on every upstream sync. Your **own** files with other names are safe, but for real projects a separate folder is cleaner.
+The framework additionally bundles hundreds of `z2ui5_cl_demo_app_*` classes under `core/srv/app/samples/` — the transpiled [abap2UI5 samples](https://github.com/abap2UI5/samples), a live cookbook you can start via `?app_start=z2ui5_cl_demo_app_001` etc. Note that the sync pipeline owns that folder: it is overwritten on every upstream sync — keep your own files in `srv/app/` (or a registered folder) instead.
 
 The class lookup searches, in order:
 
-1. Framework built-ins (`srv/z2ui5/02/`, `srv/z2ui5/02/01/`)
-2. The bundled `srv/samples/` folder
-3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — or the shortcut `require("abap2UI5/register-apps")(dir)`
+1. Framework built-ins (`core/srv/z2ui5/02/`, `core/srv/z2ui5/99/02/`)
+2. The core package's app folder, including the bundled samples (`core/srv/app/` + `core/srv/app/samples/`)
+3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — or the shortcut `require("abap2UI5/register-apps")(dir)`; the project's `srv/app/` is registered this way in `srv/server.js`
 4. Directories in the `Z2UI5_APP_DIRS` environment variable (path-separated list)
 
 All directories are searched **recursively**, so you can organize your apps in subfolders. There is also `z2ui5_cl_util.register_app_class(name, Cls)` to register a class directly without any filesystem lookup — that's the hook the [browser playground](./playground) uses.
 
 ## `app/z2ui5/` — the frontend
 
-A **finished, static** UI5 webapp, mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5)'s `app/webapp` folder by the sync pipeline. You don't touch it; upstream updates flow in automatically. CAP serves it at `/z2ui5/webapp/`.
+A **finished, static** UI5 webapp, mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5)'s `app/webapp` folder by the sync pipeline (via the core package's `core/app/z2ui5/webapp/`). You don't touch it; upstream updates flow in automatically. CAP serves it at `/z2ui5/webapp/`.
 
 Only two values are cap2UI5-specific and get patched in during the sync (no locally maintained copies):
 
-- the UI5 **CDN bootstrap URL** in `index.html`
+- the UI5 **bootstrap URL** in `index.html` (points at the server's local `/resources` runtime)
 - the **`/rest/root/z2ui5` data source** in `manifest.json`
 
 ## `package.json` — the configuration
@@ -170,6 +194,6 @@ Look at the `cds.requires` block:
 
 You declare external services as usual and call them from your apps via `cds.connect.to(...)`. See the Northwind example under [External OData](../examples/external-odata).
 
-Also note the `exports` map at the top of `package.json` — it's what makes the `require("abap2UI5/…")` imports work, both inside the project and for external app repositories.
+Also note the `"abap2UI5": "file:./core"` dependency — together with the `exports` map in `core/package.json` it's what makes the `require("abap2UI5/…")` imports work, both inside the project and for external app repositories.
 
 → Continue to the [**App Lifecycle**](./lifecycle).

@@ -40,17 +40,17 @@ With cap2UI5 the structure shrinks to:
 ```
 my-cap-project/
 ├── srv/
-│   ├── cat-service.cds              # ← + 4 lines for the z2ui5 action
-│   ├── cat-service.js               # ← + 1 line srv.on('z2ui5', handler)
+│   ├── z2ui5-service.cds            # ← + 4 lines for the z2ui5 action
+│   ├── z2ui5-service.js             # ← + 1 line srv.on('z2ui5', handler)
 │   ├── server.js                    # ← + bootstrap HTML mount
-│   ├── samples/
-│   │   └── my_app.js                # ← your app. One file.
-│   └── z2ui5/                       # ← library (carried along unchanged)
+│   └── app/
+│       └── my_app.js                # ← your app. One file.
+├── core/                            # ← vendored library (carried along unchanged)
 └── app/
     └── z2ui5/                       # ← static frontend (carried along unchanged)
 ```
 
-A new UI = **a new JS file in `srv/samples/`** (or any [registered app folder](./project-structure#srv-samples-your-apps-and-the-demos)). Available immediately via `?app_start=my_app`.
+A new UI = **a new JS file in `srv/app/`** (or any [registered app folder](./project-structure#srv-app-your-apps-and-the-bundled-demos)). Available immediately via `?app_start=my_app`.
 
 ## Concrete advantages
 

@@ -18,9 +18,9 @@ This page shows in detail **how a roundtrip flows through the system** — from 
              ▼
 ┌──────── CAP server ─────────┐
 │  Express + @sap/cds         │
-│  cat-service.cds            │
+│  z2ui5-service.cds          │
 │   action z2ui5(value)       │
-│  cat-service.js             │
+│  z2ui5-service.js           │
 │   srv.on('z2ui5', handler)  │
 └────────────┬────────────────┘
              │
@@ -51,7 +51,7 @@ This page shows in detail **how a roundtrip flows through the system** — from 
 
 ### 1. HTTP reception
 
-The `cat-service.cds` declares:
+The `z2ui5-service.cds` declares:
 
 ```cds
 @protocol: 'rest'
@@ -65,12 +65,12 @@ CAP automatically exposes this under `POST /rest/root/z2ui5`. The body lands as 
 
 In addition, `server.js` registers via `cds.on("bootstrap", ...)`:
 
-- `GET /rest/root/z2ui5` → returns the bootstrap HTML from `z2ui5_cl_app_index_html.get_source()`
+- `GET /rest/root/z2ui5` → returns the bootstrap HTML via `engine.bootstrap_html(...)`
 - `HEAD /rest/root/z2ui5` → CSRF token prefetch and sap-terminate ack
 
 ### 2. CDS action handler
 
-In `cat-service.js`:
+In `z2ui5-service.js`:
 
 ```js
 srv.on("z2ui5", z2ui5_cl_http_handler);
@@ -166,7 +166,7 @@ return JSON.stringify(oResponse);
 
 ## Class architecture
 
-The `cap2UI5/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
+The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 
 ```
 00 — Pure utilities (no framework dependencies)
@@ -190,15 +190,18 @@ The `cap2UI5/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 ├─ z2ui5_cl_xml_view             View Builder
 ├─ z2ui5_cl_xml_view_cc          Custom control decorator
 ├─ z2ui5_cl_app_startup          Built-in launcher
-├─ z2ui5_cl_app_hello_world      Mini example
-└─ 01/z2ui5_cl_pop_*             Pop helpers
+└─ z2ui5_cl_app_hello_world      Mini example
+
+99 — Add-ons
+├─ 01/z2ui5_cl_util_*            Utility classes
+└─ 02/z2ui5_cl_pop_*             Pop helpers
 ```
 
 The layering is **no accident** — it's the abap2UI5 convention, ported to JS. If you read into one of these files, you'll find the same layout in the abap2UI5 repo.
 
 ## Wire-format compatibility
 
-The **frontend webapp** under `app/z2ui5/webapp` is mirrored 1:1 from the abap2UI5 repo by the [sync pipeline](../guide/where-it-comes-from#how-the-port-actually-works) that lives in the repository root (workflows `1 mirror abap2UI5` … `6 copy into cap`, or locally `npm run mirror_abap2ui5 && npm run prepare_app && npm run copy_into_cap`). Only the UI5 CDN bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json` are patched. This means: every patch in the abap2UI5 frontend code flows over here automatically.
+The **frontend webapp** under `app/z2ui5/webapp` is mirrored 1:1 from the abap2UI5 repo by the [sync pipeline](../guide/where-it-comes-from#how-the-port-actually-works) in [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) (workflow `update_frontend`, or locally `npm run mirror_app && npm run prepare_app && npm run build_core`); [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5)'s `update_cap` workflow then publishes it into the app repo. Only the UI5 bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json` are patched. This means: every patch in the abap2UI5 frontend code flows over here automatically.
 
 For that to work, cap2UI5's backend must speak **bit-exact the same wire format** as abap2UI5's ABAP backend:
 

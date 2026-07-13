@@ -22,29 +22,37 @@ The problem abap2UI5 solved in ABAP — *"I just need a small UI and I don't wan
 
 ## How the port actually works
 
-This is the interesting part, and it's more than a one-time copy. cap2UI5 stays **continuously in sync** with abap2UI5 through an automated pipeline in the [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5):
+This is the interesting part, and it's more than a one-time copy. cap2UI5 stays **continuously in sync** with abap2UI5 through automated pipelines in two build repositories — [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) (the framework build) and [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5) (the app build):
 
 ```
 abap2UI5 (ABAP sources + UI5 frontend)          abap2UI5/samples
         │                                              │
-        │ push to main triggers…                       │
         ▼                                              ▼
-┌──────────────────────── cap2UI5 sync pipeline ────────────────────────┐
-│ 1–2  mirror     snapshot upstream sources into input/                 │
-│ 3–4  transpile  ABAP → JavaScript with abap2js (parser: @abaplint)    │
-│ 5    prepare    take the UI5 frontend 1:1, patch two config values    │
-│ 6    copy       apply everything into the CAP project (cap2UI5/)      │
-│      test       jest suite gates the commit — only green gets pushed  │
-└───────────────────────────────────────────────────────────────────────┘
+┌──────────── builder-abap2UI5-js sync pipelines ───────────────────────┐
+│ update_backend   mirror → transpile ABAP → JS with abap2js            │
+│                  (parser: @abaplint) → core/srv/z2ui5                 │
+│ update_frontend  mirror → take the UI5 webapp 1:1, patch two          │
+│                  config values → core/app/z2ui5/webapp                │
+│ update_samples   mirror → transpile the demo apps                     │
+│                  → core/srv/app/samples                               │
+│ build_core       overlay the generated trees on the hand-written      │
+│                  src/ → publish the core package into core/           │
+│                  jest suite gates the commit — only green gets pushed │
+└────────────────────────────────┬───────────────────────────────────────┘
+                                 ▼
+┌──────────── builder-cap2UI5 update_cap ────────────────────────────────┐
+│ mirror the published core → assemble the CAP app (src/ + vendored     │
+│ core) → test → publish 1:1 into the deployable cap2UI5/cap2UI5 repo   │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 Three different sync policies keep the pieces healthy:
 
 | Piece | Where it lands | Policy |
 |---|---|---|
-| **Frontend** (`app/webapp` from abap2UI5) | `cap2UI5/app/z2ui5/webapp` | replaced 1:1 — only the UI5 bootstrap URL in `index.html` and the backend endpoint in `manifest.json` are patched |
-| **Framework core** (transpiled ABAP classes) | `cap2UI5/srv/z2ui5/` | *fill-in only*: the CAP adaptation is hand-maintained; transpiled classes are added but never overwrite existing files |
-| **Samples** (transpiled demo apps) | `cap2UI5/srv/samples/` | fully machine-owned: overwritten on every sync |
+| **Frontend** (`app/webapp` from abap2UI5) | `core/app/z2ui5/webapp` → mirrored to the app's `app/z2ui5/webapp` | replaced 1:1 — only the UI5 bootstrap URL in `index.html` and the backend endpoint in `manifest.json` are patched |
+| **Framework core** (transpiled ABAP classes) | `core/srv/z2ui5/` | *fill-in only*: the hand-maintained adaptation in builder-abap2UI5-js's `src/` wins; transpiled classes are added but never overwrite the curated files |
+| **Samples** (transpiled demo apps) | `core/srv/app/samples/` | fully machine-owned: overwritten on every sync |
 
 The transpiler (**abap2js**, built on the open-source ABAP parser [@abaplint/core](https://github.com/abaplint/abaplint)) converts ABAP classes into plain JavaScript. Anything outside its supported subset is emitted as a visible `// TODO(abap2js): …` comment instead of being silently dropped, and tracked in a transpile report.
 
@@ -53,7 +61,7 @@ The transpiler (**abap2js**, built on the open-source ABAP parser [@abaplint/cor
 - **The frontend is battle-tested.** You're running the exact UI5 app that thousands of abap2UI5 installations use — every upstream bugfix and new custom control (charts, camera, geolocation, …) flows in automatically.
 - **The wire format is identical.** The frontend cannot tell whether ABAP or Node.js is answering. That's why the whole ecosystem of abap2UI5 knowledge, samples, and patterns applies 1:1.
 - **The naming is inherited.** `z2ui5_cl_xml_view`, `check_on_init`, `_bind_edit` — these names come from ABAP conventions (`z` = customer namespace, `cl` = class, `if` = interface). They look unusual in JavaScript, but they keep the two worlds mappable line-by-line: any abap2UI5 sample can be ported (or auto-transpiled) to cap2UI5 mechanically.
-- **Hundreds of ready samples.** The `srv/samples/` folder ships the transpiled abap2UI5 demo apps (`z2ui5_cl_demo_app_*`) — a huge, browsable cookbook. Try them in the [browser playground](./playground) without installing anything.
+- **Hundreds of ready samples.** The `core/srv/app/samples/` folder ships the transpiled abap2UI5 demo apps (`z2ui5_cl_demo_app_*`) — a huge, browsable cookbook. Try them in the [browser playground](./playground) without installing anything.
 - **You still write normal JavaScript.** The sync pipeline is a maintainer concern. As an app developer you just `require` two classes and write a JS class — see the [Quickstart](./getting-started).
 
 → Next: [**Try it in the browser**](./playground) — zero-install playground, or the [**Quickstart**](./getting-started).

@@ -34,12 +34,12 @@ export default defineConfig({
       { text: 'Examples', link: '/examples/hello-world' },
       { text: 'API', link: '/api/client' },
       { text: 'Reference', link: '/reference/architecture' },
-      { text: 'Playground', link: 'https://cap2ui5.github.io/web-cap2UI5/' },
+      { text: 'Playground', link: 'https://cap2ui5.github.io/web-cap2UI5-build/' },
       {
         text: 'Links',
         items: [
           { text: 'GitHub (cap2UI5)',     link: 'https://github.com/cap2UI5/cap2UI5' },
-          { text: 'GitHub (web-cap2UI5)', link: 'https://github.com/cap2UI5/web-cap2UI5' },
+          { text: 'GitHub (builder-cap2UI5-web)', link: 'https://github.com/cap2UI5/builder-cap2UI5-web' },
           { text: 'GitHub (docs)',        link: 'https://github.com/cap2UI5/docs' },
           { text: 'abap2UI5',             link: 'https://github.com/abap2UI5/abap2UI5' }
         ]
