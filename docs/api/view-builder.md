@@ -1,6 +1,6 @@
 # API: View Builder
 
-The view builder generates UI5 XML views from JavaScript calls. Source: [`srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view.js).
+The view builder generates UI5 XML views from JavaScript calls. Source: [`core/srv/z2ui5/02/z2ui5_cl_xml_view.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_xml_view.js).
 
 ## Factories
 
@@ -84,7 +84,7 @@ In most cases you don't need this — builder methods automatically place the ne
 
 ## Custom controls (`z2ui5:` namespace)
 
-Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/cap2UI5/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
+Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js)):
 
 | Method | Custom control |
 |---|---|

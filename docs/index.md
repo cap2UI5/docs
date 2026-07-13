@@ -14,7 +14,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: Try it in the browser
-      link: https://cap2ui5.github.io/web-cap2UI5/
+      link: https://cap2ui5.github.io/web-cap2UI5-build/
     - theme: alt
       text: What is cap2UI5?
       link: /guide/what-is-cap2ui5
@@ -36,6 +36,6 @@ features:
     details: Apps are persisted between roundtrips (CDS entity z2ui5_t_01). Navigation stack, draft history, and popup results out of the box.
     icon: 💾
   - title: Hundreds of live samples
-    details: The transpiled abap2UI5 demo collection ships in srv/samples/ — and runs zero-install in the browser playground on GitHub Pages.
+    details: The transpiled abap2UI5 demo collection ships in core/srv/app/samples/ — and runs zero-install in the browser playground on GitHub Pages.
     icon: 🎨
 ---

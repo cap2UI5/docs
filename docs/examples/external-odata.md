@@ -27,7 +27,7 @@ The CSN model is generated as usual with `cds import https://services.odata.org/
 ## App code
 
 ```js
-// srv/samples/read_odata.js
+// srv/app/read_odata.js
 const cds               = require("@sap/cds");
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
@@ -78,7 +78,7 @@ const northwind = await cds.connect.to("northwind");
 this.customers  = await northwind.run(SELECT.from("Customers").limit(50));
 ```
 
-The same code you would write in a `srv/cat-service.js` handler. **Anything Node.js allows is allowed inside `main()`** — fetch, OData, file system, Redis, MQ.
+The same code you would write in a `srv/z2ui5-service.js` handler. **Anything Node.js allows is allowed inside `main()`** — fetch, OData, file system, Redis, MQ.
 
 ### 2. Two-way on a list
 
@@ -115,7 +115,7 @@ async main(client) {
 }
 ```
 
-You then need your own CAP service action `NorthwindCustomers` in `cat-service.js`:
+You then need your own CAP service action `NorthwindCustomers` in `z2ui5-service.js`:
 
 ```js
 srv.on("READ", "NorthwindCustomers", async (req) => {

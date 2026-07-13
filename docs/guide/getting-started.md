@@ -15,29 +15,30 @@ That's it. No database setup (CAP starts an in-memory SQLite automatically), no 
 
 ## 1. Clone the project
 
-Clone the reference project — the CAP application lives in the `cap2UI5/` subfolder of the repo:
+Clone the reference project — the repo root **is** the CAP application:
 
 ```bash
 git clone https://github.com/cap2UI5/cap2UI5.git
-cd cap2UI5/cap2UI5
+cd cap2UI5
 npm install
 ```
 
-The `cap2UI5/` subdirectory is a complete, self-contained CAP project:
+The repository is a complete, self-contained CAP project:
 
 ```
 cap2UI5/
 ├── srv/
-│   ├── cat-service.cds         # service definitions incl. the z2ui5 action
-│   ├── cat-service.js          # service handler bindings
+│   ├── z2ui5-service.cds       # service definitions incl. the z2ui5 action
+│   ├── z2ui5-service.js        # service handler bindings
 │   ├── server.js               # CAP bootstrap (HTML + CSRF endpoints)
-│   ├── samples/                # hundreds of demo apps (from abap2UI5)
-│   └── z2ui5/                  # framework library (don't touch)
+│   └── app/                    # your own apps go here
 ├── db/
 │   └── schema.cds              # CDS entity z2ui5_t_01 for persistence
 ├── app/
 │   └── z2ui5/                  # static UI5 frontend (don't touch)
-└── package.json
+├── core/                       # vendored framework package (don't touch)
+│   └── srv/app/samples/        # hundreds of demo apps (from abap2UI5)
+└── package.json                # "abap2UI5": "file:./core"
 ```
 
 ## 2. Start
@@ -56,14 +57,14 @@ The server listens on [http://localhost:4004](http://localhost:4004):
 | [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_demo_app_001` |
 | `/rest/root/z2ui5` | the roundtrip endpoint the frontend talks to |
 
-Click around the demo apps first — everything you see in `srv/samples/` can be started via `?app_start=<class_name>`.
+Click around the demo apps first — everything you see in `core/srv/app/samples/` can be started via `?app_start=<class_name>`.
 
 ## 3. Your first own app
 
-Create a new file `my_first_app.js` in `srv/samples/`:
+Create a new file `my_first_app.js` in `srv/app/`:
 
 ```js
-// srv/samples/my_first_app.js
+// srv/app/my_first_app.js
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
@@ -111,7 +112,7 @@ module.exports = my_first_app;
 
 Two things worth noting:
 
-- The imports use the project's package exports (`require("abap2UI5/...")`) — no fragile relative paths. All bundled samples use the same style.
+- The imports use the vendored core package's exports (`require("abap2UI5/...")`, resolved via the `"abap2UI5": "file:./core"` dependency) — no fragile relative paths. All bundled samples use the same style.
 - **File name = class name.** That convention is how the framework finds your class (see [Persistence](./persistence)).
 
 ## 4. Launch it
@@ -128,7 +129,7 @@ In about 25 lines of JS you built a **stateful UI5 app** that:
 
 ## Where do my apps live long-term?
 
-`srv/samples/` is the quickest place to start, but it's also where the sync pipeline maintains the transpiled abap2UI5 demos. For your own project you can keep apps in **any folder** and register it:
+`srv/app/` is user-owned and scanned automatically — unlike `core/srv/app/samples/`, where the sync pipeline maintains the transpiled abap2UI5 demos (overwritten on every sync). Beyond `srv/app/` you can keep apps in **any folder** and register it:
 
 ```js
 // srv/server.js (or any file loaded at startup)

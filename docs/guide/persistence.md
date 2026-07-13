@@ -63,7 +63,7 @@ Serialization writes two meta fields into the output:
 ```json
 {
   "__className": "my_app",
-  "__filePath": "../../samples/my_app.js",
+  "__filePath": "../../../app/samples/my_app.js",
   "username": "Alice",
   /* ... */
 }
@@ -73,9 +73,9 @@ On deserialization, `__filePath` is resolved and `require()`d, then a new instan
 
 `__filePath` is determined by the class lookup in `z2ui5_cl_util`. It searches, in order (first hit wins):
 
-1. Framework built-ins: `srv/z2ui5/02/` and `srv/z2ui5/02/01/`
-2. The bundled `srv/samples/` folder
-3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — shortcut: `require("abap2UI5/register-apps")(dir)`
+1. Framework built-ins: `core/srv/z2ui5/02/` and `core/srv/z2ui5/99/02/`
+2. The core package's app folder, including the bundled samples: `core/srv/app/` + `core/srv/app/samples/`
+3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — shortcut: `require("abap2UI5/register-apps")(dir)`; the project's own `srv/app/` is registered this way in `srv/server.js`
 4. Directories listed in the `Z2UI5_APP_DIRS` environment variable
 
 All directories are searched **recursively**; within one directory, a file at the top level wins over one in a subfolder. Classes registered directly via `z2ui5_cl_util.register_app_class(name, Cls)` bypass the filesystem entirely (that's how the [browser playground](./playground) works without a filesystem).

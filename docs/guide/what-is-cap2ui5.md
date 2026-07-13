@@ -75,15 +75,15 @@ That's the whole app. No `manifest.json`, no `Component.js`, no controller file,
 - **Not a UI5 replacement.** It *uses* UI5, in its full breadth — Page, Table, SimpleForm, charts, file upload, camera, geolocation. Only the view *definition* moves to the server.
 - **Not a replacement for CAP services.** Your `srv/*.cds` services keep running unchanged. cap2UI5 is one additional REST action alongside them; OData consumers never see it.
 - **Not classical server-side rendering.** The server sends view XML + a JSON delta, not finished HTML pages — see [Server-Driven UI, Explained](./server-driven-ui).
-- **Not a big framework dependency.** It's a pattern plus a library folder (`srv/z2ui5/`) that travels inside your CAP project.
+- **Not a big framework dependency.** It's a pattern plus a vendored library package (`core/`) that travels inside your CAP project.
 
 ## The moving parts
 
 | Piece | Where | Who touches it? |
 |---|---|---|
-| Backend library (handler, view builder, persistence) | [`cap2UI5/cap2UI5`](https://github.com/cap2UI5/cap2UI5) → `cap2UI5/srv/z2ui5/` | nobody — carried along as-is |
-| Your apps | `srv/samples/` or your own folder | **you** — this is where you work |
-| Static UI5 frontend | `cap2UI5/app/z2ui5/webapp/` — mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5) | nobody — synced automatically |
+| Backend library (handler, view builder, persistence) | [`cap2UI5/cap2UI5`](https://github.com/cap2UI5/cap2UI5) → `core/srv/z2ui5/` | nobody — carried along as-is |
+| Your apps | `srv/app/` or your own folder | **you** — this is where you work |
+| Static UI5 frontend | `app/z2ui5/webapp/` — mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5) | nobody — synced automatically |
 
 The frontend is **wire-format compatible** with abap2UI5: the browser cannot tell whether ABAP or Node.js answers. Every upstream frontend improvement flows into cap2UI5 automatically via a [sync pipeline](./where-it-comes-from#how-the-port-actually-works).
 

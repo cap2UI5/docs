@@ -13,7 +13,7 @@ The wire format between the frontend and the cap2UI5 backend is **identical** to
 Mounts:
 
 - `GET`/`HEAD` are registered in `srv/server.js` via `cds.on("bootstrap", ...)`.
-- `POST` is automatically exposed by CAP because `cat-service.cds` declares the action `z2ui5(value: object)`.
+- `POST` is automatically exposed by CAP because `z2ui5-service.cds` declares the action `z2ui5(value: object)`.
 
 ## Request body
 

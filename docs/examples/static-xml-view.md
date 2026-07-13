@@ -5,7 +5,7 @@ If you already have a UI5 view **as an XML file** — exported from a designer, 
 ## Code
 
 ```js
-// srv/samples/read_view.js
+// srv/app/read_view.js
 const fs                = require("fs");
 const path              = require("path");
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
@@ -24,7 +24,7 @@ module.exports = read_view;
 
 ## `View1.view.xml`
 
-Place the file right next to your app class (`srv/samples/View1.view.xml`):
+Place the file right next to your app class (`srv/app/View1.view.xml`):
 
 ```xml
 <mvc:View

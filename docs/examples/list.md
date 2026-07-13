@@ -5,7 +5,7 @@ A list with a selection-change event that reacts to a row selection. Shows the p
 ## Code
 
 ```js
-// srv/samples/my_list.js
+// srv/app/my_list.js
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
