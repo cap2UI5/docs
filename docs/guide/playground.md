@@ -11,11 +11,11 @@ You can explore cap2UI5 **without installing anything** — no Node.js, no CAP s
 Start a specific app with the same `app_start` parameter you'd use against a real CAP server:
 
 ```
-https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_app_hello_world
-https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_demo_app_001
+https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_ui5_app_hi_world
+https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_smp_app_001
 ```
 
-The `z2ui5_cl_demo_app_*` samples are the transpiled abap2UI5 demo collection — a browsable cookbook of tables, forms, popups, charts, and more.
+The `z2ui5_cl_smp_app_*` samples are the transpiled abap2UI5 demo collection — a browsable cookbook of tables, forms, popups, charts, and more.
 
 ## Wait — didn't you say the backend renders the view?
 

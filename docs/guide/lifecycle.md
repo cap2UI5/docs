@@ -157,7 +157,7 @@ Important:
 
 1. **The app instance only lives for one roundtrip** in memory. Afterwards it is serialized.
 2. **Fields that are JSON-serializable survive.** Functions, closures, DOM refs, external connection objects → do not.
-3. **Properties like `client` are skipped** (see `SKIP_PROPS` in `z2ui5_cl_core_srv_draft.js`) so that no cyclic graph is created.
+3. **Properties like `client` are skipped** (see `SKIP_PROPS` in `z2ui5_cl_ui5_srv_draft.js`) so that no cyclic graph is created.
 
 ## Pattern: fields ↔ reference-equality bindings
 
@@ -207,7 +207,7 @@ check_initialized = false;
 check_sticky      = false;
 ```
 
-Don't override — the binding engine explicitly excludes them from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`), but don't use them as your own app state either.
+Don't override — the binding engine explicitly excludes them from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_ui5_client.js`), but don't use them as your own app state either.
 
 ## Stickiness (optional)
 

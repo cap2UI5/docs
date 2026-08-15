@@ -2,7 +2,7 @@
 
 The `client` object is the only interface your app has to the outside world during a roundtrip. It is passed as the sole argument to `main(client)`.
 
-> Source: [`core/srv/z2ui5/01/02/z2ui5_cl_core_client.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/01/02/z2ui5_cl_core_client.js)
+> Source: [`core/srv/z2ui5/01/02/z2ui5_cl_ui5_client.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/01/02/z2ui5_cl_ui5_client.js)
 
 ## Lifecycle checks
 
@@ -127,5 +127,5 @@ All queue `eF` calls into `_follow_up_actions[]`. They are sent in the response 
 |---|---|
 | `client.cs_event` (instance getter) | `CS_EVENT` (see [Events](../guide/events#frontend-only-events-_event_client-name-args)) |
 | `client.cs_view` | `{ MAIN, NESTED, NESTED2, POPUP, POPOVER }` |
-| Static `z2ui5_cl_core_client.CS_BIND_TYPE` | `{ one_way, two_way }` |
-| Static `z2ui5_cl_core_client.EVENT_NAV_APP_LEAVE` | Reserved event name |
+| Static `z2ui5_cl_ui5_client.CS_BIND_TYPE` | `{ one_way, two_way }` |
+| Static `z2ui5_cl_ui5_client.EVENT_NAV_APP_LEAVE` | Reserved event name |

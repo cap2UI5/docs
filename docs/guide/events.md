@@ -91,7 +91,7 @@ A frontend action handler dispatches it, no roundtrip.
 
 ### Available `cs_event` constants
 
-From `z2ui5_cl_core_client.js`:
+From `z2ui5_cl_ui5_client.js`:
 
 | Constant | Effect |
 |---|---|

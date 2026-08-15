@@ -35,7 +35,7 @@ features:
   - title: Stateful sessions included
     details: Apps are persisted between roundtrips (CDS entity z2ui5_t_01). Navigation stack, draft history, and popup results out of the box.
     icon: 💾
-  - title: Hundreds of live samples
+  - title: A live sample for every feature
     details: The transpiled abap2UI5 demo collection ships in core/srv/app/samples/ — and runs zero-install in the browser playground on GitHub Pages.
     icon: 🎨
 ---

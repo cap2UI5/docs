@@ -25,12 +25,12 @@ This page shows in detail **how a roundtrip flows through the system** — from 
 └────────────┬────────────────┘
              │
              ▼
-┌──── z2ui5_cl_http_handler ──┐
+┌──── z2ui5_cl_ui5_http_handler ──┐
 │  unwrap req.data.value      │
 └────────────┬────────────────┘
              │
              ▼
-┌──── z2ui5_cl_core_handler ──┐
+┌──── z2ui5_cl_ui5_handler ──┐
 │  1. action.factory_main     │── ▶ DB.loadApp(id)
 │  2. validate                │
 │  3. apply XX delta          │
@@ -73,14 +73,14 @@ In addition, `server.js` registers via `cds.on("bootstrap", ...)`:
 In `z2ui5-service.js`:
 
 ```js
-srv.on("z2ui5", z2ui5_cl_http_handler);
+srv.on("z2ui5", z2ui5_cl_ui5_http_handler);
 ```
 
-`z2ui5_cl_http_handler` only does the action wrapper unwrapping:
+`z2ui5_cl_ui5_http_handler` only does the action wrapper unwrapping:
 
 ```js
 const oBody = req?.data?.value ?? req?.data ?? req;
-const oHandler = new z2ui5_cl_core_handler();
+const oHandler = new z2ui5_cl_ui5_handler();
 const responseJson = await oHandler.main(oBody);
 return JSON.parse(responseJson);
 ```
@@ -89,7 +89,7 @@ It unwraps the abap2UI5-compatible body from the CDS action wrapper. With that, 
 
 ### 3. Roundtrip orchestrator
 
-`z2ui5_cl_core_handler.main(body)` runs through six phases:
+`z2ui5_cl_ui5_handler.main(body)` runs through six phases:
 
 #### Phase 1 — app resolution
 
@@ -97,19 +97,19 @@ It unwraps the abap2UI5-compatible body from the CDS action wrapper. With that, 
 let oApp = await Action.factory_main(oReq, oClient);
 ```
 
-`z2ui5_cl_core_action.factory_main` determines which app serves this roundtrip:
+`z2ui5_cl_ui5_action.factory_main` determines which app serves this roundtrip:
 
 1. `oClient._navTarget` (in-memory, from a previous hop) — rare
 2. `oReq.S_FRONT.ID` — DB load
 3. `?app_start=ClassName` URL parameter — RTTI lookup
-4. **Fallback**: `z2ui5_cl_app_startup` (built-in launcher)
+4. **Fallback**: `z2ui5_cl_ui5_app_start` (built-in launcher)
 
 It also rehydrates the nav stack from `oApp.__navStackIds`.
 
 #### Phase 2 — validation
 
 ```js
-z2ui5_cl_core_app.validate(oApp);
+z2ui5_cl_ui5_app_cont.validate(oApp);
 ```
 
 Throws if the app does not extend `z2ui5_if_app`.
@@ -117,7 +117,7 @@ Throws if the app does not extend `z2ui5_if_app`.
 #### Phase 3 — apply XX delta
 
 ```js
-z2ui5_cl_core_srv_model.main_json_to_attri(oApp, oReq.XX);
+z2ui5_cl_ui5_srv_model.main_json_to_attri(oApp, oReq.XX);
 ```
 
 The `XX` object on the request contains the user edits from two-way bindings (e.g. `{XX: { username: "Alice" }}`). The engine applies them to the app instance (deep merge).
@@ -138,7 +138,7 @@ If `main()` triggered a `nav_app_call(...)` or `nav_app_leave()`, `oClient._navT
 ```js
 while (oClient._navTarget) {
   // ... push / pop stack ...
-  await z2ui5_cl_core_app.run(navApp, oClient, oReq, true);
+  await z2ui5_cl_ui5_app_cont.run(navApp, oClient, oReq, true);
 }
 ```
 
@@ -147,7 +147,7 @@ That means: up to N nested navigations can take place in **a single** roundtrip 
 #### Phase 6 — persistence
 
 ```js
-const generatedId = await z2ui5_cl_core_app.db_save(oApp, oClient, previousId);
+const generatedId = await z2ui5_cl_ui5_app_cont.db_save(oApp, oClient, previousId);
 ```
 
 First the stack apps, then the final app. Stack IDs are recorded on `oApp.__navStackIds`.
@@ -157,7 +157,7 @@ First the stack apps, then the final app. Stack IDs are recorded on `oApp.__navS
 ```js
 const oResponse = {
   S_FRONT: { APP, ID: generatedId, PARAMS: { S_VIEW, S_POPUP, ... } },
-  MODEL:   z2ui5_cl_core_srv_model.main_json_stringify(oClient.aBind)
+  MODEL:   z2ui5_cl_ui5_srv_model.main_json_stringify(oClient.aBind)
 };
 return JSON.stringify(oResponse);
 ```
@@ -173,24 +173,24 @@ The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 └─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
 
 01 — Core
-├─ 01/z2ui5_cl_core_srv_draft    Serialize / deserialize / DB
-├─ 02/z2ui5_cl_core_handler      Roundtrip orchestrator
-├─ 02/z2ui5_cl_core_action       App resolution
-├─ 02/z2ui5_cl_core_app          Lifecycle helper
-├─ 02/z2ui5_cl_core_client       The client class (your API)
-├─ 02/z2ui5_cl_core_srv_bind     _bind / _bind_edit implementation
-├─ 02/z2ui5_cl_core_srv_event    _event string builder
-├─ 02/z2ui5_cl_core_srv_model    XX delta + response model
-├─ 02/z2ui5_if_core_types        internal type containers
-└─ 03/z2ui5_cl_app_index_html    bootstrap HTML as a JS module
+├─ 01/z2ui5_cl_ui5_srv_draft    Serialize / deserialize / DB
+├─ 02/z2ui5_cl_ui5_handler      Roundtrip orchestrator
+├─ 02/z2ui5_cl_ui5_action       App resolution
+├─ 02/z2ui5_cl_ui5_app_cont          Lifecycle helper
+├─ 02/z2ui5_cl_ui5_client       The client class (your API)
+├─ 02/z2ui5_cl_ui5_srv_bind     _bind / _bind_edit implementation
+├─ 02/z2ui5_cl_ui5_srv_event    _event string builder
+├─ 02/z2ui5_cl_ui5_srv_model    XX delta + response model
+├─ 02/z2ui5_if_ui5_types        internal type containers
+└─ 03/z2ui5_cl_ui5f_index_html    bootstrap HTML as a JS module
 
 02 — Public API (app developer imports)
 ├─ z2ui5_if_app                  Base class for your apps
-├─ z2ui5_cl_http_handler         CDS action adapter
+├─ z2ui5_cl_ui5_http_handler         CDS action adapter
 ├─ z2ui5_cl_xml_view             View Builder
 ├─ z2ui5_cl_xml_view_cc          Custom control decorator
-├─ z2ui5_cl_app_startup          Built-in launcher
-└─ z2ui5_cl_app_hello_world      Mini example
+├─ z2ui5_cl_ui5_app_start          Built-in launcher
+└─ z2ui5_cl_ui5_app_hi_world      Mini example
 
 99 — Add-ons
 ├─ 01/z2ui5_cl_util_*            Utility classes
@@ -211,7 +211,7 @@ For that to work, cap2UI5's backend must speak **bit-exact the same wire format*
 - `S_FOLLOW_UP_ACTION.CUSTOM_JS` as an array
 - `S_MSG_TOAST`, `S_MSG_BOX` with ABAP-typical `"X"`/`""` booleans
 
-This is visible in the code (see `z2ui5_cl_core_handler.main` at the bottom).
+This is visible in the code (see `z2ui5_cl_ui5_handler.main` at the bottom).
 
 ## CAP-specific notes
 
@@ -224,7 +224,7 @@ This is visible in the code (see `z2ui5_cl_core_handler.main` at the bottom).
 Two additive hooks decouple the framework core from Node/CAP specifics:
 
 - **`z2ui5_cl_util.register_app_class(name, Cls)` / `register_app_dir(dir)`** — plug app classes or directories into the class lookup without touching framework files (see [Persistence](../guide/persistence#class-restoration)).
-- **`z2ui5_cl_core_srv_draft.set_store(store)`** — swap the draft persistence backend (default: the CDS entity `z2ui5_t_01`).
+- **`z2ui5_cl_ui5_srv_draft.set_store(store)`** — swap the draft persistence backend (default: the CDS entity `z2ui5_t_01`).
 
 These two hooks are all it takes to run the entire backend **without CAP and without a filesystem** — that's how the [browser playground](../guide/playground) bundles the stack into a static site.
 

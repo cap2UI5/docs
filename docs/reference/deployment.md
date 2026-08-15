@@ -138,7 +138,7 @@ The `auth: false` in production is a **default setting for demo purposes**. For 
 "[production]": { "auth": "xsuaa" }
 ```
 
-This puts you in the UAA login flow before `/rest/root/z2ui5` becomes reachable. In `z2ui5_cl_http_handler` you can then read `cds.context.user.id` to do multi-user separation.
+This puts you in the UAA login flow before `/rest/root/z2ui5` becomes reachable. In `z2ui5_cl_ui5_http_handler` you can then read `cds.context.user.id` to do multi-user separation.
 :::
 
 ## CI/CD

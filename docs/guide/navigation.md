@@ -88,7 +88,7 @@ You can directly start a specific app via URL parameter:
 /z2ui5/webapp/index.html?app_start=my_app_name
 ```
 
-This works through `factory_first_start` in `z2ui5_cl_core_action.js` — on the first roundtrip without `S_FRONT.ID` the handler looks at the query string, finds the class via RTTI, and instantiates it.
+This works through `factory_first_start` in `z2ui5_cl_ui5_action.js` — on the first roundtrip without `S_FRONT.ID` the handler looks at the query string, finds the class via RTTI, and instantiates it.
 
 ## Browser history
 

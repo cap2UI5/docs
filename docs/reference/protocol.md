@@ -40,7 +40,7 @@ The frontend driver always sends `Content-Type: application/json`. Body structur
 }
 ```
 
-CDS requires, through the action signature `z2ui5(value: object)`, that the actual oBody be wrapped as `value`. The `z2ui5_cl_http_handler` unwraps it again.
+CDS requires, through the action signature `z2ui5(value: object)`, that the actual oBody be wrapped as `value`. The `z2ui5_cl_ui5_http_handler` unwraps it again.
 
 ### `S_FRONT` fields
 

@@ -54,16 +54,16 @@ That **doesn't** depend on which framework is "better" — both are 1:1 equivale
 
 ## Code comparison
 
-ABAP version (`z2ui5_cl_app_hello_world.clas.abap`):
+ABAP version (`z2ui5_cl_ui5_app_hi_world.clas.abap`):
 
 ```abap
-CLASS z2ui5_cl_app_hello_world DEFINITION PUBLIC.
+CLASS z2ui5_cl_ui5_app_hi_world DEFINITION PUBLIC.
   PUBLIC SECTION.
     INTERFACES z2ui5_if_app.
     DATA name TYPE string.
 ENDCLASS.
 
-CLASS z2ui5_cl_app_hello_world IMPLEMENTATION.
+CLASS z2ui5_cl_ui5_app_hi_world IMPLEMENTATION.
   METHOD z2ui5_if_app~main.
     IF client->check_on_init( ).
       DATA(view) = z2ui5_cl_xml_view=>factory( ).
@@ -86,7 +86,7 @@ ENDCLASS.
 JS version (cap2UI5):
 
 ```js
-class z2ui5_cl_app_hello_world extends z2ui5_if_app {
+class z2ui5_cl_ui5_app_hi_world extends z2ui5_if_app {
 
   name = "";
 
@@ -117,7 +117,7 @@ The structure is **identical**. Only the language idioms differ.
 cap2UI5 is not a one-time fork. The [builder-abap2UI5-js repository](https://github.com/cap2UI5/builder-abap2UI5-js) runs automated pipelines that mirror abap2UI5 and **transpile the ABAP sources to JavaScript** with *abap2js* (built on the [@abaplint](https://github.com/abaplint/abaplint) parser):
 
 - the **frontend** is taken over 1:1 (only the bootstrap URL and the backend endpoint are patched),
-- the **sample apps** are fully machine-transpiled — that's why `core/srv/app/samples/` contains hundreds of `z2ui5_cl_demo_app_*` classes,
+- the **sample apps** are fully machine-transpiled — that's why `core/srv/app/samples/` contains hundreds of `z2ui5_cl_smp_app_*` classes,
 - the **framework core** under `core/srv/z2ui5/` is generated from a hand-maintained adaptation (the builder's `src/`); transpiled classes are only ever *added*, never overwrite the curated files.
 
 [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5) then assembles the finished CAP app from the published core and publishes it into the [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5).
