@@ -38,7 +38,7 @@ These properties are predefined on the base class. **Don't override** them and d
 | `check_initialized` | `boolean` | Set to `true` after the first `main()` — controls `check_on_init()` |
 | `check_sticky` | `boolean` | If `true`, sticky session active |
 
-The binding engine explicitly excludes these fields from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_core_client.js`).
+The binding engine explicitly excludes these fields from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_ui5_client.js`).
 
 ## Static constants
 
@@ -51,7 +51,7 @@ z2ui5_if_app.license    // "MIT"
 
 ## Validation
 
-On the first roundtrip, `z2ui5_cl_core_app.validate(oApp)` is called — if your class does not extend `z2ui5_if_app`, it throws:
+On the first roundtrip, `z2ui5_cl_ui5_app_cont.validate(oApp)` is called — if your class does not extend `z2ui5_if_app`, it throws:
 
 ```
 my_app must extend z2ui5_if_app (INTERFACES z2ui5_if_app)
@@ -59,12 +59,12 @@ my_app must extend z2ui5_if_app (INTERFACES z2ui5_if_app)
 
 ## Persistence annotations
 
-There are currently **no annotations** to exclude fields from persistence. If you need transient fields, declare them as **local variables in `main()`** instead of as app properties. The only hard-coded skip list is `["client"]` in `z2ui5_cl_core_srv_draft.js`.
+There are currently **no annotations** to exclude fields from persistence. If you need transient fields, declare them as **local variables in `main()`** instead of as app properties. The only hard-coded skip list is `["client"]` in `z2ui5_cl_ui5_srv_draft.js`.
 
 Suggestion if you need this — patch `SKIP_PROPS`:
 
 ```js
-// core/srv/z2ui5/01/01/z2ui5_cl_core_srv_draft.js
+// core/srv/z2ui5/01/01/z2ui5_cl_ui5_srv_draft.js
 static SKIP_PROPS = new Set(["client", "_my_transient_field"]);
 ```
 

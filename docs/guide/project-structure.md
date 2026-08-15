@@ -51,10 +51,10 @@ A single action `z2ui5(value)` — the entire roundtrip runs through here. CAP i
 
 ```js
 const cds = require("@sap/cds");
-const z2ui5_cl_http_handler = require("abap2UI5/z2ui5_cl_http_handler");
+const z2ui5_cl_ui5_http_handler = require("abap2UI5/z2ui5_cl_ui5_http_handler");
 
 module.exports = cds.service.impl(async function (srv) {
-  srv.on("z2ui5", z2ui5_cl_http_handler);
+  srv.on("z2ui5", z2ui5_cl_ui5_http_handler);
   // … your own READ/CREATE/etc. handlers go here
 });
 ```
@@ -108,19 +108,19 @@ core/                                        # npm package "abap2UI5"
         ├── 00/                              # pure utilities (ajson, sorting, util)
         │   └── 03/z2ui5_cl_util.js          # RTTI / class lookup / app registry
         ├── 01/                              # core plumbing
-        │   ├── 01/z2ui5_cl_core_srv_draft.js   # serialize / DB persistence
-        │   ├── 02/z2ui5_cl_core_handler.js     # roundtrip orchestrator
-        │   ├── 02/z2ui5_cl_core_client.js      # the client class (your API)
-        │   ├── 02/z2ui5_cl_core_srv_bind.js    # _bind / _bind_edit implementation
+        │   ├── 01/z2ui5_cl_ui5_srv_draft.js   # serialize / DB persistence
+        │   ├── 02/z2ui5_cl_ui5_handler.js     # roundtrip orchestrator
+        │   ├── 02/z2ui5_cl_ui5_client.js      # the client class (your API)
+        │   ├── 02/z2ui5_cl_ui5_srv_bind.js    # _bind / _bind_edit implementation
         │   ├── 02/…                            # action, model, event services
-        │   └── 03/z2ui5_cl_app_index_html.js   # bootstrap HTML as a JS module
+        │   └── 03/z2ui5_cl_ui5f_index_html.js   # bootstrap HTML as a JS module
         ├── 02/                              # public API
         │   ├── z2ui5_if_app.js              # base class for apps
-        │   ├── z2ui5_cl_http_handler.js     # CDS action adapter
+        │   ├── z2ui5_cl_ui5_http_handler.js     # CDS action adapter
         │   ├── z2ui5_cl_xml_view.js         # view builder
         │   ├── z2ui5_cl_xml_view_cc.js      # custom control decorator
-        │   ├── z2ui5_cl_app_startup.js      # built-in launcher
-        │   └── z2ui5_cl_app_hello_world.js  # mini example
+        │   ├── z2ui5_cl_ui5_app_start.js      # built-in launcher
+        │   └── z2ui5_cl_ui5_app_hi_world.js  # mini example
         ├── 99/                              # add-ons
         │   └── 02/z2ui5_cl_pop_*.js         # popup helpers
         ├── engine.js                        # platform-neutral surface (roundtrip, bootstrap, ports)
@@ -151,7 +151,7 @@ const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
 This is where **your own** app files go: a folder of `*.js` files, each containing _one_ app class. Convention: **file name = class name**. It is scanned automatically (registered in `srv/server.js` via `engine.register_app_dir(...)`), is not touched by the sync workflows, and ships with `z2ui5_cl_app_read_odata.js` as a starting point.
 
-The framework additionally bundles hundreds of `z2ui5_cl_demo_app_*` classes under `core/srv/app/samples/` — the transpiled [abap2UI5 samples](https://github.com/abap2UI5/samples), a live cookbook you can start via `?app_start=z2ui5_cl_demo_app_001` etc. Note that the sync pipeline owns that folder: it is overwritten on every upstream sync — keep your own files in `srv/app/` (or a registered folder) instead.
+The framework additionally bundles hundreds of `z2ui5_cl_smp_app_*` classes under `core/srv/app/samples/` — the transpiled [abap2UI5 samples](https://github.com/abap2UI5/samples), a live cookbook you can start via `?app_start=z2ui5_cl_smp_app_001` etc. Note that the sync pipeline owns that folder: it is overwritten on every upstream sync — keep your own files in `srv/app/` (or a registered folder) instead.
 
 The class lookup searches, in order:
 

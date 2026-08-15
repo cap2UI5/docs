@@ -24,7 +24,8 @@ against the repos, don't guess):
 Path conventions inside the app repo:
 
 - framework classes: `core/srv/z2ui5/` (layers `00/` utils, `01/` core
-  plumbing, `02/` public API, `99/` add-ons like the pop helpers)
+  plumbing — including the shipped apps in `01/04/` since the 2026-08
+  upstream rename, `02/` public API, `99/` add-ons like the pop helpers)
 - bundled demo samples (pipeline-owned, flat): `core/srv/app/samples/`
 - user apps: `srv/app/` (or any folder via `Z2UI5_APP_DIRS` /
   `require("abap2UI5/register-apps")(dir)`)

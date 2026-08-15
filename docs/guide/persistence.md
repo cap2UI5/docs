@@ -18,7 +18,7 @@ entity z2ui5_t_01 {
 
 On every roundtrip:
 
-1. The app instance is **serialized** (`z2ui5_cl_core_srv_draft.serialize`).
+1. The app instance is **serialized** (`z2ui5_cl_ui5_srv_draft.serialize`).
 2. A new UUID is generated.
 3. An `INSERT` is made into `z2ui5_t_01` — `id_prev` points to the previous instance.
 4. The new UUID goes back in the response (`S_FRONT.ID`).

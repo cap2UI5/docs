@@ -37,7 +37,7 @@ cap2UI5/
 ├── app/
 │   └── z2ui5/                  # static UI5 frontend (don't touch)
 ├── core/                       # vendored framework package (don't touch)
-│   └── srv/app/samples/        # hundreds of demo apps (from abap2UI5)
+│   └── srv/app/samples/        # ~105 demo apps (from abap2UI5/samples)
 └── package.json                # "abap2UI5": "file:./core"
 ```
 
@@ -54,7 +54,7 @@ The server listens on [http://localhost:4004](http://localhost:4004):
 | URL | What you get |
 |---|---|
 | [`/z2ui5/webapp/index.html`](http://localhost:4004/z2ui5/webapp/index.html) | the app — without a parameter, the startup launcher is shown |
-| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_demo_app_001` |
+| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_smp_app_001` |
 | `/rest/root/z2ui5` | the roundtrip endpoint the frontend talks to |
 
 Click around the demo apps first — everything you see in `core/srv/app/samples/` can be started via `?app_start=<class_name>`.

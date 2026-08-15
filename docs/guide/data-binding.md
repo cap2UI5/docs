@@ -78,7 +78,7 @@ A cap2UI5 response contains a `MODEL` object that is set as the **default model*
 }
 ```
 
-When the user types in an `Input`, UI5 writes the value back to `/XX/username`. On the next roundtrip the frontend sends an **XX delta** with all changed values to the server. The server engine (`z2ui5_cl_core_srv_model.main_json_to_attri`) applies this delta to the deserialized app instance **before** `main()` is called — meaning: in `main()`, `this.username` is already the new value the user typed.
+When the user types in an `Input`, UI5 writes the value back to `/XX/username`. On the next roundtrip the frontend sends an **XX delta** with all changed values to the server. The server engine (`z2ui5_cl_ui5_srv_model.main_json_to_attri`) applies this delta to the deserialized app instance **before** `main()` is called — meaning: in `main()`, `this.username` is already the new value the user typed.
 
 ## Options
 

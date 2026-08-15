@@ -5,11 +5,11 @@ The simplest variation of a cap2UI5 app: an input field, a button, a confirmatio
 ## Code
 
 ```js
-// core/srv/z2ui5/02/z2ui5_cl_app_hello_world.js (shipped with the framework)
+// core/srv/z2ui5/01/04/z2ui5_cl_ui5_app_hi_world.js (shipped with the framework)
 const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
 const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
 
-class z2ui5_cl_app_hello_world extends z2ui5_if_app {
+class z2ui5_cl_ui5_app_hi_world extends z2ui5_if_app {
 
   name = "";
 
@@ -34,7 +34,7 @@ class z2ui5_cl_app_hello_world extends z2ui5_if_app {
   }
 }
 
-module.exports = z2ui5_cl_app_hello_world;
+module.exports = z2ui5_cl_ui5_app_hi_world;
 ```
 
 ## What happens
@@ -42,7 +42,7 @@ module.exports = z2ui5_cl_app_hello_world;
 | Phase | What runs |
 |---|---|
 | **Initial load** | Frontend POSTs an empty body. Server has no `S_FRONT.ID`, falls back to the startup app. User clicks the "Hello World" link. |
-| **App start** | New `app_start=z2ui5_cl_app_hello_world` starts. `check_on_init() === true`, view is rendered. |
+| **App start** | New `app_start=z2ui5_cl_ui5_app_hi_world` starts. `check_on_init() === true`, view is rendered. |
 | **User types** | Two-way binding via `client._bind_edit(this.name)` — value flows into the XX delta. |
 | **User clicks "Send"** | Frontend sends `S_FRONT.EVENT = "BUTTON_POST"` + XX delta with `name`. Server applies the delta to `this.name` and calls `main()`. |
 | **`check_on_event("BUTTON_POST")`** | True → `message_box_display(...)` with the current name. |
@@ -50,13 +50,13 @@ module.exports = z2ui5_cl_app_hello_world;
 ## Launch
 
 ```
-http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_app_hello_world
+http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world
 ```
 
 Or, without installing anything, in the [browser playground](../guide/playground):
 
 ```
-https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_app_hello_world
+https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_ui5_app_hi_world
 ```
 
 ## What you can take away from this

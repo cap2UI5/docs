@@ -126,7 +126,7 @@ WHERE "CREATEDAT" < ADD_DAYS(CURRENT_TIMESTAMP, -1);
 
 If you have a user ID (via `cds.context.user.id`), you can enforce a user-specific LIMIT in the handler — delete the oldest rows per user.
 
-This requires extending the schema with `user_id` and patching `z2ui5_cl_core_srv_draft.saveApp` — currently not built in.
+This requires extending the schema with `user_id` and patching `z2ui5_cl_ui5_srv_draft.saveApp` — currently not built in.
 
 ## Important caveats
 
