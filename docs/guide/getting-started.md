@@ -8,7 +8,7 @@ If you just want to *see* cap2UI5 first, open the [**browser playground**](./pla
 
 ## Prerequisites
 
-- **Node.js ≥ 20**
+- **Node.js ≥ 22** (the app declares it in `engines` and `.nvmrc`)
 - Internet access (the frontend loads SAPUI5 from the SAP CDN)
 
 That's it. No database setup (CAP starts an in-memory SQLite automatically), no global CLI installs (`@sap/cds-dk` is a dev dependency of the project).
@@ -54,7 +54,7 @@ The server listens on [http://localhost:4004](http://localhost:4004):
 | URL | What you get |
 |---|---|
 | [`/z2ui5/webapp/index.html`](http://localhost:4004/z2ui5/webapp/index.html) | the app — without a parameter, the startup launcher is shown |
-| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_smp_app_001` |
+| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_smp_app_000` |
 | `/rest/root/z2ui5` | the roundtrip endpoint the frontend talks to |
 
 Click around the demo apps first — everything you see in `core/srv/app/samples/` can be started via `?app_start=<class_name>`.

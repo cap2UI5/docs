@@ -4,7 +4,7 @@ cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/a
 
 ## Commonalities
 
-- **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via the automated [sync pipeline](./where-it-comes-from#how-the-port-actually-works). That means: same UI5 bundle, same custom controls, same `Actions.js` handler, same index HTML boot pattern.
+- **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via the automated [sync pipeline](./where-it-comes-from#how-the-port-actually-works). That means: same UI5 bundle, same custom controls, same `app/z2ui5/webapp/core/actions/` handlers, same index HTML boot pattern.
 - **Identical wire protocol.** `POST /rest/root/z2ui5` with `{ S_FRONT, XX, MODEL }` — the frontend cannot tell whether ABAP or Node.js is responding.
 - **Identical developer API.** Class names, methods, patterns (`check_on_init`, `_bind_edit`, `_event`, `nav_app_call`) are 1:1.
 - **Identical custom control set.** `geolocation`, `chartjs`, `file_uploader`, … all run identically on the frontend — the server only has to render the XML correctly.
@@ -117,7 +117,7 @@ The structure is **identical**. Only the language idioms differ.
 cap2UI5 is not a one-time fork. The [builder-abap2UI5-js repository](https://github.com/cap2UI5/builder-abap2UI5-js) runs automated pipelines that mirror abap2UI5 and **transpile the ABAP sources to JavaScript** with *abap2js* (built on the [@abaplint](https://github.com/abaplint/abaplint) parser):
 
 - the **frontend** is taken over 1:1 (only the bootstrap URL and the backend endpoint are patched),
-- the **sample apps** are fully machine-transpiled — that's why `core/srv/app/samples/` contains hundreds of `z2ui5_cl_smp_app_*` classes,
+- the **sample apps** are fully machine-transpiled — that's why `core/srv/app/samples/` contains over a hundred `z2ui5_cl_smp_app_*` classes,
 - the **framework core** under `core/srv/z2ui5/` is generated from a hand-maintained adaptation (the builder's `src/`); transpiled classes are only ever *added*, never overwrite the curated files.
 
 [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5) then assembles the finished CAP app from the published core and publishes it into the [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5).
@@ -131,7 +131,7 @@ Because the wire format and API are compatible, migrating an existing abap2UI5 a
 1. Rewrite the ABAP class as a JS class (the mapping is 1:1) — or let the transpiler do a first pass: `npm run transpile -- path/to/z2ui5_cl_my_app.clas.abap --stdout` in a [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) checkout emits JavaScript, marking unsupported statements as `// TODO(abap2js)` comments instead of dropping them
 2. Convert data access from OpenSQL to CDS queries
 3. Convert external calls from `cl_http_client` to `fetch`/`cds.connect.to`
-4. Drop the file into `srv/app/` (or a [registered app folder](./project-structure#srv-app-your-apps-and-the-bundled-demos))
+4. Drop the file into `srv/app/` (or a [registered app folder](./project-structure#srv-app))
 5. Run it — done.
 
 The same static frontend renders both without changes.

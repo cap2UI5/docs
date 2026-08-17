@@ -1,0 +1,21 @@
+# Exceptions for scripts/verify-refs.mjs.
+#
+# Every entry is a token the checker would flag but that is not a claim about
+# the cap2UI5 repository. Each one needs a reason — an unexplained entry is
+# indistinguishable from suppressing a real defect, which is how a checker
+# like this stops being worth running.
+#
+# Format: <token> # <reason>
+
+# --- paths in OTHER repositories -------------------------------------------
+app/webapp              # the upstream abap2UI5 repo's frontend folder, which cap2UI5 mirrors
+
+# --- illustrative paths the READER creates ---------------------------------
+srv/app/View1.view.xml  # a static view file the getting-started example tells you to add
+app/customer-list       # a hypothetical Fiori elements app, used for contrast
+
+# --- placeholder class names in examples -----------------------------------
+z2ui5_cl_app_xyz        # stands for "your app class" in the interface description
+my_first_app            # the class the getting-started walkthrough has you write
+my_app                  # same, in the why-cap2ui5 pitch
+ClassName               # literal placeholder in the URL-parameter description

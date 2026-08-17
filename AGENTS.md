@@ -8,6 +8,17 @@ The VitePress documentation site for cap2UI5 (`docs/` holds the content,
 `docs/.vitepress/config.mjs` the nav/sidebar). Build locally with
 `npm ci && npx vitepress build docs`; dev server via `npx vitepress dev docs`.
 
+Before committing, run `npm run check` — that is `verify-refs` (every path,
+class and `?app_start=` named in the prose must resolve in a real cap2UI5
+checkout, and every internal anchor must exist) followed by the VitePress
+build. The verifier needs a checkout: `CAP2UI5_DIR=/path/to/cap2UI5`, or a
+sibling clone. It skips itself when there is none, so a green run without a
+checkout proves only that the site builds.
+
+Exceptions — placeholder class names, paths in other repos — go in
+`docs/.verify-refs-ignore`, **with a reason**. An unexplained entry there is
+indistinguishable from suppressing a real defect.
+
 ## Ground truth — the cap2UI5 repo layout (since the monorepo split, 2026-07)
 
 When documenting paths or linking sources, these are the facts (verify

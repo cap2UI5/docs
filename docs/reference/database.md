@@ -7,20 +7,30 @@ cap2UI5 uses **a single CDS entity** for app persistence: `z2ui5_t_01`. This pag
 `db/schema.cds`:
 
 ```cds
-namespace my.domain;
+namespace cap2ui5;
 
 entity z2ui5_t_01 {
   key id      : UUID;
   id_prev     : UUID;          // ← predecessor ID (app history)
+  owner       : String(255);   // ← the user the draft belongs to
   data        : LargeString;   // ← serialized app instance (JSON)
+  createdAt   : Timestamp @cds.on.insert: $now;
 }
 ```
 
-Three fields, nothing more. Every roundtrip performs an `INSERT.into(z2ui5_t_01)` with:
+Every roundtrip performs an `INSERT.into(z2ui5_t_01)` with:
 
 - `id` — newly generated (UUID v4)
 - `id_prev` — the ID the frontend driver passed along as `S_FRONT.ID`
+- `owner` — `cds.context.user.id`, from the identity provider
 - `data` — `JSON.stringify(oApp)` plus `__className` + `__filePath`
+- `createdAt` — set by CAP, and what the retention job prunes on
+
+`owner` is not bookkeeping. A row holds the complete serialized state of a
+session, so it is bound to its creator in two independent places: the OData
+projection is `@readonly` with `where: 'owner = $user'`, and the draft store
+filters on the owner again when loading. A draft id travels through request
+bodies, logs and browser history — it is not treated as a secret.
 
 ## Data format in `data`
 
@@ -74,12 +84,14 @@ The default schema generation has **only the primary key** on `id`. For producti
 - **Index on `id_prev`** if you ever want to traverse (undo, audit). Not needed otherwise.
 - With many parallel users: the `INSERT` is called often enough that HANA with indexes enabled becomes noticeable — keep your indexes minimal.
 
-CAP aspect for createdAt tracking:
+The schema already carries `createdAt` (that is what retention prunes on) and
+`owner`. If you want CAP's full audit set, swap in the `managed` aspect:
 
 ```cds
 entity z2ui5_t_01 : managed {  // ← adds createdAt/createdBy/modifiedAt/modifiedBy
   key id      : UUID;
   id_prev     : UUID;
+  owner       : String(255);
   data        : LargeString;
 }
 ```
@@ -92,25 +104,26 @@ The `managed` aspect requires no code patch in cap2UI5 — the engine ignores th
 **Each roundtrip = one new row.** A 50-click session = 50 rows. 1,000 users with 50 clicks each = 50,000 rows per day.
 :::
 
-### Option 1: periodic job
+### Option 1: the retention job that already ships
 
-```js
-// srv/cleanup.js
-const cds = require("@sap/cds");
+You do not have to write this one — the app ships it as `srv/draft-retention.js`,
+started from `srv/server.js` on the `served` event. It deletes rows past their
+TTL once at startup and hourly after that, on an `unref`'d timer so it never
+holds the process open.
 
-cds.on("served", () => {
-  const intervalMs = 60 * 60 * 1000;        // every hour
-  const ttlMs      = 24 * 60 * 60 * 1000;   // 24h retention
+Configure it with one environment variable:
 
-  setInterval(async () => {
-    const { z2ui5_t_01 } = cds.entities("my.domain");
-    const cutoff = new Date(Date.now() - ttlMs).toISOString();
-    await DELETE.from(z2ui5_t_01).where`createdAt < ${cutoff}`;
-  }, intervalMs);
-});
+| Variable | Default | Meaning |
+|---|---|---|
+| `Z2UI5_DRAFT_TTL_HOURS` | `24` | how long a draft row is kept; `0` disables cleanup entirely |
+
+```bash
+Z2UI5_DRAFT_TTL_HOURS=4 npx cds watch     # shorter retention
+Z2UI5_DRAFT_TTL_HOURS=0 npx cds watch     # keep everything (debugging)
 ```
 
-(Assumes you've enabled `z2ui5_t_01 : managed`.)
+Anything unparseable falls back to 24 hours rather than disabling cleanup —
+a typo in the variable must not silently turn retention off.
 
 ### Option 2: DB-side job
 

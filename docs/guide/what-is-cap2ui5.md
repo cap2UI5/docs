@@ -67,7 +67,7 @@ module.exports = my_hello_world;
 That's the whole app. No `manifest.json`, no `Component.js`, no controller file, no i18n setup. The class fields are your state, `main(client)` is your logic, and the view builder produces the UI.
 
 ::: tip About those class names
-`z2ui5_cl_xml_view`, `check_on_init`, `_bind_edit` — the naming comes from abap2UI5's ABAP conventions and is kept intentionally, so every abap2UI5 sample and doc maps 1:1 to cap2UI5. It looks unusual in JS at first; you get used to it within an hour.
+`z2ui5_cl_ui5_view_builder`, `check_on_init`, `_bind_edit` — the naming comes from abap2UI5's ABAP conventions and is kept intentionally, so every abap2UI5 sample and doc maps 1:1 to cap2UI5. It looks unusual in JS at first; you get used to it within an hour.
 :::
 
 ## What cap2UI5 is _not_
