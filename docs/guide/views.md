@@ -1,140 +1,125 @@
 # View Builder
 
-Instead of maintaining UI5 views as XML files, you assemble them in JavaScript — with a **fluent builder** that produces the XML in the background. The output is always a `<mvc:View>` XML string that goes to the frontend.
+Instead of maintaining UI5 views as XML files, you assemble them in JavaScript with a fluent builder that produces the XML in the background. The output is always an XML string that goes to the frontend.
+
+There is one builder, `z2ui5_cl_ui5_view_builder`. It is deliberately generic: it knows XML elements and attributes, not the UI5 control catalogue. You name the control, it builds the tree. That is why the transpiler targets it, and why every bundled sample is written against it.
 
 ## The simplest case
 
 ```js
-const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
 
-const view = z2ui5_cl_xml_view.factory()
-  .Shell()
-  .Page({ title: "Hello" })
-  .Input({ value: "world" });
+const view = z2ui5_cl_ui5_view_builder.factory()
+  .ele({ n: `View`, ns: `mvc` })
+  .a({ n: `xmlns`,     v: `sap.m` })
+  .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
+
+view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Hello` })
+  .tag(`Input`).a({ n: `value`, v: `world` });
 
 client.view_display(view.stringify());
 ```
 
-`factory()` returns a new view. Each method creates a UI5 control under the current node and returns **the new node** — that's how you naturally chain the tree:
-
-```js
-view
-  .Page()                  // ← new node
-    .Input()               // ← child of Page, new node
-    .Button();             // ← child of Page (siblings via auto-insertion)
+```xml
+<mvc:View xmlns="sap.m" xmlns:mvc="sap.ui.core.mvc">
+  <Shell><Page title="Hello"><Input value="world"/></Page></Shell>
+</mvc:View>
 ```
 
-Most builder methods set the target to the **just-created control** _as a container_. When you explicitly need an aggregation slot (e.g. `content`, `items`, `cells`), there are methods with a lowercase initial:
+## Four methods
 
-```js
-view
-  .SimpleForm({ editable: true })
-    .content()                       // ← opens the <SimpleForm.content> aggregation
-      .Label({ text: "Name" })
-      .Input({ value: "..." });
-```
-
-## Important aggregation methods
-
-| Method | Aggregation slot |
+| Method | What it does |
 |---|---|
-| `.content()` | `<…:content>` (Page, SimpleForm, Panel, …) |
-| `.items()`   | `<…:items>` (Table, List, ComboBox, …) |
-| `.columns()` | `<…:columns>` (Table) |
-| `.cells()`   | `<…:cells>` (ColumnListItem) |
-| `.headerContent()` | Page toolbar |
-| `.footer()`  | Page footer |
-| `.endButton()` | Dialog |
+| `.ele({n, ns})` | add a child element and **move into it** |
+| `.tag({n, ns})` | add a child element and **stay where you are** |
+| `.a({n, v})` | set an attribute (`{n, b}` for a boolean) |
+| `.end()` | move back up to the parent |
 
-They are lowercase to distinguish them from the control methods (`PascalCase`).
-
-::: info Two builders, not two styles
-There are two different classes, and the samples do **not** use the one
-documented on this page:
-
-| Class | Shape | Who uses it |
-|---|---|---|
-| `z2ui5_cl_xml_view` | one method per control — `view.Page({ title })` | these docs, hand-written apps |
-| `z2ui5_cl_ui5_view_builder` | generic — `.ele({n:"Page"}).a({n:"title", v:…})` | the transpiled samples in `core/srv/app/samples/` (102 of 106) |
-
-Both produce the same XML. The generic builder has no per-control methods at
-all, which is exactly why the transpiler targets it: it needs no knowledge of
-the UI5 control catalogue. If you are reading the samples as a cookbook, that
-is the API you will see — it has [its own reference](../api/view-builder#generic-builder).
-:::
-
-## Common controls
+`.ele()` and `.tag()` are the pair worth internalising, because they look interchangeable and are not:
 
 ```js
-view.Page({ title: "..." });
-view.Title({ text: "..." });
-view.Label({ text: "..." });
-view.Input({ value: "..." });
-view.Button({ text: "...", press: client._event("EVT") });
-view.Text({ text: "..." });
-view.CheckBox({ selected: ..., text: "..." });
-view.ComboBox({ selectedKey: ..., items: ... });
-view.DatePicker({ value: ... });
-view.DateTimePicker({ value: ... });
-view.TimePicker({ value: ... });
-view.Switch({ state: ... });
-
-view.Table({ items: ... }).columns().Column().Text({ text: "Col" });
-view.List({ items: ... }).StandardListItem({ title: "...", description: "..." });
-view.SimpleForm({ editable: true });
-view.Grid({ defaultSpan: "L6 M12 S12" });
-view.HBox({ ... });
-view.VBox({ ... });
-
-view.MessageStrip({ text: "...", type: "Information" });
-view.IconTabBar({ ... });
-view.Wizard({ ... });
+page.ele(`Button`).a({ n: `text`, v: `A` });   // now positioned ON the button
+page.tag(`Button`).a({ n: `text`, v: `B` });   // still positioned on the page
 ```
 
-Practically everything UI5 provides in `sap.m` / `sap.ui.layout` / `sap.tnt` is covered — methods map 1:1 to control names, properties to attributes. Boolean values are converted automatically to `"true"`/`"false"`.
+Containers you want to nest into get `.ele()`; leaves get `.tag()`. A chain that silently descended one level too far is the usual reason a control ends up inside its sibling instead of next to it.
+
+Each method also takes its main argument positionally, so `.ele("Page")` and `.ele({ n: "Page" })` are the same thing — the samples mix both freely.
+
+## Aggregations are ordinary elements
+
+There is no `.content()` or `.items()` shorthand. An aggregation is an element like any other, which means you write it yourself — **and give it the namespace of the control that owns it**:
+
+```js
+const content = view.ele(`Shell`).ele(`Page`)
+  .ele({ n: `SimpleForm`, ns: `form` })   // sap.ui.layout.form
+  .a({ n: `editable`, b: true })
+  .ele({ n: `content`, ns: `form` });     // …and so is its aggregation
+
+content.tag(`Label`).a({ n: `text`, v: `Name` });
+content.tag(`Input`).a({ n: `value`, v: client._bind_edit(this.name) });
+```
+
+::: warning Namespaces are the one thing that fails hard
+An element in the wrong XML namespace does not render wrong — the view fails to **load**. UI5 resolves an unprefixed tag against the default `xmlns`, so `<SimpleForm>` under `xmlns="sap.m"` becomes a request for `sap/m/SimpleForm.js` and the whole view dies with a `ModuleError`, with nothing rendered and nothing useful in the message.
+
+Declare every namespace you use on the root, and prefix every element that is not in the default one:
+
+```js
+.a({ n: `xmlns`,      v: `sap.m` })
+.a({ n: `xmlns:mvc`,  v: `sap.ui.core.mvc` })
+.a({ n: `xmlns:core`, v: `sap.ui.core` })          // Title, Icon, …
+.a({ n: `xmlns:form`, v: `sap.ui.layout.form` })   // SimpleForm + its content
+.a({ n: `xmlns:z2ui5`, v: `z2ui5.cc` })            // custom controls
+```
+:::
 
 ## Values: raw, bound, or expression
 
 ```js
-view.Input({ value: "Hello" });                            // literal string
-view.Input({ value: client._bind_edit(this.name) });       // two-way bind: {/XX/name}
-view.Input({ value: client._bind(this.name) });            // one-way bind: {/name}
-view.Input({ value: `{= ${client._bind(this.name)} }` });  // expression binding
-view.Input({ value: `{path: '/name', formatter: '.fmt'}` });// classical binding
+.a({ n: `value`, v: `Hello` })                                  // literal string
+.a({ n: `value`, v: client._bind_edit(this.name) })             // two-way: {/XX/NAME}
+.a({ n: `value`, v: client._bind(this.name) })                  // one-way: {/NAME}
+.a({ n: `value`, v: `{= ${client._bind(this.name)} }` })        // expression binding
+.a({ n: `value`, v: `{path: '/NAME', formatter: '.fmt'}` })     // classical binding
 ```
 
-Whatever you pass as a string lands 1:1 in the XML attribute. The bind helpers are pure string builders.
+Whatever you pass as a string lands 1:1 in the XML attribute — the bind helpers are pure string builders. Booleans have their own form, `.a({ n: "editable", b: true })`, which renders `"true"` / `"false"`.
 
-## Custom controls (z2ui5 namespace)
+## Custom controls
 
-Via `view._z2ui5()` you get the custom control decorator (see `z2ui5_cl_xml_view_cc.js`):
+Custom controls live in the `z2ui5.cc` namespace:
 
 ```js
-view.Page()
-  ._z2ui5().geolocation({
-    finished:  client._event("GEO_DONE"),
-    longitude: client._bind_edit(this.lng),
-    latitude:  client._bind_edit(this.lat),
-  });
+view.a({ n: `xmlns:z2ui5`, v: `z2ui5.cc` });
+
+page.tag({ n: `Geolocation`, ns: `z2ui5` })
+  .a({ n: `finished`,  v: client._event(`GEO_DONE`) })
+  .a({ n: `longitude`, v: client._bind_edit(this.lng) })
+  .a({ n: `latitude`,  v: client._bind_edit(this.lat) });
 ```
 
-Available custom controls (selection):
+Available custom controls (selection): camera picture/selector, Chart.js, file uploader, geolocation, barcode generator, frontend info, scrolling, timer, websocket, storage, spreadsheet export, extended MultiInputs. They are implemented in the webapp under [`app/z2ui5/webapp/cc/`](https://github.com/cap2UI5/cap2UI5/tree/main/app/z2ui5/webapp/cc).
 
-- `camera_picture`, `camera_selector` — camera access
-- `chartjs` — Chart.js integration
-- `file_uploader` — file upload
-- `geolocation` — GPS
-- `bwip_js` — barcode generator
-- `info_frontend` — UI5 version, device info
-- `scrolling`, `timer`, `websocket`, `storage`
-- `spreadsheet_export` — Excel export
-- `multiinput_ext`, `smartmultiinput_ext` — extended MultiInputs
+## Popups
 
-All docs: [`core/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_xml_view_cc.js).
+A popup is a fragment, not a view, so the root element differs — everything else is the same:
+
+```js
+const view = z2ui5_cl_ui5_view_builder.factory()
+  .ele({ n: `FragmentDefinition`, ns: `core` })
+  .a({ n: `xmlns`,      v: `sap.m` })
+  .a({ n: `xmlns:core`, v: `sap.ui.core` });
+
+view.ele(`Dialog`).a({ n: `title`, v: `Confirm` });
+client.popup_display(view.stringify());
+```
+
+→ More in [Popups & Toasts](./popups).
 
 ## Embedding static XML
 
-If you **already have a view as XML** (e.g. exported from a designer), simply bypass the builder:
+If you already have a view as XML (exported from a designer, say), bypass the builder entirely:
 
 ```js
 const fs = require("fs");
@@ -144,28 +129,17 @@ const xml = fs.readFileSync(path.join(__dirname, "MyView.view.xml"), "utf8");
 client.view_display(xml);
 ```
 
-The roundtrip works exactly the same way — the frontend renderer doesn't care _how_ the XML was produced.
+The roundtrip works the same way — the frontend renderer does not care how the XML was produced.
 
 → Example: [Static XML View](../examples/static-xml-view).
 
-## Factories for special views
-
-```js
-z2ui5_cl_xml_view.factory();          // normal view (with Shell+Page)
-z2ui5_cl_xml_view.factory_popup();    // view for dialog/popup
-```
-
-Popups go through `client.popup_display(view.stringify())` instead of `view_display(...)`. → More in [Popups & Toasts](./popups).
-
 ## Two nested views (master-detail)
-
-A pattern for classic master-detail layouts:
 
 ```js
 client.view_display(masterView.stringify());
 client.nest_view_display(detailView.stringify(), "containerId", "addItem");
 ```
 
-`nest_view_display` injects a second view via JS insert into a specific container of the main view. There are two nesting levels (`nest_view_display`, `nest2_view_display`) for deeper layouts.
+`nest_view_display` injects a second view into a specific container of the main view. There are two nesting levels (`nest_view_display`, `nest2_view_display`) for deeper layouts.
 
-→ Continue with [**Data Binding**](./data-binding).
+→ Full method list: [View Builder API](../api/view-builder). Continue with [**Data Binding**](./data-binding).

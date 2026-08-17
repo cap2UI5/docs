@@ -1,6 +1,6 @@
 # Where cap2UI5 Comes From
 
-If you're a CAP developer, chances are you've never heard of **abap2UI5** — it lives in the ABAP world. But cap2UI5 is a direct descendant of it, and knowing the family history explains many of its design decisions (and its unusual class names like `z2ui5_cl_xml_view`). Don't worry: **you never need to read or write a single line of ABAP** to use cap2UI5.
+If you're a CAP developer, chances are you've never heard of **abap2UI5** — it lives in the ABAP world. But cap2UI5 is a direct descendant of it, and knowing the family history explains many of its design decisions (and its unusual class names like `z2ui5_cl_ui5_view_builder`). Don't worry: **you never need to read or write a single line of ABAP** to use cap2UI5.
 
 ## The abap2UI5 story
 
@@ -60,7 +60,7 @@ The transpiler (**abap2js**, built on the open-source ABAP parser [@abaplint/cor
 
 - **The frontend is battle-tested.** You're running the exact UI5 app that thousands of abap2UI5 installations use — every upstream bugfix and new custom control (charts, camera, geolocation, …) flows in automatically.
 - **The wire format is identical.** The frontend cannot tell whether ABAP or Node.js is answering. That's why the whole ecosystem of abap2UI5 knowledge, samples, and patterns applies 1:1.
-- **The naming is inherited.** `z2ui5_cl_xml_view`, `check_on_init`, `_bind_edit` — these names come from ABAP conventions (`z` = customer namespace, `cl` = class, `if` = interface). They look unusual in JavaScript, but they keep the two worlds mappable line-by-line: any abap2UI5 sample can be ported (or auto-transpiled) to cap2UI5 mechanically.
+- **The naming is inherited.** `z2ui5_cl_ui5_view_builder`, `check_on_init`, `_bind_edit` — these names come from ABAP conventions (`z` = customer namespace, `cl` = class, `if` = interface). They look unusual in JavaScript, but they keep the two worlds mappable line-by-line: any abap2UI5 sample can be ported (or auto-transpiled) to cap2UI5 mechanically.
 - **Hundreds of ready samples.** The `core/srv/app/samples/` folder ships the transpiled abap2UI5 demo apps (`z2ui5_cl_smp_app_*`) — a huge, browsable cookbook. Try them in the [browser playground](./playground) without installing anything.
 - **You still write normal JavaScript.** The sync pipeline is a maintainer concern. As an app developer you just `require` two classes and write a JS class — see the [Quickstart](./getting-started).
 

@@ -157,7 +157,7 @@ The framework additionally bundles over a hundred `z2ui5_cl_smp_app_*` classes u
 
 The class lookup searches, in order:
 
-1. Framework built-ins (`core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/`, `core/srv/z2ui5/99/02/`)
+1. Framework built-ins (`core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/`)
 2. The core package's app folder, including the bundled samples (`core/srv/app/` + `core/srv/app/samples/`)
 3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — or the shortcut `require("abap2UI5/register-apps")(dir)`; the project's `srv/app/` is registered this way in `srv/server.js`
 4. Directories in the `Z2UI5_APP_DIRS` environment variable (path-separated list)

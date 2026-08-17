@@ -94,5 +94,5 @@ new broken();  // ❌ "broken must implement async main(client)"
 abap2UI5 convention is `z2ui5_cl_app_xyz`. cap2UI5 sticks to that for library apps (Startup, Hello World, Pop helpers), but **your own apps** can be named however you like. Important:
 
 - **Class name === file name** (otherwise the class lookup won't find the class on reload).
-- The file must live in one of the lookup paths: the framework folders (`core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/`, `core/srv/z2ui5/99/02/`), the core package's app folder (`core/srv/app/`, incl. the bundled `samples/`), a directory registered via `z2ui5_cl_util.register_app_dir(...)` / `require("abap2UI5/register-apps")(dir)` — like the project's own `srv/app/` — or a path listed in `Z2UI5_APP_DIRS` — see [Persistence](../guide/persistence#class-restoration).
+- The file must live in one of the lookup paths: the framework folders (`core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/`), the core package's app folder (`core/srv/app/`, incl. the bundled `samples/`), a directory registered via `z2ui5_cl_util.register_app_dir(...)` / `require("abap2UI5/register-apps")(dir)` — like the project's own `srv/app/` — or a path listed in `Z2UI5_APP_DIRS` — see [Persistence](../guide/persistence#class-restoration).
 - Class names should be **case-sensitive unique** — the lookup forces lowercase, so `MyApp` and `myapp` collide.
