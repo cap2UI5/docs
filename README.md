@@ -1,6 +1,6 @@
 # cap2UI5 — Documentation
 
-VitePress documentation for [**cap2UI5**](https://github.com/cap2UI5/cap2UI5) — the CAP / Node.js port of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) concept. A zero-install playground of the framework runs at [cap2ui5.github.io/web-cap2UI5](https://cap2ui5.github.io/web-cap2UI5/) (built by [web-cap2UI5](https://github.com/cap2UI5/web-cap2UI5)).
+VitePress documentation for [**cap2UI5**](https://github.com/cap2UI5/cap2UI5) — the CAP / Node.js port of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) concept. A zero-install playground of the framework runs at [cap2ui5.github.io/web-cap2UI5-build](https://cap2ui5.github.io/web-cap2UI5-build/) (built by [builder-cap2UI5-web](https://github.com/cap2UI5/builder-cap2UI5-web) into [web-cap2UI5-build](https://github.com/cap2UI5/web-cap2UI5-build)).
 
 ## Develop locally
 

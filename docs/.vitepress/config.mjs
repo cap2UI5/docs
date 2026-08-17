@@ -54,6 +54,7 @@ export default defineConfig({
             { text: 'What is cap2UI5?',            link: '/guide/what-is-cap2ui5' },
             { text: 'Server-Driven UI, Explained', link: '/guide/server-driven-ui' },
             { text: 'Where cap2UI5 Comes From',    link: '/guide/where-it-comes-from' },
+            { text: 'The Ecosystem',               link: '/guide/ecosystem' },
             { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
             { text: 'Try It in the Browser',       link: '/guide/playground' },
             { text: 'Quickstart',                  link: '/guide/getting-started' },
@@ -70,6 +71,13 @@ export default defineConfig({
             { text: 'Navigation',           link: '/guide/navigation' },
             { text: 'Persistence & Sessions', link: '/guide/persistence' },
             { text: 'Popups & Toasts',      link: '/guide/popups' }
+          ]
+        },
+        {
+          text: 'Working With It',
+          items: [
+            { text: 'Developer Tools',      link: '/guide/devtools' },
+            { text: 'Troubleshooting',      link: '/guide/troubleshooting' }
           ]
         },
         {
@@ -112,6 +120,7 @@ export default defineConfig({
             { text: 'Architecture',         link: '/reference/architecture' },
             { text: 'HTTP Protocol',        link: '/reference/protocol' },
             { text: 'Database Model',       link: '/reference/database' },
+            { text: 'Configuration',        link: '/reference/configuration' },
             { text: 'Deployment',           link: '/reference/deployment' }
           ]
         }

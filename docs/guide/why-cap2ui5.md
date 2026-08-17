@@ -50,7 +50,7 @@ my-cap-project/
     └── z2ui5/                       # ← static frontend (carried along unchanged)
 ```
 
-A new UI = **a new JS file in `srv/app/`** (or any [registered app folder](./project-structure#srv-app-your-apps-and-the-bundled-demos)). Available immediately via `?app_start=my_app`.
+A new UI = **a new JS file in `srv/app/`** (or any [registered app folder](./project-structure#srv-app)). Available immediately via `?app_start=my_app`.
 
 ## Concrete advantages
 

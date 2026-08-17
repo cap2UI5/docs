@@ -48,8 +48,19 @@ view
 
 They are lowercase to distinguish them from the control methods (`PascalCase`).
 
-::: info Two method styles
-Besides the `PascalCase` methods used in these docs, the builder also offers **lowercase, abap2UI5-style methods** (`.shell().page().input(...)`) — the transpiled sample apps in `core/srv/app/samples/` use that style, since it maps 1:1 to the ABAP originals. Both styles produce the same XML; pick whichever reads better to you.
+::: info Two builders, not two styles
+There are two different classes, and the samples do **not** use the one
+documented on this page:
+
+| Class | Shape | Who uses it |
+|---|---|---|
+| `z2ui5_cl_xml_view` | one method per control — `view.Page({ title })` | these docs, hand-written apps |
+| `z2ui5_cl_ui5_view_builder` | generic — `.ele({n:"Page"}).a({n:"title", v:…})` | the transpiled samples in `core/srv/app/samples/` (102 of 106) |
+
+Both produce the same XML. The generic builder has no per-control methods at
+all, which is exactly why the transpiler targets it: it needs no knowledge of
+the UI5 control catalogue. If you are reading the samples as a cookbook, that
+is the API you will see — it has [its own reference](../api/view-builder#generic-builder).
 :::
 
 ## Common controls

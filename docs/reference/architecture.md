@@ -10,7 +10,7 @@ This page shows in detail **how a roundtrip flows through the system** — from 
 │  (from abap2UI5 mirror)     │
 │   ├ index.html              │
 │   ├ Component.js            │
-│   ├ Actions.js (eF/eB)      │
+│   ├ actions/*.js (eF/eB)    │
 │   └ JSONModel               │
 └────────────┬────────────────┘
              │ POST /rest/root/z2ui5
@@ -89,7 +89,7 @@ It unwraps the abap2UI5-compatible body from the CDS action wrapper. With that, 
 
 ### 3. Roundtrip orchestrator
 
-`z2ui5_cl_ui5_handler.main(body)` runs through six phases:
+`z2ui5_cl_ui5_handler.main(body)` runs through seven phases:
 
 #### Phase 1 — app resolution
 
@@ -170,7 +170,12 @@ The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 
 ```
 00 — Pure utilities (no framework dependencies)
-└─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
+├─ 01/z2ui5_cl_ajson_*           JSON tree (the ajson port)
+├─ 02/z2ui5_cl_srt_*             Serialization helpers
+├─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
+├─ 03/z2ui5_cl_util_http         Request/response facade
+├─ 03/01/z2ui5_cl_util_db|_ext   DB + platform-specific extras
+└─ 03/02/z2ui5_cl_util_api       Context, conversions, UUIDs
 
 01 — Core
 ├─ 01/z2ui5_cl_ui5_srv_draft    Serialize / deserialize / DB
@@ -188,12 +193,14 @@ The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 ├─ z2ui5_if_app                  Base class for your apps
 ├─ z2ui5_cl_ui5_http_handler         CDS action adapter
 ├─ z2ui5_cl_xml_view             View Builder
-├─ z2ui5_cl_xml_view_cc          Custom control decorator
-├─ z2ui5_cl_ui5_app_start          Built-in launcher
-└─ z2ui5_cl_ui5_app_hi_world      Mini example
+└─ z2ui5_cl_xml_view_cc          Custom control decorator
+
+01/04 — The apps the framework ships
+├─ z2ui5_cl_ui5_app_start        Built-in launcher
+├─ z2ui5_cl_ui5_app_hi_world     Mini example
+└─ z2ui5_cl_ui5_user_exit        Config hook (theme, CSP, security headers)
 
 99 — Add-ons
-├─ 01/z2ui5_cl_util_*            Utility classes
 └─ 02/z2ui5_cl_pop_*             Pop helpers
 ```
 

@@ -124,3 +124,75 @@ Via `view._z2ui5()` you get the custom control decorator (see [`z2ui5_cl_xml_vie
 | `view.stringify()` | Produce final XML string |
 | `view.factory_popup()` | static — popup variant |
 | `view.factory()` | static — normal view |
+
+## The generic builder {#generic-builder}
+
+Source: [`core/srv/z2ui5/02/z2ui5_cl_ui5_view_builder.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_ui5_view_builder.js).
+
+`z2ui5_cl_xml_view` above knows every UI5 control by name — hundreds of
+methods. `z2ui5_cl_ui5_view_builder` knows none of them: it builds an XML tree
+out of elements and attributes and lets you name the control. That is why the
+transpiler emits it (it needs no control catalogue) and why **102 of the 106
+bundled samples are written against it**. If you are using
+`core/srv/app/samples/` as a cookbook, this is the API you are reading.
+
+```js
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
+
+const view = z2ui5_cl_ui5_view_builder.factory()
+  .ele({ n: `View`, ns: `mvc` })
+  .a({ n: `xmlns`,     v: `sap.m` })
+  .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
+
+const page = view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Hello` });
+
+page.ele(`Button`)
+  .a({ n: `text`,  v: `Press me` })
+  .a({ n: `press`, v: client._event(`BUTTON_PRESS`) });
+
+client.view_display(view.stringify());
+```
+
+```xml
+<mvc:View xmlns="sap.m" xmlns:mvc="sap.ui.core.mvc">
+  <Shell><Page title="Hello"><Button text="Press me" press="..."/></Page></Shell>
+</mvc:View>
+```
+
+### Methods
+
+| Method | Meaning |
+|---|---|
+| `factory()` | static — a new, empty tree |
+| `.ele({n, ns})` | append a child element and **descend into it** (the return value is the child) |
+| `.tag({n, ns})` | append a child element and **stay** on the current node (the return value is `this`) |
+| `.a({n, v})` | set attribute `n` on the current node — or on the last child added with `.tag()` |
+| `.a({n, b})` | same, for a boolean: `b` is rendered as `"true"` / `"false"` |
+| `.end()` | go back up to the parent node |
+| `.stringify()` | render the whole tree to an XML string |
+
+Every method accepts its main argument positionally as well, so
+`.ele("Page")` is the same as `.ele({ n: "Page" })` — the samples mix both.
+
+### `.ele()` vs `.tag()`
+
+This is the one thing worth internalising, because the two look
+interchangeable and are not:
+
+```js
+page.ele(`Button`).a({ n: `text`, v: `A` });   // now positioned ON the button
+page.tag(`Button`).a({ n: `text`, v: `B` });   // still positioned on the page
+```
+
+Use `.ele()` for containers you want to nest into (and `.end()` to come back
+out), `.tag()` for leaves. A chain that has silently descended one level too
+far is the usual cause of controls ending up nested inside their sibling.
+
+### Constraints
+
+- `.a()` asserts that the attribute is not already set on the node — setting
+  the same attribute twice throws rather than quietly winning last.
+- `.a()` also asserts the node is a real element; attributes cannot be set on
+  the tree root before the first `.ele()`.
+- Aggregations are ordinary elements here: there is no `.content()` /
+  `.items()` shorthand, you write `.ele({ n: \`content\` })` yourself.

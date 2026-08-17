@@ -7,7 +7,7 @@ cap2UI5 apps are **stateful**: their fields survive a roundtrip, a browser refre
 In `db/schema.cds`:
 
 ```cds
-namespace my.domain;
+namespace cap2ui5;
 
 entity z2ui5_t_01 {
   key id      : UUID;
@@ -73,7 +73,7 @@ On deserialization, `__filePath` is resolved and `require()`d, then a new instan
 
 `__filePath` is determined by the class lookup in `z2ui5_cl_util`. It searches, in order (first hit wins):
 
-1. Framework built-ins: `core/srv/z2ui5/02/` and `core/srv/z2ui5/99/02/`
+1. Framework built-ins: `core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/` and `core/srv/z2ui5/99/02/`
 2. The core package's app folder, including the bundled samples: `core/srv/app/` + `core/srv/app/samples/`
 3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — shortcut: `require("abap2UI5/register-apps")(dir)`; the project's own `srv/app/` is registered this way in `srv/server.js`
 4. Directories listed in the `Z2UI5_APP_DIRS` environment variable
@@ -106,7 +106,7 @@ const cds = require("@sap/cds");
 
 cds.on("served", () => {
   setInterval(async () => {
-    const { z2ui5_t_01 } = cds.entities("my.domain");
+    const { z2ui5_t_01 } = cds.entities("cap2ui5");
     const cutoff = new Date(Date.now() - 24*60*60*1000).toISOString();
     await DELETE.from(z2ui5_t_01).where(`createdAt < '${cutoff}'`);
   }, 60*60*1000);

@@ -118,27 +118,60 @@ Or via a Cloud Foundry sticky cookie: the default XSUAA login setup already sets
 
 ## Auth & XSUAA
 
-In the reference project:
+The reference project is authenticated by default — XSUAA in production,
+mocked users in development:
 
 ```json
 {
   "cds": {
-    "requires": { /* ... */ },
-    "[production]": {
-      "auth": false   // ← deliberately off, since the z2ui5 endpoint may be public
+    "requires": {
+      "auth": {
+        "[production]": "xsuaa",
+        "[development]": { "kind": "mocked", "users": { "alice": { "password": "alice" } } }
+      }
     }
   }
 }
 ```
 
-::: warning Check auth defaults
-The `auth: false` in production is a **default setting for demo purposes**. For real apps:
+Both services carry the requirement, so the roundtrip and the OData entities
+are unreachable without a token:
 
-```json
-"[production]": { "auth": "xsuaa" }
+```cds
+@(requires: 'authenticated-user')
+service rootService { ... }        // POST /rest/root/z2ui5
+@(requires: 'authenticated-user')
+service AdminService { ... }       // the draft table, Northwind
 ```
 
-This puts you in the UAA login flow before `/rest/root/z2ui5` becomes reachable. In `z2ui5_cl_ui5_http_handler` you can then read `cds.context.user.id` to do multi-user separation.
+`GET`/`HEAD /rest/root/z2ui5` stay public on purpose: they serve the static
+UI5 bootstrap shell and the CSRF ack, carry no user data, and keeping them
+open preserves the offline/dev flow. In BTP the approuter authenticates
+before the frontend can reach them at all.
+
+### Separating users
+
+Authentication alone does not separate users — that is what the identity port
+is for. `srv/server.js` injects CAP's request user into the framework:
+
+```js
+engine.set_identity(() => ({
+  user: cds.context?.user?.id,
+  tenant: cds.context?.tenant,
+}));
+```
+
+That one injection drives all three separation mechanisms: `sy-uname` inside
+apps, the `owner` column each draft row is stamped with and filtered by, and
+the per-session keying of retained sticky app state. Without it every user
+shares one identity and, with it, one another's drafts.
+
+::: warning Before going productive
+Two things the reference project leaves at demo level: the services require
+`authenticated-user` rather than the `User` scope declared in
+`xs-security.json` (so every subaccount user passes, role assigned or not),
+and the framework's CSRF gate is opt-in through the user exit and off by
+default.
 :::
 
 ## CI/CD
@@ -155,7 +188,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with: { node-version: '22' }
       - run: npm ci
       - run: npm run build
       - run: cf api $CF_API && cf auth $CF_USER $CF_PASSWORD

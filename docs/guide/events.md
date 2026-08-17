@@ -76,7 +76,7 @@ Server side:
 const data = client.get().R_EVENT_DATA;
 ```
 
-## Frontend-only events: `_event_client(name, args)`
+## Frontend-only events: `_event_client(name, args)` {#event-client}
 
 Some events should **never** reach the server — e.g. "open this URL in a new tab", "copy this value to the clipboard". For those there is `_event_client`:
 

@@ -125,7 +125,7 @@ All queue `eF` calls into `_follow_up_actions[]`. They are sent in the response 
 
 | | Value |
 |---|---|
-| `client.cs_event` (instance getter) | `CS_EVENT` (see [Events](../guide/events#frontend-only-events-_event_client-name-args)) |
+| `client.cs_event` (instance getter) | `CS_EVENT` (see [Events](../guide/events#event-client)) |
 | `client.cs_view` | `{ MAIN, NESTED, NESTED2, POPUP, POPOVER }` |
 | Static `z2ui5_cl_ui5_client.CS_BIND_TYPE` | `{ one_way, two_way }` |
 | Static `z2ui5_cl_ui5_client.EVENT_NAV_APP_LEAVE` | Reserved event name |
