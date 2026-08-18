@@ -170,12 +170,12 @@ The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 
 ```
 00 — Pure utilities (no framework dependencies)
+├─ 00/cl_abap_*                  ABAP runtime shims the transpiled code needs
 ├─ 01/z2ui5_cl_ajson_*           JSON tree (the ajson port)
 ├─ 02/z2ui5_cl_srt_*             Serialization helpers
 ├─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
 ├─ 03/z2ui5_cl_util_http         Request/response facade
-├─ 03/01/z2ui5_cl_util_db|_ext   DB + platform-specific extras
-└─ 03/02/z2ui5_cl_util_api       Context, conversions, UUIDs
+└─ 03/02/z2ui5_cl_util_api*      Context, conversions, UUIDs
 
 01 — Core
 ├─ 01/z2ui5_cl_ui5_srv_draft    Serialize / deserialize / DB
@@ -189,22 +189,21 @@ The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
 ├─ 02/z2ui5_if_ui5_types        internal type containers
 └─ 03/z2ui5_cl_ui5f_index_html    bootstrap HTML as a JS module
 
-02 — Public API (app developer imports)
-├─ z2ui5_if_app                  Base class for your apps
-├─ z2ui5_cl_ui5_http_handler         CDS action adapter
-├─ z2ui5_cl_xml_view             View Builder
-└─ z2ui5_cl_xml_view_cc          Custom control decorator
-
 01/04 — The apps the framework ships
 ├─ z2ui5_cl_ui5_app_start        Built-in launcher
 ├─ z2ui5_cl_ui5_app_hi_world     Mini example
+├─ z2ui5_cl_ui5_app_select       Value-help app
+├─ z2ui5_cl_ui5_app_error        Error view
 └─ z2ui5_cl_ui5_user_exit        Config hook (theme, CSP, security headers)
 
-99 — Add-ons
-└─ 02/z2ui5_cl_pop_*             Pop helpers
+02 — Public API (app developer imports)
+├─ z2ui5_if_app                  Base class for your apps
+├─ z2ui5_if_client               The client contract (cs_event / cs_view constants)
+├─ z2ui5_cl_ui5_http_handler     CDS action adapter
+└─ z2ui5_cl_ui5_view_builder     View Builder
 ```
 
-The layering is **no accident** — it's the abap2UI5 convention, ported to JS. If you read into one of these files, you'll find the same layout in the abap2UI5 repo.
+Those three numbers are the whole tree: `core/srv/z2ui5/` has `00/`, `01/` and `02/` and nothing else. The layering is **no accident** — it's the abap2UI5 convention, ported to JS. If you read into one of these files, you'll find the same layout in the abap2UI5 repo.
 
 ## Wire-format compatibility
 

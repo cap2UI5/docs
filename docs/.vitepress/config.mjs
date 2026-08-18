@@ -52,9 +52,6 @@ export default defineConfig({
           text: 'Getting Started',
           items: [
             { text: 'What is cap2UI5?',            link: '/guide/what-is-cap2ui5' },
-            { text: 'Server-Driven UI, Explained', link: '/guide/server-driven-ui' },
-            { text: 'Where cap2UI5 Comes From',    link: '/guide/where-it-comes-from' },
-            { text: 'The Ecosystem',               link: '/guide/ecosystem' },
             { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
             { text: 'Try It in the Browser',       link: '/guide/playground' },
             { text: 'Quickstart',                  link: '/guide/getting-started' },
@@ -85,6 +82,13 @@ export default defineConfig({
           items: [
             { text: 'cap2UI5 vs. Fiori Elements', link: '/guide/vs-fiori-elements' },
             { text: 'cap2UI5 vs. abap2UI5',       link: '/guide/vs-abap2ui5' }
+          ]
+        },
+        {
+          text: 'Background',
+          items: [
+            { text: 'Where cap2UI5 Comes From',   link: '/guide/where-it-comes-from' },
+            { text: 'The Ecosystem',              link: '/guide/ecosystem' }
           ]
         }
       ],

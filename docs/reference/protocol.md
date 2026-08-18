@@ -124,7 +124,7 @@ One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. T
 **Request:**
 ```json
 { "value": {
-  "S_FRONT": { "ID": "", "EVENT": "", "ORIGIN": "...", "PATHNAME": "/rest/root/z2ui5", "SEARCH": "?app_start=hello_world" },
+  "S_FRONT": { "ID": "", "EVENT": "", "ORIGIN": "...", "PATHNAME": "/rest/root/z2ui5", "SEARCH": "?app_start=z2ui5_cl_ui5_app_hi_world" },
   "XX": {},
   "MODEL": {}
 }}
@@ -134,13 +134,13 @@ One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. T
 ```json
 {
   "S_FRONT": {
-    "APP": "hello_world",
+    "APP": "z2ui5_cl_ui5_app_hi_world",
     "ID": "abc-123",
     "PARAMS": {
-      "S_VIEW": { "XML": "<mvc:View>...<Input value=\"{/XX/name}\"/>...</mvc:View>" }
+      "S_VIEW": { "XML": "<mvc:View>...<Input value=\"{/XX/NAME}\"/>...</mvc:View>" }
     }
   },
-  "MODEL": { "XX": { "name": "" } }
+  "MODEL": { "XX": { "NAME": "" } }
 }
 ```
 
@@ -150,7 +150,7 @@ One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. T
 ```json
 { "value": {
   "S_FRONT": { "ID": "abc-123", "EVENT": "BUTTON_POST", "T_EVENT_ARG": [] },
-  "XX": { "name": "Alice" },
+  "XX": { "NAME": "Alice" },
   "MODEL": {}
 }}
 ```
@@ -159,13 +159,13 @@ One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. T
 ```json
 {
   "S_FRONT": {
-    "APP": "hello_world",
+    "APP": "z2ui5_cl_ui5_app_hi_world",
     "ID": "def-456",
     "PARAMS": {
       "S_MSG_BOX": { "TEXT": "Your name is Alice", "TYPE": "information" }
     }
   },
-  "MODEL": { "XX": { "name": "Alice" } }
+  "MODEL": { "XX": { "NAME": "Alice" } }
 }
 ```
 

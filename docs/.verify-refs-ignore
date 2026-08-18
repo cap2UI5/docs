@@ -18,4 +18,13 @@ app/customer-list       # a hypothetical Fiori elements app, used for contrast
 z2ui5_cl_app_xyz        # stands for "your app class" in the interface description
 my_first_app            # the class the getting-started walkthrough has you write
 my_app                  # same, in the why-cap2ui5 pitch
+my_app_name             # stands for "your class" in the ?app_start= URL on the navigation page
 ClassName               # literal placeholder in the URL-parameter description
+
+# --- classes that exist UPSTREAM and deliberately not here -----------------
+# cap2UI5 does not carry abap2UI5's frozen src/99 (see guide/vs-abap2ui5). The
+# names are named there precisely to say they are absent, so the checker must
+# not read the mention as a claim that they exist.
+z2ui5_cl_xml_view       # upstream's retired view builder — replaced here by z2ui5_cl_ui5_view_builder
+z2ui5_cl_xml_view_cc    # its custom-control decorator, retired with it
+z2ui5_cl_pop_bal        # one of upstream's frozen built-in popups, superseded by the popups add-on

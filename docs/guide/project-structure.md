@@ -113,34 +113,31 @@ core/                                        # npm package "abap2UI5"
         │   ├── 02/z2ui5_cl_ui5_client.js      # the client class (your API)
         │   ├── 02/z2ui5_cl_ui5_srv_bind.js    # _bind / _bind_edit implementation
         │   ├── 02/…                            # action, model, event services
-        │   └── 03/z2ui5_cl_ui5f_index_html.js   # bootstrap HTML as a JS module
+        │   ├── 03/z2ui5_cl_ui5f_index_html.js   # bootstrap HTML as a JS module
+        │   └── 04/                          # the apps the framework ships
+        │       ├── z2ui5_cl_ui5_app_start.js    # built-in launcher
+        │       ├── z2ui5_cl_ui5_app_hi_world.js # mini example
+        │       └── z2ui5_cl_ui5_user_exit.js    # config hook (theme, CSP, headers)
         ├── 02/                              # public API
         │   ├── z2ui5_if_app.js              # base class for apps
-        │   ├── z2ui5_cl_ui5_http_handler.js     # CDS action adapter
-        │   ├── z2ui5_cl_xml_view.js         # view builder
-        │   └── z2ui5_cl_xml_view_cc.js      # custom control decorator
-        ├── 01/04/                           # the apps the framework ships
-        │   ├── z2ui5_cl_ui5_app_start.js    # built-in launcher
-        │   ├── z2ui5_cl_ui5_app_hi_world.js # mini example
-        │   └── z2ui5_cl_ui5_user_exit.js    # config hook (theme, CSP, headers)
-        ├── 99/                              # add-ons
-        │   └── 02/z2ui5_cl_pop_*.js         # popup helpers
+        │   ├── z2ui5_if_client.js           # the client contract (constants)
+        │   ├── z2ui5_cl_ui5_http_handler.js # CDS action adapter
+        │   └── z2ui5_cl_ui5_view_builder.js # view builder
         ├── engine.js                        # platform-neutral surface (roundtrip, bootstrap, ports)
         └── register-apps.js                 # convenience hook for external app repos
 ```
 
-The numbering `00/`, `01/`, `02/` mirrors the abap2UI5 layering (see [Where cap2UI5 comes from](./where-it-comes-from)):
+The numbering `00/`, `01/`, `02/` mirrors the abap2UI5 layering (see [Where cap2UI5 comes from](./where-it-comes-from)) — those three are all there is:
 
 - **`00/`** — pure utilities, no dependencies into the system
-- **`01/`** — core plumbing (persistence, handler, binding engine, HTML bootstrap)
+- **`01/`** — core plumbing (persistence, handler, binding engine, HTML bootstrap) plus the shipped apps in `01/04/`
 - **`02/`** — everything app developers **import directly**
-- **`99/`** — add-ons (utility classes, popup helpers)
 
 As an app developer you almost always need exactly two imports, via the package's exports:
 
 ```js
-const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
+const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
 ```
 
 (The package is named `abap2UI5` and linked into the project via `"abap2UI5": "file:./core"` — a real, vendored dependency. Requires like `require("abap2UI5/z2ui5_if_app")` resolve through the exports map in `core/package.json`, and external app repos can depend on the same package the same way.)

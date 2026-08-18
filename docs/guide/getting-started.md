@@ -65,8 +65,8 @@ Create a new file `my_first_app.js` in `srv/app/`:
 
 ```js
 // srv/app/my_first_app.js
-const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
+const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
 
 class my_first_app extends z2ui5_if_app {
 
@@ -88,20 +88,26 @@ class my_first_app extends z2ui5_if_app {
   }
 
   render(client) {
-    const view = z2ui5_cl_xml_view.factory()
-      .Shell()
-      .Page({ title: "My first cap2UI5 app" })
-      .SimpleForm({ editable: true })
-        .content()
-        .Label({ text: "Your name" })
-        .Input({ value: client._bind_edit(this.who) })
-        .Label({ text: "Clicks" })
-        .Text({ text: client._bind(this.count) })
-        .Button({
-          text:  "Click me",
-          press: client._event("CLICK"),
-          type:  "Emphasized"
-        });
+    const view = z2ui5_cl_ui5_view_builder.factory()
+      .ele({ n: `View`, ns: `mvc` })
+      .a({ n: `xmlns`,      v: `sap.m` })
+      .a({ n: `xmlns:mvc`,  v: `sap.ui.core.mvc` })
+      .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
+
+    const form = view.ele(`Shell`).ele(`Page`)
+      .a({ n: `title`, v: `My first cap2UI5 app` })
+      .ele({ n: `SimpleForm`, ns: `form` })
+      .a({ n: `editable`, b: true })
+      .ele({ n: `content`, ns: `form` });
+
+    form.tag(`Label`).a({ n: `text`, v: `Your name` })
+      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.who) })
+      .tag(`Label`).a({ n: `text`, v: `Clicks` })
+      .tag(`Text`).a({ n: `text`, v: client._bind(this.count) })
+      .tag(`Button`)
+      .a({ n: `text`,  v: `Click me` })
+      .a({ n: `press`, v: client._event(`CLICK`) })
+      .a({ n: `type`,  v: `Emphasized` });
 
     client.view_display(view.stringify());
   }
@@ -121,7 +127,7 @@ Open [http://localhost:4004/z2ui5/webapp/index.html?app_start=my_first_app](http
 
 ## What you just built
 
-In about 25 lines of JS you built a **stateful UI5 app** that:
+In one file you built a **stateful UI5 app** that:
 
 - Two-way-binds `who` to an input field (you type, the server receives it)
 - Persists `count` across roundtrips — the click counter even survives a browser refresh, because the server stores the app instance in the database

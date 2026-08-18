@@ -6,8 +6,8 @@ A classic input mask with combobox, DatePicker, checkbox, switch — comparable 
 
 ```js
 // srv/app/selection_screen.js
-const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
+const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
 
 class selection_screen extends z2ui5_if_app {
 
@@ -85,63 +85,104 @@ class selection_screen extends z2ui5_if_app {
   }
 
   render(client) {
-    const view = z2ui5_cl_xml_view.factory();
-    const page = view.Shell().Page({
-      title:          "abap2UI5 - Selection Screen",
-      navButtonPress: client._event_nav_app_leave(),
-      showNavButton:  client.check_app_prev_stack(),
-    });
+    const view = z2ui5_cl_ui5_view_builder.factory()
+      .ele({ n: `View`, ns: `mvc` })
+      .a({ n: `xmlns`,      v: `sap.m` })
+      .a({ n: `xmlns:mvc`,  v: `sap.ui.core.mvc` })
+      .a({ n: `xmlns:core`, v: `sap.ui.core` })
+      .a({ n: `xmlns:form`, v: `sap.ui.layout.form` })
+      .a({ n: `xmlns:l`,    v: `sap.ui.layout` });
+
+    const page = view.ele(`Shell`).ele(`Page`)
+      .a({ n: `title`,          v: `abap2UI5 - Selection Screen` })
+      .a({ n: `navButtonPress`, v: client._event_nav_app_leave() })
+      .a({ n: `showNavButton`,  b: client.check_app_prev_stack() });
 
     // 1) pull out the path to s_screen → manually build sub-paths
     const screenPath = client._bind_edit(this.s_screen, { path: true });
-    const screen = (k) => `{${screenPath}/${k}}`;
+    const screen = (k) => `{${screenPath}/${k.toUpperCase()}}`;
 
-    const grid = page.Grid({ defaultSpan: "L6 M12 S12" }).content();
+    const grid = page.ele({ n: `Grid`, ns: `l` })
+      .a({ n: `defaultSpan`, v: `L6 M12 S12` })
+      .ele({ n: `content`, ns: `l` });
 
-    const sf1 = grid.SimpleForm({ title: "Input", editable: true }).content();
-    sf1.Label({ text: "Color (with suggestions)" });
-    sf1.Input({
-      value:           screen("colour"),
-      placeholder:     "Enter your favorite color",
-      suggestionItems: client._bind(this.t_suggestions),
-      showSuggestion:  true,
-    }).get().suggestionItems().ListItem({ text: "{value}", additionalText: "{descr}" });
+    const sf1 = grid.ele({ n: `SimpleForm`, ns: `form` })
+      .a({ n: `title`,    v: `Input` })
+      .a({ n: `editable`, b: true })
+      .ele({ n: `content`, ns: `form` });
 
-    const sf2 = grid.SimpleForm({ title: "Time Inputs", editable: true }).content();
-    sf2.Label({ text: "Date" }).DatePicker({ value: screen("date") });
-    sf2.Label({ text: "Date / Time" }).DateTimePicker({ value: screen("date_time") });
-    sf2.Label({ text: "Time Start / End" });
-    sf2.TimePicker({ value: screen("time_start") });
-    sf2.TimePicker({ value: screen("time_end") });
+    sf1.tag(`Label`).a({ n: `text`, v: `Color (with suggestions)` });
+    sf1.ele(`Input`)
+      .a({ n: `value`,           v: screen(`colour`) })
+      .a({ n: `placeholder`,     v: `Enter your favorite color` })
+      .a({ n: `suggestionItems`, v: client._bind(this.t_suggestions) })
+      .a({ n: `showSuggestion`,  b: true })
+      .ele(`suggestionItems`)
+      .tag({ n: `ListItem`, ns: `core` })
+      .a({ n: `text`,           v: `{VALUE}` })
+      .a({ n: `additionalText`, v: `{DESCR}` });
 
-    const content = page.Grid({ defaultSpan: "L12 M12 S12" })
-      .content()
-      .SimpleForm({ title: "Selection", editable: true })
-      .content();
+    const sf2 = grid.ele({ n: `SimpleForm`, ns: `form` })
+      .a({ n: `title`,    v: `Time Inputs` })
+      .a({ n: `editable`, b: true })
+      .ele({ n: `content`, ns: `form` });
 
-    content.Label({ text: "Active" });
-    content.CheckBox({ selected: screen("check_is_active"), text: "Active", enabled: true });
+    sf2.tag(`Label`).a({ n: `text`, v: `Date` })
+      .tag(`DatePicker`).a({ n: `value`, v: screen(`date`) })
+      .tag(`Label`).a({ n: `text`, v: `Date / Time` })
+      .tag(`DateTimePicker`).a({ n: `value`, v: screen(`date_time`) })
+      .tag(`Label`).a({ n: `text`, v: `Time Start / End` })
+      .tag(`TimePicker`).a({ n: `value`, v: screen(`time_start`) })
+      .tag(`TimePicker`).a({ n: `value`, v: screen(`time_end`) });
 
-    content.Label({ text: "Combo" });
-    content.ComboBox({
-      selectedKey: screen("combo_key"),
-      items:       client._bind(this.t_combo),
-    }).Item({ key: "{key}", text: "{text}" });
+    const content = page.ele({ n: `Grid`, ns: `l` })
+      .a({ n: `defaultSpan`, v: `L12 M12 S12` })
+      .ele({ n: `content`, ns: `l` })
+      .ele({ n: `SimpleForm`, ns: `form` })
+      .a({ n: `title`,    v: `Selection` })
+      .a({ n: `editable`, b: true })
+      .ele({ n: `content`, ns: `form` });
 
-    content.Label({ text: "Segmented" });
-    content.SegmentedButton({ selectedKey: screen("segment_key") })
-      .items()
-      .SegmentedButtonItem({ key: "BLUE",  icon: "sap-icon://accept",        text: "blue"  })
-      .SegmentedButtonItem({ key: "GREEN", icon: "sap-icon://add-favorite",  text: "green" })
-      .SegmentedButtonItem({ key: "BLACK", icon: "sap-icon://attachment",    text: "black" });
+    content.tag(`Label`).a({ n: `text`, v: `Active` })
+      .tag(`CheckBox`)
+      .a({ n: `selected`, v: screen(`check_is_active`) })
+      .a({ n: `text`,     v: `Active` })
+      .a({ n: `enabled`,  b: true });
 
-    content.Label({ text: "Switch 1" }).Switch({ state: screen("check_switch_01") });
-    content.Label({ text: "Switch 2" }).Switch({ state: screen("check_switch_02") });
+    content.tag(`Label`).a({ n: `text`, v: `Combo` });
+    content.ele(`ComboBox`)
+      .a({ n: `selectedKey`, v: screen(`combo_key`) })
+      .a({ n: `items`,       v: client._bind(this.t_combo) })
+      .tag({ n: `Item`, ns: `core` })
+      .a({ n: `key`,  v: `{KEY}` })
+      .a({ n: `text`, v: `{TEXT}` });
 
-    const footer = page.footer().OverflowToolbar();
-    footer.ToolbarSpacer();
-    footer.Button({ text: "Clear", press: client._event("BUTTON_CLEAR"), type: "Reject", icon: "sap-icon://delete" });
-    footer.Button({ text: "Send",  press: client._event("BUTTON_SEND"),  type: "Success" });
+    content.tag(`Label`).a({ n: `text`, v: `Segmented` });
+    const seg = content.ele(`SegmentedButton`)
+      .a({ n: `selectedKey`, v: screen(`segment_key`) });
+    seg.tag(`SegmentedButtonItem`)
+      .a({ n: `key`, v: `BLUE` }).a({ n: `icon`, v: `sap-icon://accept` }).a({ n: `text`, v: `blue` })
+      .tag(`SegmentedButtonItem`)
+      .a({ n: `key`, v: `GREEN` }).a({ n: `icon`, v: `sap-icon://add-favorite` }).a({ n: `text`, v: `green` })
+      .tag(`SegmentedButtonItem`)
+      .a({ n: `key`, v: `BLACK` }).a({ n: `icon`, v: `sap-icon://attachment` }).a({ n: `text`, v: `black` });
+
+    content.tag(`Label`).a({ n: `text`, v: `Switch 1` })
+      .tag(`Switch`).a({ n: `state`, v: screen(`check_switch_01`) })
+      .tag(`Label`).a({ n: `text`, v: `Switch 2` })
+      .tag(`Switch`).a({ n: `state`, v: screen(`check_switch_02`) });
+
+    const footer = page.ele(`footer`).ele(`OverflowToolbar`);
+    footer.tag(`ToolbarSpacer`);
+    footer.tag(`Button`)
+      .a({ n: `text`,  v: `Clear` })
+      .a({ n: `press`, v: client._event(`BUTTON_CLEAR`) })
+      .a({ n: `type`,  v: `Reject` })
+      .a({ n: `icon`,  v: `sap-icon://delete` });
+    footer.tag(`Button`)
+      .a({ n: `text`,  v: `Send` })
+      .a({ n: `press`, v: client._event(`BUTTON_SEND`) })
+      .a({ n: `type`,  v: `Success` });
 
     client.view_display(view.stringify());
   }
@@ -160,11 +201,11 @@ const screenPath = client._bind_edit(this.s_screen, { path: true });
 //                                                   "give me the bare path,
 //                                                    not wrapped in {...}"
 
-const screen = (k) => `{${screenPath}/${k}}`;
-//             screen("colour") === "{/XX/s_screen/colour}"
+const screen = (k) => `{${screenPath}/${k.toUpperCase()}}`;
+//             screen("colour") === "{/XX/S_SCREEN/COLOUR}"
 ```
 
-`_bind_edit(this.s_screen)` returns the path to the entire structure object via reference equality. With `{ path: true }` you get it unwrapped — and can then append sub-paths yourself.
+`_bind_edit(this.s_screen)` returns the path to the entire structure object via reference equality. With `{ path: true }` you get it unwrapped — and can then append sub-paths yourself. The sub-path is uppercased because model paths are: the framework writes `s_screen` into the model as `S_SCREEN` and maps the delta back onto your lowercase property when the roundtrip returns.
 
 This saves you from **binding every sub-field individually** — a single lookup, many bindings.
 

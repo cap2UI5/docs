@@ -27,7 +27,7 @@ features:
     details: The proven abap2UI5 concept, ported to CAP — same frontend, same protocol, kept in sync automatically by an ABAP→JS transpiler pipeline.
     icon: 🔗
   - title: Automatic data binding
-    details: client._bind_edit(this.field) finds the property by reference equality on the app instance. Two-way binding without model boilerplate.
+    details: client._bind(this.field) finds the property by reference equality on the app instance — no model boilerplate. On the pinned 1.142.0 core, _bind_edit is the two-way variant.
     icon: 🔄
   - title: Native CAP integration
     details: The roundtrip runs as a CDS REST action. CAP services, OData connections, auth, destinations — everything remains available.

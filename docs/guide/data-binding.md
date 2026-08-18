@@ -5,9 +5,11 @@ Data binding is the trick that lets cap2UI5 work without model boilerplate. This
 ## The two bindings
 
 ```js
-client._bind(value)        // → "{/path}"      one-way (read-only on the frontend)
-client._bind_edit(value)   // → "{/XX/path}"  two-way (frontend can write back)
+client._bind(value)        // → "{/PATH}"     one-way (read-only on the frontend)
+client._bind_edit(value)   // → "{/XX/PATH}"  two-way (frontend can write back)
 ```
+
+Paths come back **uppercased** — `this.username` binds as `/XX/USERNAME`. That is the abap2UI5 wire format (ABAP component names are uppercase), and the delta is mapped back onto your lowercase property when the roundtrip returns. Write literal, relative paths uppercase and they will line up.
 
 Both methods take a **value**, look in `client.oApp` (= your app instance) to find **which property that value is**, and return a UI5 binding path.
 
@@ -17,8 +19,8 @@ class my_app extends z2ui5_if_app {
   username = "Alice";
 
   async main(client) {
-    const path1 = client._bind(this.username);       // → "{/username}"
-    const path2 = client._bind_edit(this.username);  // → "{/XX/username}"
+    const path1 = client._bind(this.username);       // → "{/USERNAME}"
+    const path2 = client._bind_edit(this.username);  // → "{/XX/USERNAME}"
   }
 }
 ```
@@ -68,17 +70,17 @@ A cap2UI5 response contains a `MODEL` object that is set as the **default model*
 ```json
 {
   "MODEL": {
-    "users": [/* ... */],          // ← one-way bindings (top level)
-    "title": "Hello",
+    "USERS": [/* ... */],          // ← one-way bindings (top level)
+    "TITLE": "Hello",
     "XX": {
-      "username": "Alice",         // ← two-way bindings (XX namespace)
-      "is_active": true
+      "USERNAME": "Alice",         // ← two-way bindings (XX namespace)
+      "IS_ACTIVE": true
     }
   }
 }
 ```
 
-When the user types in an `Input`, UI5 writes the value back to `/XX/username`. On the next roundtrip the frontend sends an **XX delta** with all changed values to the server. The server engine (`z2ui5_cl_ui5_srv_model.main_json_to_attri`) applies this delta to the deserialized app instance **before** `main()` is called — meaning: in `main()`, `this.username` is already the new value the user typed.
+When the user types in an `Input`, UI5 writes the value back to `/XX/USERNAME`. On the next roundtrip the frontend sends an **XX delta** with all changed values to the server. The server engine (`z2ui5_cl_ui5_srv_model.main_json_to_attri`) applies this delta to the deserialized app instance **before** `main()` is called — meaning: in `main()`, `this.username` is already the new value the user typed.
 
 ## Options
 
@@ -88,8 +90,9 @@ client._bind_edit(value, opts);
 
 | Option | Meaning |
 |---|---|
-| `path: true` | returns the **raw path** (`"/XX/username"`), not wrapped in `{...}` |
+| `path: true` | returns the **raw path** (`"/XX/USERNAME"`), not wrapped in `{...}` |
 | `path: "myField"` | skips the reference lookup and uses the given path |
+| `name: "s_screen-city"` | resolves a member *inside* a bound structure by name |
 | `custom_mapper: ".fmt"` | formatter function name → output: `{path: '...', formatter: '.fmt'}` |
 | `custom_mapper_back: ".fmtBack"` | reverse formatter (two-way only) |
 | `view: "POPUP"` | target view — rarely needed |
@@ -99,12 +102,12 @@ Examples:
 ```js
 // raw path for relative bindings (table items)
 const tabPath = client._bind_edit(this.users, { path: true });
-// "/XX/users"
+// "/XX/USERS"
 
 // inside the table item structure, fields are relative:
-view.Table({ items: client._bind_edit(this.users) })
-  .Column()
-    .Text({ text: "{name}" });   // ← '{name}' relative to the item
+const tab = page.ele(`Table`).a({ n: `items`, v: client._bind_edit(this.users) });
+tab.ele(`items`).ele(`ColumnListItem`).ele(`cells`)
+  .tag(`Text`).a({ n: `text`, v: `{NAME}` });   // ← '{NAME}' relative to the item
 ```
 
 ## Local bindings
@@ -112,7 +115,7 @@ view.Table({ items: client._bind_edit(this.users) })
 Sometimes you want a view-internal variable that should _not_ live as an app property:
 
 ```js
-client._bind_local(initialValue);   // → "{/__local_3}"
+client._bind_local(initialValue);   // → "{/__local_3}"  (the one path that is not uppercased)
 ```
 
 Creates an anonymous path with the given initial value. Useful for visual helper state that the server never needs.
@@ -122,7 +125,9 @@ Creates an anonymous path with the given initial value. Useful for visual helper
 Bindings are one half; the other is `_event`:
 
 ```js
-view.Button({ text: "Save", press: client._event("BUTTON_SAVE") });
+page.tag(`Button`)
+  .a({ n: `text`,  v: `Save` })
+  .a({ n: `press`, v: client._event(`BUTTON_SAVE`) });
 ```
 
 `_event(name)` builds the UI5 press handler string that sends the event back to the server via the roundtrip. The actual `BUTTON_SAVE` then shows up in `client.get().EVENT`.
@@ -134,8 +139,9 @@ view.Button({ text: "Save", press: client._event("BUTTON_SAVE") });
 When the event should run **only on the frontend** (no server roundtrip):
 
 ```js
-view.Button({
-  press: client._event_client(client.cs_event.OPEN_NEW_TAB, ["https://sap.com"])
+page.tag(`Button`).a({
+  n: `press`,
+  v: client._event_client(client.cs_event.OPEN_NEW_TAB, [`https://sap.com`]),
 });
 ```
 
@@ -170,19 +176,36 @@ class profile extends z2ui5_if_app {
   }
 
   render(client) {
-    const view = z2ui5_cl_xml_view.factory();
-    view.Page({ title: "Profile" })
-      .SimpleForm({ editable: true })
-        .content()
-          .Label({ text: "First name" }).Input({ value: client._bind_edit(this.first_name) })
-          .Label({ text: "Last name"  }).Input({ value: client._bind_edit(this.last_name) })
-          .Label({ text: "Email"      }).Input({
-              value:          client._bind_edit(this.email),
-              valueState:     client._bind(this.validation.email_state),
-              valueStateText: client._bind(this.validation.email_text)
-            })
-          .Label({ text: "Active"     }).CheckBox({ selected: client._bind_edit(this.active) })
-          .Button({ text: "Save", press: client._event("SAVE"), type: "Emphasized" });
+    const view = z2ui5_cl_ui5_view_builder.factory()
+      .ele({ n: `View`, ns: `mvc` })
+      .a({ n: `xmlns`,      v: `sap.m` })
+      .a({ n: `xmlns:mvc`,  v: `sap.ui.core.mvc` })
+      .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
+
+    const form = view.ele(`Shell`).ele(`Page`)
+      .a({ n: `title`, v: `Profile` })
+      .ele({ n: `SimpleForm`, ns: `form` })
+      .a({ n: `editable`, b: true })
+      .ele({ n: `content`, ns: `form` });
+
+    const validation = client._bind(this.validation, { path: true });
+
+    form.tag(`Label`).a({ n: `text`, v: `First name` })
+      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.first_name) })
+      .tag(`Label`).a({ n: `text`, v: `Last name` })
+      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.last_name) })
+      .tag(`Label`).a({ n: `text`, v: `Email` })
+      .tag(`Input`)
+      .a({ n: `value`,          v: client._bind_edit(this.email) })
+      .a({ n: `valueState`,     v: `{${validation}/EMAIL_STATE}` })
+      .a({ n: `valueStateText`, v: `{${validation}/EMAIL_TEXT}` })
+      .tag(`Label`).a({ n: `text`, v: `Active` })
+      .tag(`CheckBox`).a({ n: `selected`, v: client._bind_edit(this.active) })
+      .tag(`Button`)
+      .a({ n: `text`,  v: `Save` })
+      .a({ n: `press`, v: client._event(`SAVE`) })
+      .a({ n: `type`,  v: `Emphasized` });
+
     client.view_display(view.stringify());
   }
 }

@@ -47,31 +47,42 @@ client.message_box_display(
 
 ## Popup (dialog)
 
-A **popup** is a second XML view overlaid as a modal dialog. You build it with `factory_popup()`:
+A **popup** is a second view overlaid as a modal dialog. It is a *fragment*, not a view, so the root element is `core:FragmentDefinition` instead of `mvc:View` — everything else is the ordinary builder:
 
 ```js
-const dialog = z2ui5_cl_xml_view.factory_popup()
-  .Dialog({
-    title:        "Edit User",
-    afterClose:   client._event("CLOSE_DIALOG"),
-    contentWidth: "30em",
-  });
+const popup = z2ui5_cl_ui5_view_builder.factory()
+  .ele({ n: `FragmentDefinition`, ns: `core` })
+  .a({ n: `xmlns`,      v: `sap.m` })
+  .a({ n: `xmlns:core`, v: `sap.ui.core` })
+  .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
 
-dialog.content()
-  .SimpleForm({ editable: true })
-    .content()
-      .Label({ text: "Name" })
-      .Input({ value: client._bind_edit(this.user_name) })
-      .Label({ text: "Role" })
-      .Input({ value: client._bind_edit(this.user_role) });
+const dialog = popup.ele(`Dialog`)
+  .a({ n: `title`,        v: `Edit User` })
+  .a({ n: `afterClose`,   v: client._event(`CLOSE_DIALOG`) })
+  .a({ n: `contentWidth`, v: `30em` });
 
-dialog.endButton()
-  .Button({ text: "Save",   type: "Emphasized", press: client._event("SAVE_USER") });
-dialog.beginButton()
-  .Button({ text: "Cancel", press: client._event("CANCEL_DIALOG") });
+dialog.ele({ n: `SimpleForm`, ns: `form` })
+  .a({ n: `editable`, b: true })
+  .ele({ n: `content`, ns: `form` })
+  .tag(`Label`).a({ n: `text`, v: `Name` })
+  .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.user_name) })
+  .tag(`Label`).a({ n: `text`, v: `Role` })
+  .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.user_role) });
 
-client.popup_display(dialog.stringify());
+dialog.ele(`endButton`).tag(`Button`)
+  .a({ n: `text`,  v: `Save` })
+  .a({ n: `type`,  v: `Emphasized` })
+  .a({ n: `press`, v: client._event(`SAVE_USER`) });
+dialog.ele(`beginButton`).tag(`Button`)
+  .a({ n: `text`,  v: `Cancel` })
+  .a({ n: `press`, v: client._event(`CANCEL_DIALOG`) });
+
+client.popup_display(popup.stringify());
 ```
+
+::: warning `stringify()` renders the whole tree, always
+`stringify()` starts at the root of the tree, not at the node you call it on — `dialog.stringify()` and `popup.stringify()` produce the same string. Keep the root in a variable and hand *that* to `popup_display`, so the intent is visible.
+:::
 
 In subsequent roundtrips:
 
@@ -87,16 +98,25 @@ Very similar, but anchored to a UI5 control in the main view:
 client.popover_display(view.stringify(), "buttonId");
 ```
 
-The `OPEN_BY_ID` is the ID of a control in the main view next to which the popover appears. The builder even has a convenience helper for this:
+The second argument is the ID of a control in the main view next to which the popover appears. There is no convenience helper for a "please confirm" popover — build it like any other fragment:
 
 ```js
-view._z2ui5().approve_popover({
-  placement: "Right",
-  text:      "Really save?",
-  btn_type:  "Emphasized",
-  btn_txt:   "Yes",
-  btn_event: client._event("CONFIRM"),
-});
+const popover = z2ui5_cl_ui5_view_builder.factory()
+  .ele({ n: `FragmentDefinition`, ns: `core` })
+  .a({ n: `xmlns`,      v: `sap.m` })
+  .a({ n: `xmlns:core`, v: `sap.ui.core` });
+
+popover.ele(`Popover`)
+  .a({ n: `placement`, v: `Right` })
+  .a({ n: `showHeader`, b: false })
+  .tag(`Text`).a({ n: `text`, v: `Really save?` })
+  .a({ n: `class`, v: `sapUiSmallMargin` })
+  .tag(`Button`)
+  .a({ n: `text`,  v: `Yes` })
+  .a({ n: `type`,  v: `Emphasized` })
+  .a({ n: `press`, v: client._event(`CONFIRM`) });
+
+client.popover_display(popover.stringify(), "saveButtonId");
 ```
 
 ## Nested views
@@ -158,13 +178,25 @@ async main(client) {
 }
 
 show_confirm_dialog(client) {
-  const view = z2ui5_cl_xml_view.factory_popup();
-  view.Dialog({ title: "Confirmation", contentWidth: "20em" })
-    .content()
-      .Text({ text: "Really delete entry?" });
-  view.endButton().Button({ text: "Delete", type: "Reject",  press: client._event("DELETE_CONFIRMED") });
-  view.beginButton().Button({ text: "Cancel",                press: client._event("DELETE_CANCELLED") });
-  client.popup_display(view.stringify());
+  const popup = z2ui5_cl_ui5_view_builder.factory()
+    .ele({ n: `FragmentDefinition`, ns: `core` })
+    .a({ n: `xmlns`,      v: `sap.m` })
+    .a({ n: `xmlns:core`, v: `sap.ui.core` });
+
+  const dialog = popup.ele(`Dialog`)
+    .a({ n: `title`,        v: `Confirmation` })
+    .a({ n: `contentWidth`, v: `20em` });
+
+  dialog.tag(`Text`).a({ n: `text`, v: `Really delete entry?` });
+  dialog.ele(`endButton`).tag(`Button`)
+    .a({ n: `text`,  v: `Delete` })
+    .a({ n: `type`,  v: `Reject` })
+    .a({ n: `press`, v: client._event(`DELETE_CONFIRMED`) });
+  dialog.ele(`beginButton`).tag(`Button`)
+    .a({ n: `text`,  v: `Cancel` })
+    .a({ n: `press`, v: client._event(`DELETE_CANCELLED`) });
+
+  client.popup_display(popup.stringify());
 }
 ```
 

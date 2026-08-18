@@ -1,6 +1,6 @@
 # Why cap2UI5?
 
-This page is aimed at **CAP developers** who need to deliver UI5 apps but are tired of the tooling overhead, duplicated data modeling and XML maintenance. It assumes you've read [Server-Driven UI, Explained](./server-driven-ui) — the short version: between annotation-driven Fiori Elements and full freestyle UI5 projects there was no lightweight middle ground in the CAP world, and cap2UI5 fills exactly that gap.
+[What is cap2UI5?](./what-is-cap2ui5) explains the pattern and the gap it closes. This page is the concrete case: what changes **in your project** when a UI stops being a second project — for CAP developers who are tired of the tooling overhead, the duplicated data modeling and the XML maintenance.
 
 ## The problem in the classical world
 
@@ -87,10 +87,10 @@ After every roundtrip the entire instance is **persisted automatically in the CD
 This is the core pattern that makes cap2UI5 (and abap2UI5) lightweight code in the first place:
 
 ```js
-.Input({ value: client._bind_edit(this.name) })
+form.tag(`Input`).a({ n: `value`, v: client._bind_edit(this.name) });
 ```
 
-`_bind_edit(this.name)` looks at your app instance to find **which property corresponds to the passed value** and returns the path as a UI5 binding expression `{/XX/name}`. When the user types, the value flows back through the delta into `this.name`. No manual mapping, no property strings, no sync code.
+`_bind_edit(this.name)` looks at your app instance to find **which property corresponds to the passed value** and returns the path as a UI5 binding expression `{/XX/NAME}`. When the user types, the value flows back through the delta into `this.name`. No manual mapping, no property strings, no sync code.
 
 → Details under [Data Binding](./data-binding).
 
@@ -137,11 +137,7 @@ The UI5 bundle is loaded once. After that every roundtrip returns only **a bit o
 
 ## Where it gets unfair
 
-cap2UI5 doesn't solve every problem. Specifically:
-
-- **Offline scenarios**: every interaction is a roundtrip. If you need to be offline-capable, write Fiori Elements or a classical UI5 setup.
-- **Pixel designs outside UI5 standard**: the view builder knows `sap.m`, `sap.ui.layout`, `sap.tnt`, plus the z2ui5 custom controls. You can include your own foreign JS libraries — but with significantly more work.
-- **Read-heavy lists** with live search filter over millions of rows: every filter change is a server roundtrip — that doesn't scale as well as OData bindings, which the frontend driver filters locally in the JSONModel.
+The trade-offs are listed on [What is cap2UI5?](./what-is-cap2ui5#the-gap) — offline, pixel-perfect design systems, read-heavy filtering. One of them is worth a second sentence here, because it is the one that bites in a CAP project: a **live search filter over millions of rows** sends every keystroke's filter change to the server, where a Fiori Elements list filters locally in the JSONModel or pages server-side through the OData driver. If that is your screen, use the OData model (see [set_odata_model](../examples/external-odata#3-persistence-caveat)) or build that one screen with Fiori Elements.
 
 For **UI-centric back-office apps**, which are the typical CAP use case, cap2UI5 is almost always the more ergonomic choice.
 
