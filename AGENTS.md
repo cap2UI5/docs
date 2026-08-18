@@ -8,12 +8,19 @@ The VitePress documentation site for cap2UI5 (`docs/` holds the content,
 `docs/.vitepress/config.mjs` the nav/sidebar). Build locally with
 `npm ci && npx vitepress build docs`; dev server via `npx vitepress dev docs`.
 
-Before committing, run `npm run check` — that is `verify-refs` (every path,
-class and `?app_start=` named in the prose must resolve in a real cap2UI5
-checkout, and every internal anchor must exist) followed by the VitePress
-build. The verifier needs a checkout: `CAP2UI5_DIR=/path/to/cap2UI5`, or a
-sibling clone. It skips itself when there is none, so a green run without a
-checkout proves only that the site builds.
+Before committing, run `npm run check` — that is `verify-refs` followed by the
+VitePress build. It is also what CI runs, on every pull request
+(`.github/workflows/check.yml`) and on deploy. verify-refs checks that
+
+- every path, class and `?app_start=` named in the prose resolves in a real
+  cap2UI5 checkout,
+- every `require("abap2UI5/…")` **inside a code fence** resolves through the
+  exports map of `core/package.json` and onto a file that exists,
+- every internal anchor exists.
+
+The verifier needs a checkout: `CAP2UI5_DIR=/path/to/cap2UI5`, or a sibling
+clone. It skips itself when there is none, so a green run without a checkout
+proves only that the site builds.
 
 Exceptions — placeholder class names, paths in other repos — go in
 `docs/.verify-refs-ignore`, **with a reason**. An unexplained entry there is
@@ -34,9 +41,16 @@ against the repos, don't guess):
 
 Path conventions inside the app repo:
 
-- framework classes: `core/srv/z2ui5/` (layers `00/` utils, `01/` core
-  plumbing — including the shipped apps in `01/04/` since the 2026-08
-  upstream rename, `02/` public API, `99/` add-ons like the pop helpers)
+- framework classes: `core/srv/z2ui5/` — exactly three layers: `00/` utils,
+  `01/` core plumbing (including the shipped apps in `01/04/` since the
+  2026-08 upstream rename) and `02/` public API. There is no `99/`: upstream's
+  frozen legacy package is deliberately not carried into the port, so
+  `z2ui5_cl_xml_view`, `z2ui5_cl_xml_view_cc` and the `z2ui5_cl_pop_*` popups
+  do not exist here. The one view builder is `z2ui5_cl_ui5_view_builder`.
+- the vendored release is pinned: `z2ui5_if_app.version` says which one
+  (1.142.0 today). On it `_bind` is one-way and `_bind_edit` two-way —
+  upstream merged the two in 1.143.0, so upstream material can disagree with
+  what this core does.
 - bundled demo samples (pipeline-owned, flat): `core/srv/app/samples/`
 - user apps: `srv/app/` (or any folder via `Z2UI5_APP_DIRS` /
   `require("abap2UI5/register-apps")(dir)`)

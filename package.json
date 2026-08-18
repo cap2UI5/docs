@@ -4,6 +4,18 @@
   "private": true,
   "type": "module",
   "description": "Documentation for the cap2UI5 framework",
+  "homepage": "https://cap2ui5.github.io/docs/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cap2UI5/docs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cap2UI5/docs/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

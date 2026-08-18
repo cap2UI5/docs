@@ -1,0 +1,56 @@
+# What a pull request against this documentation gets checked for.
+#
+# There was nothing before this. verify-refs existed, but it ran only inside
+# deploy.yml — which runs on push to main, so the one gate that decides whether
+# the prose is still true about the code first spoke AFTER the merge, on the
+# published site. That is how thirteen pages could go on teaching a class the
+# framework had removed: nothing failed, because nothing ran in time.
+#
+# The job runs `npm run check` — the same command AGENTS.md tells a contributor
+# to run locally, so a green machine and a green CI mean the same thing.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The documented target. verify-refs checks every path, class, sample id
+      # and `require("abap2UI5/…")` on this site against a real checkout, so
+      # without it the run proves only that the site builds — it skips itself
+      # and exits 0 when the checkout is missing, which is exactly the silent
+      # pass this job exists to prevent.
+      - name: Check out cap2UI5 (reference target)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: cap2UI5/cap2UI5
+          ref: main
+          path: .cap2ui5-ref
+          fetch-depth: 1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+
+      # verify-refs + vitepress build, in that order: a dead reference is
+      # reported even when the site would have built fine around it.
+      - name: npm run check
+        run: npm run check
+        env:
+          CAP2UI5_DIR: .cap2ui5-ref

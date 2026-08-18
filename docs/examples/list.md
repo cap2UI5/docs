@@ -6,8 +6,8 @@ A list with a selection-change event that reacts to a row selection. Shows the p
 
 ```js
 // srv/app/my_list.js
-const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_xml_view = require("abap2UI5/z2ui5_cl_xml_view");
+const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
+const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
 
 class my_list extends z2ui5_if_app {
 
@@ -25,27 +25,28 @@ class my_list extends z2ui5_if_app {
         { title: "row_05", descr: "Description 5", icon: "sap-icon://account", info: "completed",   selected: false },
       ];
 
-      const view = z2ui5_cl_xml_view.factory();
-      const page = view.Shell().Page({
-        title:          "abap2UI5 - List",
-        navButtonPress: client._event_nav_app_leave(),
-        showNavButton:  client.check_app_prev_stack(),
-      });
+      const view = z2ui5_cl_ui5_view_builder.factory()
+        .ele({ n: `View`, ns: `mvc` })
+        .a({ n: `xmlns`,     v: `sap.m` })
+        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
 
-      page.List({
-        headerText:      "Items",
-        items:           client._bind_edit(this.t_tab),
-        mode:            "SingleSelectMaster",
-        selectionChange: client._event("SELCHANGE"),
-      })
-        .StandardListItem({
-          title:       "{title}",
-          description: "{descr}",
-          icon:        "{icon}",
-          info:        "{info}",
-          press:       client._event("ITEM_PRESS"),
-          selected:    "{selected}",
-        });
+      const page = view.ele(`Shell`).ele(`Page`)
+        .a({ n: `title`,          v: `abap2UI5 - List` })
+        .a({ n: `navButtonPress`, v: client._event_nav_app_leave() })
+        .a({ n: `showNavButton`,  b: client.check_app_prev_stack() });
+
+      page.ele(`List`)
+        .a({ n: `headerText`,      v: `Items` })
+        .a({ n: `items`,           v: client._bind_edit(this.t_tab) })
+        .a({ n: `mode`,            v: `SingleSelectMaster` })
+        .a({ n: `selectionChange`, v: client._event(`SELCHANGE`) })
+        .tag(`StandardListItem`)
+        .a({ n: `title`,       v: `{TITLE}` })
+        .a({ n: `description`, v: `{DESCR}` })
+        .a({ n: `icon`,        v: `{ICON}` })
+        .a({ n: `info`,        v: `{INFO}` })
+        .a({ n: `press`,       v: client._event(`ITEM_PRESS`) })
+        .a({ n: `selected`,    v: `{SELECTED}` });
 
       client.view_display(view.stringify());
 
@@ -68,18 +69,21 @@ module.exports = my_list;
 ### Bindings for aggregation slots
 
 ```js
-.List({
-  items: client._bind_edit(this.t_tab),
-  ...
-})
-.StandardListItem({
-  title: "{title}",   // ← path relative to the item
-  description: "{descr}",
-  selected: "{selected}",
-});
+page.ele(`List`)
+  .a({ n: `items`, v: client._bind_edit(this.t_tab) })
+  .tag(`StandardListItem`)
+  .a({ n: `title`,       v: `{TITLE}` })   // ← path relative to the item
+  .a({ n: `description`, v: `{DESCR}` })
+  .a({ n: `selected`,    v: `{SELECTED}` });
 ```
 
-`items` gets the top-level binding (`{/XX/t_tab}`). Inside `StandardListItem`, all paths are **relative to the item** — `{title}` refers to `t_tab[N].title`.
+`items` gets the top-level binding (`{/XX/T_TAB}`). Inside `StandardListItem`, all paths are **relative to the item** — `{TITLE}` refers to `t_tab[N].title`.
+
+::: tip Why the uppercase paths
+Model paths are uppercased on the way out (`this.t_tab` → `/XX/T_TAB`, the column `title` → `{TITLE}`) — the abap2UI5 wire format, where component names are ABAP identifiers. The write-back maps them onto your real, lowercase properties case-insensitively, so `this.t_tab[0].title` is what you read in `main()`. Write the relative paths uppercase and they will match.
+:::
+
+There is no `items` element in the chain: `items` is the default aggregation of `List`, so a child added with `.tag()` lands in it. An aggregation that is *not* the default one (a `Table`'s `columns`, a `Page`'s `footer`) is written out as an element of its own.
 
 ### `selectionChange` vs. `press`
 

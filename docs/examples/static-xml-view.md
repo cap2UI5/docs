@@ -89,6 +89,19 @@ This keeps the wire format encapsulated and you stay safe across updates.
 
 ## Hybrid: view builder + static XML snippets
 
-Sometimes you only want to load **a piece** of the view from XML — e.g. a static footer. The builder has the `xml_load(...)` method (see `z2ui5_cl_xml_view.js`) which embeds an XML fragment into the running view.
+Sometimes you only want a **piece** of the view to come from a file — a static footer, say. The builder has no "embed this XML here" method: it renders a tree of elements it built itself, and `stringify()` is the only way out of it. So the seam is the string, not the builder:
+
+```js
+// … build the dynamic part with the builder, and mark the seam with an
+// element you can find again in the output:
+page.tag(`Text`).a({ n: `text`, v: `__FOOTER__` });
+
+const footer = fs.readFileSync(path.join(__dirname, "footer.xml"), "utf8");
+client.view_display(
+  view.stringify().replace(`<Text text="__FOOTER__"/>`, footer),
+);
+```
+
+Build the dynamic part with the builder, put a placeholder element where the static part goes, and splice the file in before `view_display`. Nothing in the framework has to know the difference — the frontend renderer sees one XML string either way.
 
 → You're now through all the examples. Continue to the [**API reference**](../api/client) for full method listings.

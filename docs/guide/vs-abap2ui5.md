@@ -1,13 +1,32 @@
 # cap2UI5 vs. abap2UI5
 
-cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) framework. If you know one, you know the other 90%. This page shows the commonalities, the small differences, and why a second implementation exists in the first place. (New to abap2UI5 entirely? Start with [Where cap2UI5 comes from](./where-it-comes-from).)
+cap2UI5 is a **JavaScript port** of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) framework. If you know one, you know the other 90%. This page shows the commonalities, the differences, and why a second implementation exists in the first place. (New to abap2UI5 entirely? Start with [Where cap2UI5 comes from](./where-it-comes-from).)
 
 ## Commonalities
 
 - **Identical frontend bundle.** cap2UI5 pulls the `app/webapp/` directory from the abap2UI5 repo via the automated [sync pipeline](./where-it-comes-from#how-the-port-actually-works). That means: same UI5 bundle, same custom controls, same `app/z2ui5/webapp/core/actions/` handlers, same index HTML boot pattern.
 - **Identical wire protocol.** `POST /rest/root/z2ui5` with `{ S_FRONT, XX, MODEL }` — the frontend cannot tell whether ABAP or Node.js is responding.
-- **Identical developer API.** Class names, methods, patterns (`check_on_init`, `_bind_edit`, `_event`, `nav_app_call`) are 1:1.
+- **The same API, method for method.** Class names, methods and patterns (`check_on_init`, `_event`, `nav_app_call`, the view builder chain) carry over one to one; an ABAP method call and its JS counterpart differ only in language idiom.
 - **Identical custom control set.** `geolocation`, `chartjs`, `file_uploader`, … all run identically on the frontend — the server only has to render the XML correctly.
+
+::: warning Same shape — but not the same release, and not the same class set
+Two qualifications on "identical", both worth knowing before you copy an upstream sample.
+
+**cap2UI5 carries one pinned framework release, and it is 1.142.0.** The number is in the shipped code: `static version` on `z2ui5_if_app` (`core/srv/z2ui5/02/z2ui5_if_app.js`). Upstream has moved on, and one of the moves changes what an example means:
+
+- **Here, on 1.142.0**, `_bind()` and `_bind_edit()` are two different bindings — one-way and two-way. Every example on this site uses them that way, because that is what the shipped `z2ui5_cl_ui5_srv_bind` does.
+- **Upstream, from 1.143.0 on**, the split is gone: `_bind_edit()` is an alias of `_bind()`, and `custom_mapper_back` / `custom_filter_back` are still accepted but no longer evaluated. See abap2UI5's [deprecations page](https://abap2ui5.github.io/docs/resources/deprecations.html).
+
+**cap2UI5 does not ship upstream's frozen legacy package at all.** abap2UI5 keeps its `src/99` for one reason — abapGit installs a repository, not a folder, so deleting those objects would break existing installations. An npm package has no such installed base, so since 2026-08 nothing from `src/99` enters the port. Concretely, these exist upstream and do **not** exist here:
+
+| upstream (frozen, still shipped) | cap2UI5 |
+|---|---|
+| `z2ui5_cl_xml_view`, `z2ui5_cl_xml_view_cc` | not carried — the only builder is `z2ui5_cl_ui5_view_builder` |
+| the built-in popups `z2ui5_cl_pop_*` | not carried — upstream's own successor is the separate [popups add-on](https://github.com/abap2UI5-addons/popups) |
+| the retired `z2ui5_cl_util*` of `99/01` | not carried (the `z2ui5_cl_util` here is the transpiler runtime, an unrelated class of the same name) |
+
+So an old abap2UI5 sample that still compiles upstream can fail here on the import alone — and that is deliberate, not a gap waiting to be filled.
+:::
 
 ## Differences
 
@@ -45,7 +64,7 @@ abap2UI5 apps are written in SAP GUI / ADT. cap2UI5 apps are written in **VS Cod
 
 ## Which should I choose?
 
-That **doesn't** depend on which framework is "better" — both are 1:1 equivalents. It depends on **which server stack fits your project**:
+That **doesn't** depend on which framework is "better" — they solve the same problem the same way. It depends on **which server stack fits your project**:
 
 - You have an **existing ABAP system** and don't want a second platform → **abap2UI5**.
 - You're building a **new cloud application** on BTP / Cloud Foundry / Kyma → **cap2UI5**.
@@ -54,7 +73,7 @@ That **doesn't** depend on which framework is "better" — both are 1:1 equivale
 
 ## Code comparison
 
-ABAP version (`z2ui5_cl_ui5_app_hi_world.clas.abap`):
+ABAP version — the same app on current abap2UI5, built with `z2ui5_cl_ui5_view_builder`:
 
 ```abap
 CLASS z2ui5_cl_ui5_app_hi_world DEFINITION PUBLIC.
@@ -66,17 +85,20 @@ ENDCLASS.
 CLASS z2ui5_cl_ui5_app_hi_world IMPLEMENTATION.
   METHOD z2ui5_if_app~main.
     IF client->check_on_init( ).
-      DATA(view) = z2ui5_cl_xml_view=>factory( ).
-      view->shell( )->page( title = 'Hello World'
-        )->simple_form( editable = abap_true
-        )->content(
-        )->title( text = 'Make an input here and send it to the server...'
-        )->label( text = 'Name'
-        )->input(  value = client->_bind_edit( name )
-        )->button( text = 'Send'
-                   press = client->_event( 'BUTTON_POST' ) ).
+      DATA(view) = z2ui5_cl_ui5_view_builder=>factory( ).
+      view->ele( n = `View` ns = `mvc`
+        )->a( n = `xmlns`     v = `sap.m`
+        )->a( n = `xmlns:mvc` v = `sap.ui.core.mvc` ).
+
+      DATA(page) = view->ele( `Shell`
+        )->ele( `Page` )->a( n = `title` v = `Hello World` ).
+
+      page->tag( `Input`  )->a( n = `value` v = client->_bind( name )
+        )->tag( `Button` )->a( n = `text`  v = `Send`
+        )->a( n = `press` v = client->_event( `BUTTON_POST` ) ).
+
       client->view_display( view->stringify( ) ).
-    ELSEIF client->check_on_event( 'BUTTON_POST' ).
+    ELSEIF client->check_on_event( `BUTTON_POST` ).
       client->message_box_display( |Your name is { name }| ).
     ENDIF.
   ENDMETHOD.
@@ -92,15 +114,18 @@ class z2ui5_cl_ui5_app_hi_world extends z2ui5_if_app {
 
   async main(client) {
     if (client.check_on_init()) {
-      const view = z2ui5_cl_xml_view.factory()
-        .Shell()
-        .Page({ title: "Hello World" })
-        .SimpleForm({ editable: true })
-          .content()
-          .Title({ text: "Make an input here and send it to the server..." })
-          .Label({ text: "Name" })
-          .Input({ value: client._bind_edit(this.name) })
-          .Button({ text: "Send", press: client._event("BUTTON_POST") });
+      const view = z2ui5_cl_ui5_view_builder.factory()
+        .ele({ n: `View`, ns: `mvc` })
+        .a({ n: `xmlns`,     v: `sap.m` })
+        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
+
+      const page = view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Hello World` });
+
+      page.tag(`Input`).a({ n: `value`, v: client._bind_edit(this.name) })
+        .tag(`Button`)
+        .a({ n: `text`,  v: `Send` })
+        .a({ n: `press`, v: client._event(`BUTTON_POST`) });
+
       client.view_display(view.stringify());
 
     } else if (client.check_on_event("BUTTON_POST")) {
@@ -110,7 +135,7 @@ class z2ui5_cl_ui5_app_hi_world extends z2ui5_if_app {
 }
 ```
 
-The structure is **identical**. Only the language idioms differ.
+The structure is the same, method for method. The two places the languages part company are visible above: ABAP names its arguments (`n = … v = …`) where JavaScript passes one object, and the binding call differs — `_bind` upstream, `_bind_edit` here, because on the pinned 1.142.0 that is still the two-way one. Everything else maps line by line, which is exactly what makes machine transpilation of the samples possible.
 
 ## How the two stay in sync
 
@@ -128,7 +153,7 @@ A jest suite gates every sync — only a green build is committed.
 
 Because the wire format and API are compatible, migrating an existing abap2UI5 app to cap2UI5 is mechanical:
 
-1. Rewrite the ABAP class as a JS class (the mapping is 1:1) — or let the transpiler do a first pass: `npm run transpile -- path/to/z2ui5_cl_my_app.clas.abap --stdout` in a [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) checkout emits JavaScript, marking unsupported statements as `// TODO(abap2js)` comments instead of dropping them
+1. Rewrite the ABAP class as a JS class — method for method, with the two caveats above: a view built on the retired `z2ui5_cl_xml_view` has to be rebuilt on `z2ui5_cl_ui5_view_builder`, and two-way binding is `_bind_edit` on the release cap2UI5 pins. Or let the transpiler do a first pass: `npm run transpile -- path/to/z2ui5_cl_my_app.clas.abap --stdout` in a [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) checkout emits JavaScript, marking unsupported statements as `// TODO(abap2js)` comments instead of dropping them
 2. Convert data access from OpenSQL to CDS queries
 3. Convert external calls from `cl_http_client` to `fetch`/`cds.connect.to`
 4. Drop the file into `srv/app/` (or a [registered app folder](./project-structure#srv-app))

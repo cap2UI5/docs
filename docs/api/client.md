@@ -17,13 +17,22 @@ The `client` object is the only interface your app has to the outside world duri
 
 | Method | Returns | Description |
 |---|---|---|
-| `_bind(value, opts?)` | `string` | One-way binding → `{/path}` |
-| `_bind_edit(value, opts?)` | `string` | Two-way binding → `{/XX/path}` |
-| `_bind_local(value)` | `string` | Local binding without an app property |
+| `_bind(value, opts?)` | `string` | One-way binding → `{/PATH}` |
+| `_bind_edit(value, opts?)` | `string` | Two-way binding → `{/XX/PATH}` |
+| `_bind_local(value)` | `string` | Local binding without an app property → `{/__local_N}` |
+
+Paths are uppercased (`this.user_name` → `/XX/USER_NAME`) and mapped back onto the real property case-insensitively when the delta returns.
+
+::: info The two are one method upstream — but not here
+On the framework release cap2UI5 pins (**1.142.0**, `z2ui5_if_app.version`) these are genuinely two bindings: `_bind` writes into the model root and is read-only on the frontend, `_bind_edit` writes into the `XX` namespace the frontend can write back through. That is what `z2ui5_cl_ui5_srv_bind` does in the shipped code, and what this documentation describes throughout.
+
+abap2UI5 resolved the split in **1.143.0**: there `_bind_edit` is an alias of `_bind`, and the reverse-formatter options are accepted but ignored. If you are reading upstream material, that is the difference you are looking at. → [cap2UI5 vs. abap2UI5](../guide/vs-abap2ui5)
+:::
 
 **`opts`** for `_bind` / `_bind_edit`:
 - `path: true` → returns the bare path without `{...}`
 - `path: "name"` → explicit path, no reference lookup
+- `name: "s_screen-city"` → resolve a member inside a bound structure by name
 - `custom_mapper: ".fmt"` → formatter function name
 - `custom_mapper_back: ".fmtBack"` → reverse formatter (only `_bind_edit`)
 - `custom_filter: ".f"` / `custom_filter_back: ".fb"` → aliases

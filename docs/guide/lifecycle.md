@@ -177,11 +177,17 @@ class search_form extends z2ui5_if_app {
   }
 
   render(client) {
-    z2ui5_cl_xml_view.factory()
-      .Page({ title: "Search" })
-        .Input({ value: client._bind_edit(this.search) })
-        .Button({ press: client._event("DO_SEARCH") })
-        .Table({ items: client._bind(this.results) });
+    const view = z2ui5_cl_ui5_view_builder.factory()
+      .ele({ n: `View`, ns: `mvc` })
+      .a({ n: `xmlns`,     v: `sap.m` })
+      .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
+
+    view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Search` })
+      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.search) })
+      .tag(`Button`).a({ n: `press`, v: client._event(`DO_SEARCH`) })
+      .tag(`Table`).a({ n: `items`, v: client._bind(this.results) });
+
+    client.view_display(view.stringify());
   }
 }
 ```
@@ -190,8 +196,8 @@ Fields you expose via bindings **must be direct properties** of the app. `_bind_
 
 ```js
 const path = client._bind_edit(this.deep, { path: true });
-// path = "/XX/deep"
-.Input({ value: `{${path}/path/field}` })
+// path = "/XX/DEEP"      ← model paths are uppercased
+page.tag(`Input`).a({ n: `value`, v: `{${path}/PATH/FIELD}` });
 ```
 
 → Full explanation in [Data Binding](./data-binding).

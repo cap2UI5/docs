@@ -1,5 +1,12 @@
 import { defineConfig } from 'vitepress'
 
+// Where the site is actually served from. Link previews (LinkedIn, Slack,
+// WhatsApp, X) only accept ABSOLUTE urls in og:image — a relative
+// "/docs/logo.jpeg" is silently dropped and the preview falls back to the
+// grey placeholder card.
+const SITE_URL = 'https://cap2ui5.github.io/docs'
+const OG_IMAGE = `${SITE_URL}/logo.jpeg`
+
 export default defineConfig({
   title: 'cap2UI5',
   description: 'Bringing the abap2UI5 concept to CAP / Node.js — server-driven UI5 apps written in pure JavaScript',
@@ -20,10 +27,24 @@ export default defineConfig({
   },
 
   head: [
+    ['link', { rel: 'icon', type: 'image/jpeg', href: '/docs/logo.jpeg' }],
+    ['link', { rel: 'apple-touch-icon', href: '/docs/logo.jpeg' }],
     ['meta', { name: 'theme-color', content: '#d03c4a' }],
     ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'cap2UI5' }],
+    ['meta', { property: 'og:url', content: `${SITE_URL}/` }],
     ['meta', { property: 'og:title', content: 'cap2UI5 — Server-driven UI5 for CAP' }],
-    ['meta', { property: 'og:description', content: 'Build full UI5 applications from your CAP backend in JavaScript — no separate frontend project, no XML hand-crafting.' }]
+    ['meta', { property: 'og:description', content: 'Build full UI5 applications from your CAP backend in JavaScript — no separate frontend project, no XML hand-crafting.' }],
+    ['meta', { property: 'og:image', content: OG_IMAGE }],
+    ['meta', { property: 'og:image:type', content: 'image/jpeg' }],
+    // The logo is square (790x790), so the preview is a thumbnail card, not a
+    // wide banner — declaring the real size is what keeps it from being
+    // cropped. A 1200x630 banner would earn the large card; there is none yet.
+    ['meta', { property: 'og:image:width', content: '790' }],
+    ['meta', { property: 'og:image:height', content: '790' }],
+    ['meta', { property: 'og:image:alt', content: 'cap2UI5 — server-driven UI5 for CAP' }],
+    ['meta', { name: 'twitter:card', content: 'summary' }],
+    ['meta', { name: 'twitter:image', content: OG_IMAGE }]
   ],
 
   themeConfig: {
@@ -52,9 +73,6 @@ export default defineConfig({
           text: 'Getting Started',
           items: [
             { text: 'What is cap2UI5?',            link: '/guide/what-is-cap2ui5' },
-            { text: 'Server-Driven UI, Explained', link: '/guide/server-driven-ui' },
-            { text: 'Where cap2UI5 Comes From',    link: '/guide/where-it-comes-from' },
-            { text: 'The Ecosystem',               link: '/guide/ecosystem' },
             { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
             { text: 'Try It in the Browser',       link: '/guide/playground' },
             { text: 'Quickstart',                  link: '/guide/getting-started' },
@@ -85,6 +103,13 @@ export default defineConfig({
           items: [
             { text: 'cap2UI5 vs. Fiori Elements', link: '/guide/vs-fiori-elements' },
             { text: 'cap2UI5 vs. abap2UI5',       link: '/guide/vs-abap2ui5' }
+          ]
+        },
+        {
+          text: 'Background',
+          items: [
+            { text: 'Where cap2UI5 Comes From',   link: '/guide/where-it-comes-from' },
+            { text: 'The Ecosystem',              link: '/guide/ecosystem' }
           ]
         }
       ],

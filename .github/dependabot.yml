@@ -1,13 +1,45 @@
+# Why this file exists, and what it has to keep moving.
+#
+# Every workflow in this repository pins its actions to a commit SHA rather
+# than to `@v7`. A tag is a pointer its owner can move, so a job pinned to one
+# runs whatever it points at that day; a commit cannot change under you. The
+# cost of that safety is that nothing bumps a pin on its own — a pinned action
+# quietly becomes a stale action, which is exactly what happened here: the
+# deploy workflow sat two majors behind the rest of the organisation until
+# somebody read the two files side by side. This is the PR that says so.
+#
+# Two ecosystems, matching the rest of the organisation:
+#
+#   npm             vitepress. It builds the site, and the build is half of
+#                   `npm run check` — the gate every pull request passes.
+#   github-actions  the deploy and check workflows. Dependabot updates a SHA
+#                   pin in place and keeps the version comment right, so pinned
+#                   does not become stale.
 version: 2
 updates:
-  # The other repos in the ecosystem pin their actions to commit SHAs, which
-  # means nothing bumps them without a PR — this is that PR.
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-
   - package-ecosystem: npm
-    directory: /
+    directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "06:23"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the toolchain rather than one per package: they move
+      # together, and what has to be verified is a site that still builds, not
+      # each package alone.
+      toolchain:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:23"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
