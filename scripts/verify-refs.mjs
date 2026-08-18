@@ -23,6 +23,15 @@
  *      exist in a cap2UI5 checkout
  *   2. every `?app_start=<class>` names a class that actually resolves
  *   3. every z2ui5 class named in backticks exists somewhere in the app
+ *   4. every `require("abap2UI5/…")` in a FENCED CODE BLOCK resolves through
+ *      the exports map of core/package.json, and onto a file that exists
+ *
+ * Check 4 exists because the first three did not see the largest defect this
+ * site ever had. Fenced blocks were skipped wholesale as "examples, not
+ * claims" — but an example is the one claim every reader copies, and thirteen
+ * pages went on teaching `z2ui5_cl_xml_view` for months after the class was
+ * gone. A retired API is not visible in prose; it is visible in the import
+ * line above the example, and that line is a claim about the package.
  *
  * Usage:
  *   CAP2UI5_DIR=/path/to/cap2UI5 node scripts/verify-refs.mjs
@@ -68,8 +77,46 @@ for (const f of files) {
   if (b.endsWith(".js")) classes.set(b.slice(0, -3).toLowerCase(), f);
 }
 
+// ---- the core package's exports map ---------------------------------------
+// `require("abap2UI5/x")` does not resolve to a path, it resolves through the
+// "exports" block of core/package.json — so a subpath that is not in that map
+// is a broken import even when a file of that name exists somewhere in the
+// tree, and a subpath that IS in the map still has to land on a real file.
+const CORE_PKG = path.join(APP, "core", "package.json");
+const EXPORTS = fs.existsSync(CORE_PKG)
+  ? JSON.parse(fs.readFileSync(CORE_PKG, "utf8")).exports || {}
+  : null;
+
+/**
+ * Resolve `abap2UI5/<subpath>` (or bare `abap2UI5`) the way node does:
+ * an exact key wins, otherwise the pattern key with the longest prefix.
+ * Returns the repo-relative path it lands on, or null when nothing matches.
+ */
+function resolveExport(subpath) {
+  if (!EXPORTS) return null;
+  const key = subpath ? `./${subpath}` : `.`;
+  const inApp = (target) => `core/${target.replace(/^\.\//, "")}`;
+
+  if (typeof EXPORTS[key] === "string") return inApp(EXPORTS[key]);
+
+  let best = null;
+  for (const [k, target] of Object.entries(EXPORTS)) {
+    const star = k.indexOf("*");
+    if (star === -1 || typeof target !== "string") continue;
+    const pre = k.slice(0, star);
+    const post = k.slice(star + 1);
+    if (!key.startsWith(pre) || !key.endsWith(post)) continue;
+    if (key.length < pre.length + post.length) continue;
+    if (best && pre.length <= best.pre.length) continue;
+    best = { pre, post, target, star: key.slice(pre.length, key.length - post.length) };
+  }
+  if (!best) return null;
+  return inApp(best.target.replace(`*`, best.star));
+}
+
 if (LIST) {
   console.log(`${files.size} paths, ${classes.size} classes in ${APP}`);
+  console.log(`exports map: ${EXPORTS ? Object.keys(EXPORTS).length + " subpaths" : "NOT FOUND"}`);
   const samples = [...classes.keys()].filter((c) => c.startsWith("z2ui5_cl_smp_")).sort();
   console.log(`samples (${samples.length}): ${samples.join(", ")}`);
   process.exit(0);
@@ -96,7 +143,14 @@ const add = (file, line, msg) =>
 const PATH_ROOTS = ["core/", "srv/", "db/", "app/", "test/"];
 const PATH_RE = /`([A-Za-z0-9_@./-]+\/[A-Za-z0-9_@./-]+)`/g;
 const APP_START_RE = /app_start=([a-z0-9_]+)/gi;
-const CLASS_RE = /`(z2ui5_(?:cl|if|cx)_[a-z0-9_]+)`/gi;
+// A backticked span that STARTS with a z2ui5 class name. It deliberately does
+// not require the closing backtick to follow the identifier: the docs write
+// `z2ui5_cl_xml_view.js`, `z2ui5_cl_util.register_app_dir(dir)` and
+// `z2ui5_cl_xml_view=>factory( )`, and demanding a bare identifier meant every
+// one of those mentions was invisible to this checker.
+const CLASS_RE = /`(z2ui5_(?:cl|if|cx)_[a-z0-9_]+)(?![a-z0-9_])/gi;
+// require("abap2UI5"), require("abap2UI5/z2ui5_if_app"), … in a code fence.
+const REQUIRE_RE = /require\(\s*["'`]abap2UI5(?:\/([^"'`]+))?["'`]\s*\)/g;
 
 // Tokens the docs use that are not claims about this repository — other
 // repos' paths, files the reader creates, placeholder class names. Each is
@@ -129,13 +183,35 @@ for (const file of markdownFiles(DOCS)) {
   const text = fs.readFileSync(file, "utf8");
   const lines = text.split("\n");
 
-  // Fenced code blocks are examples, not claims about the repository —
-  // they legitimately show paths a reader will create.
+  // Fenced code blocks show paths a reader will create, so the path check
+  // stays out of them — but the imports and the `?app_start=` URLs in an
+  // example are claims about the package like any other, and are checked.
   let inFence = false;
   lines.forEach((line, i) => {
     if (/^\s*```/.test(line)) { inFence = !inFence; return; }
-    if (inFence) return;
     const n = i + 1;
+
+    if (inFence) {
+      for (const m of line.matchAll(REQUIRE_RE)) {
+        const sub = m[1] || ``;
+        const spec = `abap2UI5${sub ? `/${sub}` : ``}`;
+        if (/[*…]/.test(sub)) continue;            // a shape, not an import
+        if (IGNORE.has(spec.toLowerCase())) continue;
+        if (!EXPORTS) continue;                    // no core package to check against
+        const target = resolveExport(sub);
+        if (!target) {
+          add(file, n, `require("${spec}") has no match in the core exports map`);
+        } else if (!files.has(target)) {
+          add(file, n, `require("${spec}") resolves to ${target}, which does not exist`);
+        }
+      }
+      for (const m of line.matchAll(APP_START_RE)) {
+        const cls = m[1].toLowerCase();
+        if (classes.has(cls) || IGNORE.has(cls)) continue;
+        add(file, n, `?app_start names a class that does not exist: ${m[1]}`);
+      }
+      return;
+    }
 
     for (const m of line.matchAll(PATH_RE)) {
       const p = m[1].replace(/^\.\//, "").replace(/\/$/, "");
@@ -155,6 +231,7 @@ for (const file of markdownFiles(DOCS)) {
 
     for (const m of line.matchAll(CLASS_RE)) {
       const cls = m[1].toLowerCase();
+      if (line[m.index + m[0].length] === "*") continue;   // glob: a family, not a class
       if (classes.has(cls) || IGNORE.has(cls)) continue;
       // Interfaces are not always separate files, and abstract/ABAP-only
       // names appear when contrasting with abap2UI5 — only flag cl_ classes,

@@ -36,22 +36,22 @@ jobs:
         run: npm ci
 
       # The docs make concrete claims about the cap2UI5 repository — paths,
-      # class names, sample ids. Nothing else checks them: `vitepress build`
-      # validates internal links and stops there, so every rename upstream
-      # silently rots the prose. Verify against the real app.
+      # class names, sample ids, imports. Nothing else checks them:
+      # `vitepress build` validates internal links and stops there, so every
+      # rename upstream silently rots the prose. Verify against the real app.
       - name: Check out cap2UI5 (reference target)
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           repository: cap2UI5/cap2UI5
           path: .cap2ui5-ref
 
-      - name: Verify documented references
-        run: node scripts/verify-refs.mjs
+      # verify-refs + vitepress build, through the same `npm run check` a
+      # contributor runs locally and check.yml runs on the pull request — one
+      # command, so the three cannot drift into checking different things.
+      - name: Check (verify-refs + build)
+        run: npm run check
         env:
           CAP2UI5_DIR: .cap2ui5-ref
-
-      - name: Build with VitePress
-        run: npm run docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
