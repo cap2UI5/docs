@@ -33,7 +33,9 @@ jobs:
       # and `require("abap2UI5/…")` on this site against a real checkout, so
       # without it the run proves only that the site builds — it skips itself
       # and exits 0 when the checkout is missing, which is exactly the silent
-      # pass this job exists to prevent.
+      # pass this job exists to prevent. Hence `check:ci` below, which passes
+      # --require-checkout: if this step is ever removed, renamed or fails to
+      # land the tree, the job goes red instead of quietly checking nothing.
       - name: Check out cap2UI5 (reference target)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -49,8 +51,10 @@ jobs:
       - run: npm ci
 
       # verify-refs + vitepress build, in that order: a dead reference is
-      # reported even when the site would have built fine around it.
-      - name: npm run check
-        run: npm run check
+      # reported even when the site would have built fine around it. Same two
+      # steps as the `npm run check` AGENTS.md tells a contributor to run —
+      # the :ci variant only refuses to skip the reference check.
+      - name: npm run check:ci
+        run: npm run check:ci
         env:
           CAP2UI5_DIR: .cap2ui5-ref

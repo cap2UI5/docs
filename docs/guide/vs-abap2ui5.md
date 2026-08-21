@@ -151,14 +151,8 @@ A jest suite gates every sync — only a green build is committed.
 
 ## Migration ABAP → CAP
 
-Because the wire format and API are compatible, migrating an existing abap2UI5 app to cap2UI5 is mechanical:
+Because the wire format and API are compatible, migrating an existing abap2UI5 app to cap2UI5 is mechanical: rewrite the class method for method, convert data access from OpenSQL to CDS queries and outbound calls from `cl_http_client` to `fetch`, drop the file into `srv/app/`, run it. The same static frontend renders both without changes.
 
-1. Rewrite the ABAP class as a JS class — method for method, with the two caveats above: a view built on the retired `z2ui5_cl_xml_view` has to be rebuilt on `z2ui5_cl_ui5_view_builder`, and two-way binding is `_bind_edit` on the release cap2UI5 pins. Or let the transpiler do a first pass: `npm run transpile -- path/to/z2ui5_cl_my_app.clas.abap --stdout` in a [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) checkout emits JavaScript, marking unsupported statements as `// TODO(abap2js)` comments instead of dropping them
-2. Convert data access from OpenSQL to CDS queries
-3. Convert external calls from `cl_http_client` to `fetch`/`cds.connect.to`
-4. Drop the file into `srv/app/` (or a [registered app folder](./project-structure#srv-app))
-5. Run it — done.
+→ [**Migrating from abap2UI5**](./migration-from-abap2ui5) is the full walkthrough, with a per-construct mapping table for classes, views, binding, structures, data access and outbound calls.
 
-The same static frontend renders both without changes.
-
-→ Have a look at the [**examples**](../examples/hello-world) or jump straight to the [**API reference**](../api/client).
+→ Or have a look at the [**examples**](../examples/hello-world) and jump straight to the [**API reference**](../api/client).
