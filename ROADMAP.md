@@ -6,6 +6,13 @@ test suites executed, numbers measured rather than quoted). This is a
 maintainer planning document, not a site page — it is deliberately outside
 `docs/` so it is not published or scanned by `verify-refs`.*
 
+> [!IMPORTANT]
+> **Phases 0–4 have since been implemented.** See
+> [§7 What was executed](#7-what-was-executed) for what landed, and — more
+> usefully — for the four findings below that turned out to be **wrong** once
+> someone tried to fix them. The analysis is left as written so the
+> corrections are visible rather than quietly edited away.
+
 ---
 
 ## 1. Where the project stands
@@ -305,3 +312,149 @@ project except cloning a build artifact. This is the ceiling on adoption.
 `docs/removal-plan.md`); executed: the builder jest suite (216/221 + 1 fail),
 eslint (127 warnings), coverage, and `verify-refs` (clean). File/line
 references for every finding live in the review notes behind this document.*
+
+---
+
+## 7. What was executed
+
+All five phases were implemented on the branch
+`claude/cap2ui5-analysis-roadmap-kcf9qc` across six repositories. This section
+records what landed and, more importantly, **where the analysis above was
+wrong** — four of its findings did not survive contact with the code, and one
+of them was the document's headline claim.
+
+### 7.1 Four corrections to the analysis
+
+**`_bind` nested-structure binding is NOT broken.** §2.1 reported six
+`port-bug` ratchet entries as "real shipped framework defects hidden in a green
+build", the worst being "`_bind` does not walk nested structures". Five of the
+six are one inherent JS limitation, and it is not reachable from a real app:
+`REF #( ms_struc-s_02-input )` transpiles to a *value copy* of an empty string,
+so the lookup matches the first attribute that is also empty and answers
+`{/MS_STRUC/INPUT}`. Every one of those tests initialises its fields to `""`,
+which is why they all return the same wrong path. The app-facing API takes the
+member path explicitly, and
+`main_two_way(client, val, { name: "ms_struc-s_02-s_03-input" })` answers
+`{/XX/MS_STRUC/S_02/S_03/INPUT}` — verified at every depth. The entries are now
+categorised `js-limit` with that evidence. The sixth was genuine (a one-line
+lifecycle-latch gap in `db_save`) and is fixed, so the baseline now holds
+**zero** `port-bug` entries. The miscategorisation was the actual defect: it
+had read as user-facing breakage for months.
+
+**The "dual draft-store model" is a cache, not a rival store.** §1/§2.2 called
+it "the single largest correctness debt". `db_load` composes the two
+deliberately — process buffer, then the synchronous store (transpiled ABAP
+cannot `await`), then a fall-through to the durable CDS store. A miss is a
+fall-through, not a wrong answer, which is also why back-navigation survives a
+cold process. Nothing said so anywhere, which is why it read as a bug. What
+*was* real: the cache was unbounded, holding every draft payload the process
+had ever written. Now bounded (500 rows/table, oldest evicted), which is safe
+precisely because of the fall-through.
+
+**Five of the five smoke-baseline entries describe correct behaviour.** §2.1
+counted them as outstanding failures. They are components and sub-apps that
+cannot be started standalone — a confirm dialog that leaves immediately when
+started with no event, sub-apps needing a parent, a sample that reads browser
+device info a headless run cannot supply. They now carry `expected: true` and a
+reason each.
+
+**The stricter CSRF rule was wrong and was reverted.** Phase 1 proposed failing
+closed when neither `Origin` nor `Referer` is present. Implemented, it
+contradicted a published upstream contract
+(`ltcl_test_http_handler~test_csrf_no_headers` pins the lenient answer) and
+broke callers that post without either header. Reverted, with the reasoning
+recorded at the function: the vector it aimed at is closed a layer up, since
+CDS accepts an action call only as `application/json` — which a cross-site
+form cannot produce — and the approuter forwards a JWT.
+
+### 7.2 What a live probe found that no unit test could
+
+Booting a real CAP 9 server against the package (rather than trusting the test
+suite) surfaced three defects that were invisible from inside:
+
+1. **`@sap/cds` was resolved from the wrong tree.** The package is normally a
+   `file:` dependency, npm symlinks those, and Node resolves from the *real*
+   path — so the plugin reported "@sap/cds not resolvable" while running inside
+   a live CAP server.
+2. **The CSRF gate never saw a header.** It read `req.req || req._.req`; CAP 9
+   exposes the express request as `req.http.req`. The gate was active, correct,
+   and passed empty strings — which its lenient branch reads as "nothing to
+   compare, allow". A cross-origin POST was answered **200** before the fix and
+   **403** after it, confirmed over real HTTP. The same bug meant user exits
+   never saw request context at all.
+3. **A rejection was returned as a value**, so CDS serialised it as a
+   *successful* action result: HTTP 200 carrying `{status_code: 403}` in the
+   body. Every client that checks the status read a blocked request as
+   completed.
+
+None of the three could have been caught by the existing suites, and the first
+two were introduced *by this work* — which is the argument for the probe.
+
+### 7.3 What landed, by phase
+
+**P0 — correctness and pipeline integrity.** Favicon contract ported (the
+pipeline was red and the publish chain stalled); the missing approuter route
+added with `test/approuter-routes.test.js` pinning it; `assemble-core` now
+exits non-zero on a skipped file and refuses to run the load gate without its
+dependencies; size floors added to transpile and publish and raised to near the
+real corpus (units 150 → 480 of 511); `check-port-drift` no longer rewrites the
+baseline on a report run.
+
+**P1 — security.** CSRF on by default; the `User` role enforced instead of bare
+`authenticated-user`; security headers on the data endpoints; an explicit body
+cap; HTML escaping for all exit-supplied config with a shipped
+`abap2UI5/z2ui5_html` helper; retention reconciled to one TTL and one instance;
+`createdAt`/`owner` indexed as HANA artifacts; npm added to dependabot; an
+audit job on the shipped lock.
+
+**P2 — distribution.** The package now wires itself into CAP: `cds-plugin.js`
+plus a shipped model and service, so a consumer writes two `using` lines and
+installs. The generated app consumes the same `activate()` rather than
+duplicating it — which also fixed retention starting twice. Hand-written
+`.d.ts` verified with `tsc --strict` (and against deliberate errors). The npm
+rename is **decided but not executed**: `docs/adr-001-npm-publishing.md` records
+the choice (`@cap2ui5/core`) and `scripts/rename-package.js` performs it across
+both repos (87 files on `--dry-run`). Renaming before anyone can publish would
+break every example and pin for a benefit that does not exist until a
+maintainer with credentials runs `npm publish`.
+
+**P3 — structural debt.** Three transpiler lowerings that returned *wrong
+answers* now either work correctly or throw: `IN` ignored the range `sign`, so
+an EXCLUDE line was evaluated as an include; `CP`/`NP` stripped the wildcards
+and called `includes()`, so `A*Z` matched "ZA"; unknown operators emitted
+`false`. `check-doc-numbers.js` verifies counts quoted in prose (every one had
+drifted). `check-upstream-divergence.js` turns upstream's obsolescence list
+into a baseline diff, so a retirement the port still ships fails the PR gate.
+
+**P4 — product polish.** The playground gained a sample browser (104 samples,
+grouped and filterable — the only way in was previously typing a class name),
+a registry floor and a recorded OpenUI5 version in `BUILD_INFO.json`, an
+extracted and tested HTML patcher, and `AbortSignal` support. The docs gained
+the sample catalogue, a standalone migration guide, a user-exit page, a roadmap
+page and a sitemap; `verify-refs` can now fail closed.
+
+### 7.4 Numbers
+
+| | Before | After |
+|---|---|---|
+| builder-abap2UI5-js suite | 21 suites, 1 failing (publish blocked) | 26 suites, 269 passing |
+| cap2UI5 app suite | 23 tests | 44 tests |
+| builder-cap2UI5-web suite | 28 tests | 52 tests |
+| Units ratchet | 113, incl. 6 `port-bug` | 111, **0** `port-bug` |
+| `TODO(abap2js)` in shipped core | 82 | 72 |
+| BTP roundtrip routing | unrouted (app could not work) | routed + tested |
+| CSRF | opt-in, never enabled | on by default, 403 verified over HTTP |
+
+### 7.5 Still open
+
+- **`npm publish`** — needs a maintainer with registry credentials; everything
+  else is prepared (§7.3, P2).
+- **The SRTTI family** (`00/02/z2ui5_cl_srt_*`) — still the convergence point
+  of the remaining lint warnings, most of the shipped `TODO(abap2js)` markers
+  and no coverage. It is the largest single piece of remaining work and was
+  scoped as its own project rather than attempted here.
+- **Splitting `abap2js.js`** (~4,000 lines) — the comparison fixes landed
+  without it; the refactor itself remains.
+- **The 74 `port-deviation` baseline entries** — the weekly oracle can *prove*
+  which are achievable in JS, but its output still expires with the Actions log
+  rather than being committed.
