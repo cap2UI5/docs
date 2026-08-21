@@ -106,23 +106,26 @@ The `managed` aspect requires no code patch in cap2UI5 — the engine ignores th
 
 ### Option 1: the retention job that already ships
 
-You do not have to write this one — the app ships it as `srv/draft-retention.js`,
-started from `srv/server.js` on the `served` event. It deletes rows past their
-TTL once at startup and hourly after that, on an `unref`'d timer so it never
-holds the process open.
+You do not have to write this one — it ships inside the framework package
+(`core/srv/cap/retention.js`) and is started by its `cds-plugin`, so it is
+running in any project that installs cap2UI5, not only in this repository. It
+deletes rows past their TTL once at startup and hourly after that, on an
+`unref`'d timer so it never holds the process open.
 
 Configure it with one environment variable:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `Z2UI5_DRAFT_TTL_HOURS` | `24` | how long a draft row is kept; `0` disables cleanup entirely |
+| `Z2UI5_DRAFT_TTL_HOURS` | the framework's own `draft_exp_time_in_hours` (`4`) | how long a draft row is kept; `0` disables cleanup entirely |
+| `Z2UI5_DRAFT_RETENTION_INSTANCE` | `0` | which Cloud Foundry instance runs the cleanup loop; `*` lets every instance run it |
 
 ```bash
-Z2UI5_DRAFT_TTL_HOURS=4 npx cds watch     # shorter retention
+Z2UI5_DRAFT_TTL_HOURS=2 npx cds watch     # shorter retention
 Z2UI5_DRAFT_TTL_HOURS=0 npx cds watch     # keep everything (debugging)
 ```
 
-Anything unparseable falls back to 24 hours rather than disabling cleanup —
+Anything unparseable falls back to the framework's own TTL rather than
+disabling cleanup —
 a typo in the variable must not silently turn retention off.
 
 ### Option 2: DB-side job

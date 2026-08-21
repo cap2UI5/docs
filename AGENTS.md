@@ -20,7 +20,25 @@ VitePress build. It is also what CI runs, on every pull request
 
 The verifier needs a checkout: `CAP2UI5_DIR=/path/to/cap2UI5`, or a sibling
 clone. It skips itself when there is none, so a green run without a checkout
-proves only that the site builds.
+proves only that the site builds. That leniency is right on a laptop and wrong
+in CI, which does check cap2UI5 out — so CI runs `npm run check:ci`, the same
+two steps with `verify-refs --require-checkout`, and a missing checkout is a
+failure there rather than a silent pass.
+
+## Generated pages
+
+`docs/guide/samples.md` is **generated** — do not edit it by hand. It comes
+from `scripts/gen-samples.mjs`, which reads the sample gallery's own catalogue
+table out of `z2ui5_cl_smp_app_000` in a cap2UI5 checkout:
+
+```
+CAP2UI5_DIR=/path/to/cap2UI5 npm run gen:samples    # rewrite the page
+node scripts/gen-samples.mjs --check                # fail if it is out of date
+```
+
+The result is committed like any other page, so the docs build without a
+checkout and a reviewer sees the diff a sync causes. Regenerate it when the
+sample set changes.
 
 Exceptions — placeholder class names, paths in other repos — go in
 `docs/.verify-refs-ignore`, **with a reason**. An unexplained entry there is

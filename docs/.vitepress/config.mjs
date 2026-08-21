@@ -15,6 +15,13 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
 
+  // Absolute URLs in sitemap.xml, same host as SITE_URL above — a search
+  // engine reads the file from the deployed origin, so a relative base is
+  // not enough to name a page.
+  sitemap: {
+    hostname: `${SITE_URL}/`
+  },
+
   ignoreDeadLinks: [
     /^https?:\/\/localhost/,
     /\/LICENSE$/
@@ -76,7 +83,8 @@ export default defineConfig({
             { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
             { text: 'Try It in the Browser',       link: '/guide/playground' },
             { text: 'Quickstart',                  link: '/guide/getting-started' },
-            { text: 'Project Structure',           link: '/guide/project-structure' }
+            { text: 'Project Structure',           link: '/guide/project-structure' },
+            { text: 'Sample Catalogue',            link: '/guide/samples' }
           ]
         },
         {
@@ -95,6 +103,7 @@ export default defineConfig({
           text: 'Working With It',
           items: [
             { text: 'Developer Tools',      link: '/guide/devtools' },
+            { text: 'The User Exit',        link: '/guide/user-exit' },
             { text: 'Troubleshooting',      link: '/guide/troubleshooting' }
           ]
         },
@@ -102,14 +111,16 @@ export default defineConfig({
           text: 'Comparison',
           items: [
             { text: 'cap2UI5 vs. Fiori Elements', link: '/guide/vs-fiori-elements' },
-            { text: 'cap2UI5 vs. abap2UI5',       link: '/guide/vs-abap2ui5' }
+            { text: 'cap2UI5 vs. abap2UI5',       link: '/guide/vs-abap2ui5' },
+            { text: 'Migrating from abap2UI5',    link: '/guide/migration-from-abap2ui5' }
           ]
         },
         {
           text: 'Background',
           items: [
             { text: 'Where cap2UI5 Comes From',   link: '/guide/where-it-comes-from' },
-            { text: 'The Ecosystem',              link: '/guide/ecosystem' }
+            { text: 'The Ecosystem',              link: '/guide/ecosystem' },
+            { text: 'Roadmap',                    link: '/guide/roadmap' }
           ]
         }
       ],

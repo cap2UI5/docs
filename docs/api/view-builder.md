@@ -3,7 +3,8 @@
 Views are built in JavaScript and rendered to UI5 XML. There is one builder:
 `z2ui5_cl_ui5_view_builder`. It is generic — it knows XML elements and
 attributes, not the UI5 control catalogue — which is why the transpiler
-targets it and why all 106 bundled samples are written against it.
+targets it and why every one of the
+[bundled samples](../guide/samples) is written against it.
 
 Source: [`core/srv/z2ui5/02/z2ui5_cl_ui5_view_builder.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_cl_ui5_view_builder.js).
 

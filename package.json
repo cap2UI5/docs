@@ -21,7 +21,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "verify": "node scripts/verify-refs.mjs",
-    "check": "npm run verify && npm run docs:build"
+    "check": "npm run verify && npm run docs:build",
+    "check:ci": "node scripts/verify-refs.mjs --require-checkout && npm run docs:build",
+    "gen:samples": "node scripts/gen-samples.mjs"
   },
   "devDependencies": {
     "vitepress": "^1.6.3"

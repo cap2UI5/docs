@@ -37,10 +37,14 @@
  *   CAP2UI5_DIR=/path/to/cap2UI5 node scripts/verify-refs.mjs
  *   node scripts/verify-refs.mjs            # defaults to ../cap2UI5
  *   node scripts/verify-refs.mjs --list     # print the resolved inventory
+ *   node scripts/verify-refs.mjs --require-checkout   # missing checkout = error
  *
  * Exits 1 on the first broken claim, with the file and line to fix. When no
  * checkout is available it says so and exits 0 — a missing checkout is a
- * setup gap, not a documentation defect.
+ * setup gap, not a documentation defect. That leniency is right on a laptop
+ * and wrong in CI: a workflow that checks cap2UI5 out and then silently loses
+ * it would go on passing while checking nothing. `--require-checkout` turns
+ * the skip into a failure, and .github/workflows/check.yml passes it.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -50,8 +54,15 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DOCS = path.join(ROOT, "docs");
 const APP = path.resolve(process.env.CAP2UI5_DIR || path.join(ROOT, "..", "cap2UI5"));
 const LIST = process.argv.includes("--list");
+const REQUIRE_CHECKOUT = process.argv.includes("--require-checkout");
 
 if (!fs.existsSync(path.join(APP, "package.json"))) {
+  if (REQUIRE_CHECKOUT) {
+    console.error(`verify-refs: no cap2UI5 checkout at ${APP} — required by --require-checkout.`);
+    console.error(`             set CAP2UI5_DIR or clone cap2UI5/cap2UI5 next to this repo.`);
+    console.error(`\nSkipping here would mean the run checked nothing while reporting success.`);
+    process.exit(1);
+  }
   console.log(`verify-refs: no cap2UI5 checkout at ${APP} — skipping.`);
   console.log(`             set CAP2UI5_DIR or clone cap2UI5/cap2UI5 next to this repo.`);
   process.exit(0);

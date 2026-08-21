@@ -9,16 +9,26 @@ framework renders or sends.
 | Variable | Default | Effect |
 |---|---|---|
 | `Z2UI5_APP_DIRS` | — | extra directories to search for app classes, separated by the platform path separator |
-| `Z2UI5_DRAFT_TTL_HOURS` | `24` | how long draft rows are kept; `0` disables the retention job entirely |
+| `Z2UI5_DRAFT_TTL_HOURS` | the exit's `draft_exp_time_in_hours` | how long draft rows are kept; `0` disables the retention job entirely |
+| `Z2UI5_DRAFT_RETENTION_INSTANCE` | `0` | which Cloud Foundry instance runs the retention loop; `*` for all of them |
 | `PORT` | `4004` (CAP) | the port the server listens on |
 
 ```bash
 Z2UI5_APP_DIRS=/srv/my-apps:/srv/more-apps npx cds-serve
-Z2UI5_DRAFT_TTL_HOURS=4 npx cds watch
+Z2UI5_DRAFT_TTL_HOURS=24 npx cds watch
 ```
 
-An unparseable `Z2UI5_DRAFT_TTL_HOURS` falls back to 24 hours rather than
-disabling cleanup — a typo must not silently turn retention off.
+Retention has **one** clock, not two. Unset, `Z2UI5_DRAFT_TTL_HOURS` follows
+the framework's own draft expiry — `draft_exp_time_in_hours` from the user exit,
+4 hours by default — so rows are not deleted while the framework still considers
+the session live. Set, it overrides both. An unparseable value falls back to the
+framework expiry rather than disabling cleanup: a typo must not silently turn
+retention off.
+
+Outside Cloud Foundry every process runs the retention loop, which is the right
+answer for a single server. On CF only the instance whose `CF_INSTANCE_INDEX`
+matches `Z2UI5_DRAFT_RETENTION_INSTANCE` does — the same hourly `DELETE` run by
+N instances is the same work done N times.
 
 ## Registering app directories in code
 
@@ -47,18 +57,28 @@ by scanning for an implementation — you do not register it anywhere. Its two
 methods are called after the framework defaults, so you receive a fully
 populated config object and change only what you care about.
 
-```js
-const z2ui5_if_exit = require("abap2UI5/z2ui5_if_exit");
+This section is the summary; [**The User Exit**](../guide/user-exit) is the
+full treatment — discovery, the request context, and every field.
 
-class my_exit extends z2ui5_if_exit {
+```js
+// srv/app/my_exit.js
+class my_exit {
   set_config_http_get(s_context, s_config) {
     s_config.title = "My Application";
     s_config.theme = "sap_horizon_dark";
     return s_config;
   }
+
+  set_config_http_post(s_context, s_config) {
+    return s_config;
+  }
 }
 module.exports = my_exit;
 ```
+
+`z2ui5_if_exit` is a contract, not a base class: an exit is any class carrying
+both methods, and `extends z2ui5_if_exit` throws. Both must be present, even
+when one only hands back what it was given.
 
 ### What `set_config_http_get` controls
 
@@ -66,9 +86,11 @@ module.exports = my_exit;
 |---|---|---|
 | `title` | `abap2UI5` | the browser tab title |
 | `theme` | `sap_horizon` | any UI5 theme id |
+| `favicon` | an inline SVG data URI | the tab icon; clear it and the page emits no icon link at all |
 | `src` | `/resources/sap-ui-core.js` | the UI5 bootstrap — the local runtime by default, so the stack works offline |
 | `content_security_policy` | a full `<meta>` tag | see below |
 | `t_security_header` | 7 headers | `[{n, v}]`, applied to the bootstrap response |
+| `t_add_config` | — | extra `data-sap-ui-*` bootstrap attributes, as `[{n, v}]` |
 
 The default security headers are `cache-control: no-cache, no-store,
 must-revalidate`, `Pragma: no-cache`, `Expires: 0`,
@@ -96,12 +118,15 @@ serve everything locally you can strip those hosts too.
 
 ### `set_config_http_post`
 
-The same idea for the roundtrip response — the hook to add response headers
-or to switch on the CSRF gate, which is **off by default**:
+The same idea for the roundtrip. Two fields: `draft_exp_time_in_hours` (default
+`4`) and `check_csrf_active`, the cross-origin POST gate, which is **on by
+default** — turn it off only when something in front of the app already covers
+it:
 
 ```js
 set_config_http_post(s_context, s_config) {
-  s_config.check_csrf_active = true;
+  s_config.draft_exp_time_in_hours = 24;
+  s_config.check_csrf_active = false;
   return s_config;
 }
 ```

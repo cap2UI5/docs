@@ -38,4 +38,6 @@ features:
   - title: A live sample for every feature
     details: The transpiled abap2UI5 demo collection ships in core/srv/app/samples/ — and runs zero-install in the browser playground on GitHub Pages.
     icon: 🎨
+    link: /guide/samples
+    linkText: Browse the sample catalogue
 ---
