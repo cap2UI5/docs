@@ -61,11 +61,14 @@ resolve `abap2UI5/engine`. Skip it and the archive still builds, `cf deploy`
 still succeeds, and the instance crash-loops on
 `Cannot find module 'abap2UI5/engine'`.
 
-The same step drops `openui5-dist` from what is pushed. It is the UI5 runtime
-`cds watch` serves at `/resources` locally; on BTP the approuter routes
-`/resources` to the `ui5` destination, so the CAP module never serves it —
-and the package is a deprecated 611 MB tree of release tooling. The staged
-module is 19 MB without it.
+`openui5-dist` is not pushed either. It is the UI5 runtime `cds watch` serves
+at `/resources` locally; on BTP the approuter routes `/resources` to the `ui5`
+destination, so the CAP module never serves it — and the package is a
+deprecated 611 MB tree of release tooling that carried 43 advisories, 3 of
+them critical. The framework declares it as an *optional peer* dependency and
+cap2UI5 carries it as a devDependency, so `npm ci --omit=dev` in the staged
+module leaves it out: 19 MB, no advisories. (The vendor step also prunes it
+defensively, for a framework version that still declares it.)
 
 If you build your own CAP project around the core package rather than
 deploying this one, the same rule applies to any `file:` dependency you vendor:
