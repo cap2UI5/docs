@@ -46,9 +46,19 @@ The bootstrap HTML arrived but UI5 never started.
 
 - **Open the browser console first** — a CSP violation or a 404 on
   `/resources/sap-ui-core.js` shows there immediately.
-- **`/resources` 404s.** The local UI5 runtime comes from the `openui5-dist`
-  dependency. Run `npm ci`. The server now fails at startup with an explicit
-  message when it cannot resolve it.
+- **`/resources` 404s.** The local UI5 runtime comes from `openui5-dist`,
+  which the framework declares as an *optional peer* dependency — in your own
+  project you install it yourself (cap2UI5 carries it as a devDependency). Run
+  `npm ci`, or `npm i -D openui5-dist@1.113.0` if your project never declared
+  it. Its absence is not fatal — the server logs
+  `[z2ui5] openui5-dist not resolvable — /resources not served; bootstrap
+  from a CDN instead` once at startup and keeps going, so check the server
+  log for that line before hunting elsewhere.
+- **`/resources` 404s on BTP.** Different cause: there the runtime is not
+  served by the CAP module at all. The approuter routes `/resources` to the
+  `ui5` destination (`https://ui5.sap.com`) and the production build leaves
+  `openui5-dist` out of the pushed module, so a 404 means the destination is
+  missing or misconfigured, not a missing dependency.
 - **The app uses commercial SAPUI5 controls.** `openui5-dist` ships only the
   open-source libraries. Anything under `sap.suite.*`, `sap.gantt`,
   `sap.ui.comp` needs the SAPUI5 CDN — point `s_config.src` at it in your

@@ -31,6 +31,7 @@ The reference project contains an `mta.yaml` with all standard modules:
 ```yaml
 modules:
 - name: abap2UI5-srv               # CAP service
+- name: abap2UI5-db-deployer       # HDI container (the draft table)
 - name: abap2UI5                   # HTML5 module with the frontend
 - name: abap2UI5-app-deployer      # HTML5 repo push
 - name: abap2UI5-destinations      # FLP destinations
@@ -47,6 +48,33 @@ Build & deploy:
 npm run build       # → mbt build, produces mta_archives/archive.mtar
 npm run deploy      # → cf deploy mta_archives/archive.mtar
 ```
+
+### What the production build has to do
+
+`mbt build` runs the project's `before-all`, which is `npm ci` followed by
+`npm run build:production` — **not** a bare `cds build --production`. The CDS
+build stages the server module into `gen/srv` and copies the app's dependency
+on the vendored framework (`"abap2UI5": "file:./core"`) along with it, but not
+the folder that specifier points at. `scripts/vendor-core.js` is the second
+half: it puts the vendored core into `gen/srv/core`, so the pushed module can
+resolve `abap2UI5/engine`. Skip it and the archive still builds, `cf deploy`
+still succeeds, and the instance crash-loops on
+`Cannot find module 'abap2UI5/engine'`.
+
+`openui5-dist` is not pushed either. It is the UI5 runtime `cds watch` serves
+at `/resources` locally; on BTP the approuter routes `/resources` to the `ui5`
+destination, so the CAP module never serves it — and the package is a
+deprecated 611 MB tree of release tooling that carried 43 advisories, 3 of
+them critical. The framework declares it as an *optional peer* dependency and
+cap2UI5 carries it as a devDependency, so `npm ci --omit=dev` in the staged
+module leaves it out: 19 MB, no advisories. (The vendor step also prunes it
+defensively, for a framework version that still declares it.)
+
+If you build your own CAP project around the core package rather than
+deploying this one, the same rule applies to any `file:` dependency you vendor:
+`cds build` will not stage it for you. The alternative CAP supports is npm
+workspaces plus `cds build --ws-pack`, which packs the workspace dependency
+into a tarball and rewrites the specifier.
 
 Prerequisites:
 
