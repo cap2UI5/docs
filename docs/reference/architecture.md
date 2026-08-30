@@ -25,12 +25,12 @@ This page shows in detail **how a roundtrip flows through the system** — from 
 └────────────┬────────────────┘
              │
              ▼
-┌──── z2ui5_cl_ui5_http_handler ──┐
+┌─ z2ui5_cl_ui5_http_handler ─┐
 │  unwrap req.data.value      │
 └────────────┬────────────────┘
              │
              ▼
-┌──── z2ui5_cl_ui5_handler ──┐
+┌──── z2ui5_cl_ui5_handler ───┐
 │  1. action.factory_main     │── ▶ DB.loadApp(id)
 │  2. validate                │
 │  3. apply XX delta          │
