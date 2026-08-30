@@ -3,7 +3,7 @@
 
 # Sample Catalogue
 
-The framework ships 104 sample apps in `core/srv/app/samples/` — the abap2UI5 demo collection, transpiled to JavaScript. 97 of them are listed in the built-in gallery, and this page is that gallery's own table: it is generated from `z2ui5_cl_smp_app_000`, the sample browser the framework itself renders, so it cannot drift from what the playground offers.
+The framework ships 105 sample apps in `core/srv/app/samples/` — the abap2UI5 demo collection, transpiled to JavaScript. 98 of them are listed in the built-in gallery, and this page is that gallery's own table: it is generated from `z2ui5_cl_smp_app_000`, the sample browser the framework itself renders, so it cannot drift from what the playground offers.
 
 Every title links into the [browser playground](./playground) — no install, no server. The same apps run on your own CAP server under the same names: `?app_start=<class>`, or `client.nav_app_call()` from an app of your own.
 
@@ -29,6 +29,7 @@ Two markers are carried over from the upstream gallery: **(A)** marks a sample t
 
 | Sample | Class | Topics |
 |---|---|---|
+| [A View Built From RTTI, No Field Named](https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_smp_app_497) | [`z2ui5_cl_smp_app_497`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/app/samples/z2ui5_cl_smp_app_497.js) | rtti generic view runtime columns get_components describe_by_data no field name itab structure column cell binding |
 | [Currency Amounts (sap.ui.model.type.Currency)](https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_smp_app_067) | [`z2ui5_cl_smp_app_067`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/app/samples/z2ui5_cl_smp_app_067.js) | amount decimals leading zeros number format |
 | [Dynamic Table Typed at Runtime (RTTI)](https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_smp_app_061) | [`z2ui5_cl_smp_app_061`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/app/samples/z2ui5_cl_smp_app_061.js) | generic data reference create data ddic dynamic itab |
 | [Expression Binding, Types and Composite Parts](https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_smp_app_027) | [`z2ui5_cl_smp_app_027`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/app/samples/z2ui5_cl_smp_app_027.js) | formatter parts conditional regexp visible enabled syntax |
