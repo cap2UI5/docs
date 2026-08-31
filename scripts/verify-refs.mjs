@@ -25,6 +25,9 @@
  *   3. every z2ui5 class named in backticks exists somewhere in the app
  *   4. every `require("abap2UI5/…")` in a FENCED CODE BLOCK resolves through
  *      the exports map of core/package.json, and onto a file that exists
+ *   5. every three-part release number (1.x.y) the docs mention is the
+ *      framework release the checkout actually pins (`static version` on
+ *      z2ui5_if_app), or an allowlisted historical/UI5 number
  *
  * Check 4 exists because the first three did not see the largest defect this
  * site ever had. Fenced blocks were skipped wholesale as "examples, not
@@ -154,6 +157,27 @@ const add = (file, line, msg) =>
 const PATH_ROOTS = ["core/", "srv/", "db/", "app/", "test/"];
 const PATH_RE = /`([A-Za-z0-9_@./-]+\/[A-Za-z0-9_@./-]+)`/g;
 const APP_START_RE = /app_start=([a-z0-9_]+)/gi;
+/* Check 5: release numbers. The site names the pinned framework release in
+ * NINE places across four pages ("Here, on 1.142.0", "cap2UI5 pins abap2UI5
+ * **1.142.0**"), and the day the port moves its pin, every one of them goes
+ * stale at once - the exact defect class checks 1-4 exist for, one level up.
+ * The ground truth is the same place the prose itself points at: `static
+ * version` on z2ui5_if_app in the checkout. Every three-part 1.x.y the docs
+ * mention must be that version, or an entry in .verify-refs-ignore with a
+ * reason - which is where the HISTORICAL numbers live (1.143.0, the upstream
+ * release where the bindings merged, stays true whatever the pin says) and
+ * the UI5 ones (1.113.0 is an OpenUI5 release, not a framework release).
+ * Two-part floors like 1.71 are UI5 talk and deliberately not matched. */
+const RELEASE_RE = /\b1\.\d{2,3}\.\d+\b/g;
+const VERSION_SOURCE = "core/srv/z2ui5/02/z2ui5_if_app.js";
+const PINNED_RELEASE = (() => {
+  try {
+    return fs.readFileSync(path.join(APP, VERSION_SOURCE), "utf8")
+      .match(/static version = `(\d+\.\d+\.\d+)`/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+})();
 // A backticked span that STARTS with a z2ui5 class name. It deliberately does
 // not require the closing backtick to follow the identifier: the docs write
 // `z2ui5_cl_xml_view.js`, `z2ui5_cl_util.register_app_dir(dir)` and
@@ -201,6 +225,16 @@ for (const file of markdownFiles(DOCS)) {
   lines.forEach((line, i) => {
     if (/^\s*```/.test(line)) { inFence = !inFence; return; }
     const n = i + 1;
+
+    // release numbers are claims wherever they stand, prose or example
+    if (PINNED_RELEASE) {
+      for (const m of line.matchAll(RELEASE_RE)) {
+        if (m[0] === PINNED_RELEASE || IGNORE.has(m[0])) continue;
+        add(file, n, `names release ${m[0]}, but the checkout pins ${PINNED_RELEASE} `
+          + `(static version in ${VERSION_SOURCE}) - update the prose, or add the number `
+          + `to .verify-refs-ignore with the reason it stays`);
+      }
+    }
 
     if (inFence) {
       for (const m of line.matchAll(REQUIRE_RE)) {

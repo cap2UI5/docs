@@ -28,3 +28,10 @@ ClassName               # literal placeholder in the URL-parameter description
 z2ui5_cl_xml_view       # upstream's retired view builder — replaced here by z2ui5_cl_ui5_view_builder
 z2ui5_cl_xml_view_cc    # its custom-control decorator, retired with it
 z2ui5_cl_pop_bal        # one of upstream's frozen built-in popups, superseded by the popups add-on
+
+# --- release numbers that are NOT the pinned framework release --------------
+# The pin itself (1.142.0 today) is read from the checkout and never listed
+# here — listing it would keep the old number green after a pin move, which
+# is the one defect the release check exists to catch.
+1.143.0                 # the upstream release where _bind/_bind_edit merged — history, stays true whatever the pin says
+1.113.0                 # the OpenUI5 release served locally — a UI5 number, not a framework release
