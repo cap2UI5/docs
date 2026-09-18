@@ -723,3 +723,72 @@ store (Naht 1) that is the next work item anyway.
 | clean CAP integration | already proven in §10 (48 lines) |
 
 The remaining design work is an ergonomic app API, not a feasibility question.
+
+---
+
+## 12. 2026-09-18 — drafts in a CDS entity, and the cold-restart proof
+
+The last open item from §11, and the one that turns the spike into something
+shaped like the product.
+
+### What was built
+
+`cap2ui5.Drafts` — an ordinary CDS entity — plus a ~90-line JavaScript
+implementation of `z2ui5_if_ui5_draft_store` (Naht 1) installed with one
+`set_instance( )` call at boot. The framework's session state now lives in the
+project's own database, under the project's connection, transactions and
+authorization, next to every other CAP entity. Reads are owner-scoped through
+`cds.context.user`, failing closed with the same "not found" the interface
+contract prescribes, so a leaked draft id cannot restore somebody else's state.
+
+Worth noting for anyone who reads the port's dual-store note: **async is fine
+here**. The transpiled ABAP awaits every call, so a CDS-backed store — which is
+inherently async — drops straight in. The hand-written port could not do that;
+its transpiled code is synchronous, which is why its store had to be too.
+
+### The cold-restart proof
+
+Process A boots CAP, runs roundtrip 1 and is killed with SIGKILL. Process B is a
+fresh boot — new ABAP runtime, empty `app_cont` buffer, nothing in memory. The
+only thing bridging them is the row in `cap2ui5.Drafts`.
+
+```
+CONTROL (transpiled ABAP app)   A: MODEL {"NAME":""}  ->  B: ["MESSAGE_BOX","show","Your name is Ada",…]
+SUBJECT (plain JS class)        A: MODEL {"NAME":""}  ->  B: ["MESSAGE_BOX","show","Hello Ada",…]
+VERDICT  control=ok   js-app-cold-restart=true
+```
+
+Afterwards the table holds four rows, `owner=anonymous` (no auth configured in
+the spike), each ~2.2 KB of asXML.
+
+This is what the two earlier spikes could NOT show and were explicitly flagged
+for: the JS-serializer probe kept the live object in a `Map`, and the JS-app
+probe shared one runtime. Neither proved reconstruction. This does.
+
+### Where that leaves the three requirements
+
+| | |
+|---|---|
+| JS app class | **works** — plain class + a declared `ATTRIBUTES` schema |
+| Persistence as a CDS entity | **works** — and survives a restart |
+| Clean CAP integration | **works** — 48-line wrapper, ordinary `cds-serve` |
+
+All three are now demonstrated end to end, in one running CAP server, against
+upstream's unmodified transpiled framework.
+
+### Honest boundaries
+
+- **The UI has never rendered in a browser here.** Everything above is the wire.
+  Chromium in this sandbox cannot reach the UI5 CDN (the proxy answers 405), and
+  serving UI5 locally means the 611 MB `openui5-dist`. The frontend/backend
+  protocol match is structural — both come from upstream — but it is unproven.
+- **No authorization was exercised.** `owner=anonymous` because the spike
+  configures no auth. The store reads `cds.context.user`, which is the right
+  seam, but a real `@requires`/role test has not been run.
+- **The `ATTRIBUTES` map is raw.** Usable, but not an API to put in front of
+  users; it wants a `defineApp({ name: "string" })` helper or generation from
+  TypeScript types.
+- **The spike lives in a scratchpad**, not committed anywhere. It is evidence,
+  not a deliverable.
+- Nothing here changes the fact that the four upstream seams are unmerged, and
+  that the existing cap2UI5 port remains broken (§8, worklist items 1-3).
