@@ -595,3 +595,63 @@ to be argued on **upstream's** benefit — which is real for both (upstream's ow
 `node/srv/express.mjs` deployment recreates the draft table in SQLite today, and
 its skip list already records `CREATE DATA … TYPE REF TO data` failing in the
 Node runtime), but is a conversation to have rather than a patch to push.
+
+---
+
+## 10. 2026-09-18 — seams 3 and 4, and the P0 that closed
+
+Two more seams landed upstream on `claude/happy-turing-qt6ljo`. The first one
+closes §8's second P0 outright.
+
+### Naht 3 closes "the repository cannot rebuild its own deliverable"
+
+§8 reported that `npm run build_core` on a clean checkout produced a core whose
+first roundtrip never returned. Root cause, upstream: `conv_get_string_by_xstring( )`
+falls back from `CL_ABAP_CONV_CODEPAGE` to `CL_ABAP_CONV_IN_CE`, and **the
+fallback was the body of the first `CATCH`** — so when it failed too, a raw
+dynamic-call exception left the utility. The view builder calls it, lazily, to
+build its control-character set, so every render died; the port's handler then
+retried synchronously and spun.
+
+The fallback now has its own `TRY`, both failures chain into a named
+`UNSUPPORTED_CODEPAGE_API`, and the view builder catches it and degrades — the
+control-character set stays empty and `&`, `<`, `>`, `"`, newline, CR and tab
+escape exactly as before.
+
+Measured, not assumed: the modified upstream was mirrored into
+builder-abap2UI5-js, re-transpiled and rebuilt, and
+
+- `test/core-runnable.test.js` **passes** — the rebuilt core answers a roundtrip
+  instead of hanging;
+- the `hi_world` `displayBlock`/`height`/`Post` fix from §8 finally reaches the
+  package, because there is a package again.
+
+Worklist item 4 of ADR-006 is therefore closed at the source. The generated
+trees were NOT committed in builder-abap2UI5-js: they encode upstream code that
+exists only on the branch, and the nightly would revert them.
+
+### Naht 4 makes the remaining P0 loud instead of silent
+
+Responses now carry `S_FRONT.PROTOCOL` (`z2ui5_if_ui5_types=>c_protocol`), and
+the webapp compares it before reading anything else. A response without the
+field is let through — a backend older than the field cannot be told apart from
+one that is merely older — so only a number that is present and different is a
+mismatch.
+
+This does not fix §8's protocol break; it fixes the *silence*. Today the port
+pairs a frontend reading `S_ACTION` with a backend writing `PARAMS` and renders
+an empty page with no error anywhere. Once the port carries this field, the same
+pairing says so.
+
+### Status of the four seams
+
+| | what it opens | state |
+|---|---|---|
+| 1 `z2ui5_if_ui5_draft_store` | drafts in a CDS entity | on the branch |
+| 2 `z2ui5_if_ui5_app_serializer` | JSON instead of asXML; spike proved a JS serializer carries app state | on the branch |
+| 3 guarded codepage fallback | **closes ADR-006 worklist item 4** | on the branch |
+| 4 `c_protocol` on the wire | a version mismatch reports itself | on the branch |
+
+Still open in the port itself: worklist items 1–3 (response envelope, model
+shape, app-name casing) and the 17 hand-port drifts. Still not done: an issue or
+pull request at `abap2UI5/abap2UI5` for any of the four.
