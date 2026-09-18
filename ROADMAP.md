@@ -655,3 +655,71 @@ pairing says so.
 Still open in the port itself: worklist items 1–3 (response envelope, model
 shape, app-name casing) and the 17 hand-port drifts. Still not done: an issue or
 pull request at `abap2UI5/abap2UI5` for any of the four.
+
+---
+
+## 11. 2026-09-18 — a JavaScript class CAN be an abap2UI5 app
+
+The open question from §10. Measured in one process, with a transpiled ABAP app
+as the control on every run — the previous attempt at this produced a throw for
+BOTH the subject and the control, which proves nothing and was nearly read as an
+answer.
+
+### Result
+
+A plain JavaScript class, registered in `abap.Classes`, runs as an app on
+upstream's transpiled runtime:
+
+```
+CONTROL (ABAP hi_world)   roundtrip 1  MODEL {"NAME":""}   view action
+                          roundtrip 2  ["MESSAGE_BOX","show","Your name is Ada",…]
+SUBJECT (JS class)        roundtrip 1  MODEL {"NAME":""}   view action
+                          roundtrip 2  ["MESSAGE_BOX","show","Hello Ada",…]
+                          app log      bind="{/NAME}"   event-sees-name="Ada"
+```
+
+So `client->_bind( this.name )` resolves to `{/NAME}` over a JavaScript field,
+the two-way delta lands on the JS object, and the state survives the roundtrip.
+
+**With `db_load_buffer_clear( )` between the two roundtrips**, so the second one
+cannot be served from `z2ui5_cl_ui5_app_cont`'s process buffer and has to come
+back through the draft document. Both control and subject still pass.
+
+### The one thing that makes it work
+
+`static ATTRIBUTES` on the class, in the shape a transpiled ABAP class carries:
+
+```js
+static ATTRIBUTES = {
+  "NAME": { type: () => new abap.types.String({ qualifiedName: "STRING" }),
+            visibility: "U", is_constant: " ", is_class: " " },
+};
+```
+
+Without it the framework answers `BINDING_ERROR - No class attribute for binding
+found`. That is not a crash but the framework's own diagnostic: RTTI derives
+`mt_attri` from this map, and a JavaScript class has nothing else to derive from.
+
+**So a cap2UI5 app is "a plain class plus a schema declaration".** That is a
+deliberate API rather than a derivation, and arguably the better one for
+JavaScript — but it is an API decision to make consciously, and the raw shape
+above is too noisy to put in front of users. A helper (`defineApp({ name:
+"string" })`) or generation from TypeScript types is the obvious wrapper.
+
+### What is still not proven
+
+A genuinely COLD process. The buffer clear forces the draft read, but both
+roundtrips share one runtime, and the default store is @abaplint's SQLite client,
+which is in-memory only (its constructor takes `{trace}` and no filename). A
+two-process test therefore needs a persistent store — which is the CDS-entity
+store (Naht 1) that is the next work item anyway.
+
+### What this settles for the product
+
+| | |
+|---|---|
+| JS app class | **works**, with a declared schema |
+| CDS entity as the draft store | next item — `z2ui5_if_ui5_draft_store` + `set_instance( )` |
+| clean CAP integration | already proven in §10 (48 lines) |
+
+The remaining design work is an ergonomic app API, not a feasibility question.
