@@ -536,3 +536,62 @@ using upstream's own `zcl_tst_*` framework exercises.
 [`docs/adr-007-repo-consolidation.md`](https://github.com/cap2UI5/builder-abap2UI5-js/blob/main/docs/adr-007-repo-consolidation.md)
 — six repos to two, deliberately sequenced *after* the worklist: reorganising
 the delivery of a broken artefact reorganises the delivery of a broken artefact.
+
+---
+
+## 9. 2026-09-18 — the hostability seams, and what the serializer spike proved
+
+Two seams landed upstream in `abap2UI5/abap2UI5` (branch
+`claude/happy-turing-qt6ljo`), each behaviour-identical on a system by
+construction rather than by inspection.
+
+| seam | what it opens | surface |
+|---|---|---|
+| `z2ui5_if_ui5_draft_store` | where drafts live — a CDS entity instead of `Z2UI5_T_01` | 9 SQL statements, 1 class, 9 call sites |
+| `z2ui5_if_ui5_app_serializer` | how app state becomes a string — JSON instead of asXML | 2 methods on `z2ui5_cl_ui5_app_cont` |
+
+Both are wired so that a system installing nothing keeps the old semantics
+exactly: the factory answers a fresh default instance per call, which is what
+each call site did before, and the cached reference is left unbound rather than
+pre-filled.
+
+### The spike
+
+§8's open question was whether cap2UI5 could run **open-abap for the logic** with
+a thin host wrapper — and the blocker was that `all_xml_stringify( )` is ABAP's
+type system (S-RTTI + `CALL TRANSFORMATION id`), which has no JavaScript
+counterpart. The serializer seam makes that testable, so it was tested.
+
+A serializer written in plain JavaScript was registered in the transpiled
+runtime and installed through `z2ui5_cl_ui5_app_cont=>set_serializer( )`. Two
+roundtrips of `hi_world` were driven against it: init, then `BUTTON_POST`
+carrying `NAME = "Ada"`. The answer came back
+
+```json
+{"T_CUSTOM":[["MESSAGE_BOX","show","Your name is Ada",{"title":"Information"}]]}
+```
+
+so the app state survived a full roundtrip **with no `CALL TRANSFORMATION` and no
+S-RTTI anywhere in the path**. The seam carries it.
+
+### What the spike does NOT prove — read this before planning on it
+
+The spike's serializer kept the live container object in a `Map` and handed out
+the key as the document. That proves the *seam* carries state; it does not prove
+a host can **project and rebuild** it — serialize to JSON and reconstruct the
+app object from it on a later, colder request. Reconstruction is where the type
+question actually bites, and it is untested.
+
+So the honest status of the hybrid option is: **the blocker named in §8 is no
+longer a blocker, and the next unknown is one step further in.** The follow-up
+spike is a serializer that round-trips through real JSON, in a fresh process.
+Until that one runs, "open-abap for the logic" is promising rather than proven.
+
+### Not done
+
+No issue or pull request was opened at `abap2UI5/abap2UI5`. Its CONTRIBUTING
+asks for feature requests to be discussed in an issue first, and each seam has
+to be argued on **upstream's** benefit — which is real for both (upstream's own
+`node/srv/express.mjs` deployment recreates the draft table in SQLite today, and
+its skip list already records `CREATE DATA … TYPE REF TO data` failing in the
+Node runtime), but is a conversation to have rather than a patch to push.
