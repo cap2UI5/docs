@@ -458,3 +458,81 @@ page and a sitemap; `verify-refs` can now fail closed.
 - **The 74 `port-deviation` baseline entries** — the weekly oracle can *prove*
   which are achievable in JS, but its output still expires with the Actions log
   rather than being committed.
+
+---
+
+## 8. 2026-09-18 — what a wire-conformance gate found
+
+*Added after building the gate §5 of the earlier analysis called for. Method:
+upstream's own Node runtime (official @abaplint transpiler over open-abap-core,
+`npm run express`) booted as a reference implementation, identical roundtrip
+sequences driven against it and against cap2UI5's engine, responses diffed.
+Everything below is measured from live responses, not read from source.*
+
+### The headline
+
+**The published package's frontend and backend speak different protocols.**
+Upstream delivers frontend instructions as `S_FRONT.S_ACTION` action rows; the
+port still emits the superseded `S_FRONT.PARAMS` record. The bundled webapp is
+mirrored 1:1 from upstream and reads `S_ACTION` — `grep -c PARAMS` over
+`app/z2ui5/webapp/core/Server.js` returns **0**, in the builder and in the
+published app repo.
+
+Why every existing gate is green anyway, which is the part worth internalising:
+
+- `apps-smoke` inspects the **backend** response for an error marker. It never
+  loads the webapp, so a frontend/backend protocol split is invisible to it.
+- the app's `starter.test.js` drives the hand-written minimal `app/index.html`,
+  not the mirrored webapp.
+- the `upstream-units` ratchet grades transpiled ABAP testclasses against the
+  port's internals — a different question entirely.
+
+Nothing in six repositories was asking "do these two halves still fit together?"
+
+### The second P0
+
+**The repository cannot rebuild its own deliverable.** `npm run build_core` on a
+clean checkout, with no source change, produces a core whose first roundtrip
+never returns: the freshly transpiled view builder reaches a dynamic
+`CALL METHOD (`CONVERT`)` that this port permanently cannot implement,
+`stringify()` throws, and the handler's retry is synchronous — so it spins
+rather than crashing. The nightly's "only commit `core/` on green" rule then
+froze `core/` at the last good build. That rule did its job, and it is also why
+nothing looked red: **the published package kept working while the repository
+lost the ability to rebuild it.**
+
+### They are one event, not three
+
+The protocol change, the 17 unreconciled hand-port drifts (3,271 changed
+upstream lines across `z2ui5_cl_ui5_handler`, `_client`, `_srv_model`,
+`_http_handler`, `if_client` …) and the view-builder breakage all arrive from
+the same upstream wave — the mirror commit that last wrote
+`port-drift.baseline.json` is the one that introduced `S_ACTION` into the
+webapp.
+
+### Correction to §1 of this document
+
+§1 called the six-repo pipeline "fully automated, diff-reviewable and watched by
+independent freshness/health crons". The automation and the diff-reviewability
+hold. The watching does not: the health crons watch each hop's own success, and
+every hop succeeded while republishing a frozen artefact whose frontend and
+backend no longer agree. Freshness of a *pipeline* is not freshness of a
+*product*.
+
+### Correction to the 2026-09-17 analysis that preceded this work
+
+That analysis recommended shrinking the transpiler to samples only, calling the
+41 transpiled framework classes "neither maintained nor understood". Measured:
+**none of the 41 is shadowed by a hand-port** — they are all fill-ins, including
+`z2ui5_cl_ui5_view_builder`, the six `z2ui5_if_ajson*` interfaces and 33
+`ui5f_*_js` frontend modules. Removing them would gut the package. The
+recommendation was wrong on the facts and was not executed.
+
+### Where the work is tracked
+
+[builder-abap2UI5-js `docs/adr-006-conformance.md`](https://github.com/cap2UI5/builder-abap2UI5-js/blob/main/docs/adr-006-conformance.md)
+— decision, the five-item worklist, and how to grow the corpus from 2 apps to 11
+using upstream's own `zcl_tst_*` framework exercises.
+[`docs/adr-007-repo-consolidation.md`](https://github.com/cap2UI5/builder-abap2UI5-js/blob/main/docs/adr-007-repo-consolidation.md)
+— six repos to two, deliberately sequenced *after* the worklist: reorganising
+the delivery of a broken artefact reorganises the delivery of a broken artefact.

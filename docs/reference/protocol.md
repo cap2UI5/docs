@@ -1,6 +1,31 @@
 # HTTP Protocol
 
-The wire format between the frontend and the cap2UI5 backend is **identical** to abap2UI5. This page documents it for reference — you don't need to know it as an app developer, but it's helpful when debugging or when swapping out the frontend.
+::: danger This page documents a protocol upstream has moved off
+Verified 2026-09-18 by diffing live responses from upstream's own Node runtime
+against cap2UI5 (`scripts/conformance.js` in
+[builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js), ADR-006).
+
+The response shape below — `S_FRONT.PARAMS.S_VIEW.XML` and friends — is what
+**cap2UI5 emits today**, so it is accurate for debugging this backend. It is
+**no longer what abap2UI5 emits**. Upstream delivers frontend instructions as an
+ordered action table:
+
+```json
+"S_FRONT": { "S_ACTION": { "T_SYSTEM": [["VIEW_SLOTS","display","MAIN","<mvc:View …>"]] } }
+```
+
+and it has flattened two-way bindings out of `MODEL.XX` (`{/NAME}`, not
+`{/XX/NAME}`). The bundled frontend is mirrored 1:1 from upstream and therefore
+reads `S_ACTION`.
+
+So the claim this page opened with — that the wire format is *identical* to
+abap2UI5 — is currently false, and the mismatch is tracked as a P0. Treat this
+page as "the protocol cap2UI5 speaks", not "the protocol abap2UI5 speaks", until
+ADR-006's worklist items 1–2 are closed.
+:::
+
+The wire format between the frontend and the cap2UI5 backend was designed to be
+identical to abap2UI5. This page documents it for reference — you don't need to know it as an app developer, but it's helpful when debugging or when swapping out the frontend.
 
 ## Endpoints
 
