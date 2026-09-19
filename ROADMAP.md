@@ -1080,3 +1080,69 @@ the same test against the real CDN. Screenshots are in the session.
 Upstream merge, the npm token and a release, the two merges on the cap2UI5
 side, the archiving, and three decisions (the auth default, the facade's next
 slice, where the docs live). All of it is in HANDOVER.md.
+
+## 17. 2026-09-19 — the facade's second slice, and three defects it exposed
+
+§16 left "the facade is a stub — no popups, navigation or nested views" as the
+next real piece of work. It is done, and building it turned up three things
+that were already wrong.
+
+### What an app can do now
+
+```
+lifecycle   isFirstRun  isDisplay  canGoBack  eventName  eventArg(i)  prevApp
+screen      popup / popupClose     nest(into, xml, {insert, clear}) / nestClose
+navigation  navTo(app)             navBack({event, data, app})
+binding     event(name, [args])    — args come back as eventArg(1..n)
+```
+
+`examples/bookshop/srv/apps/pick.js` is the worked case: one app calls another,
+the called app hands a choice back, and the caller reads it through
+`c.prevApp`. Proven on the wire (`nav.test.mjs`, 4 tests) and in Chromium — the
+popup is a real `sap.m.Dialog`, and after the round trip the screen reads
+*chosen: red / picks: 1*.
+
+### The three defects
+
+**1. `c.isInitial` was the wrong question under the right-sounding name.** It
+was wired to `check_on_navigated( )` and named after `check_on_init( )`. Those
+are different: `check_on_init( )` is the first roundtrip of *this instance*,
+while `check_on_navigated( )` is also true every time the app gets the screen
+back. `z2ui5_if_client`'s own ABAP Doc calls confusing them *"the most common
+way to end up with a screen that does not refresh"*. An app author putting
+one-time seeding behind a name meaning "initial" would have had it re-run on
+every navigation return — latent while the facade had no navigation, live the
+moment it got some.
+
+**2. `c.modelUpdate()` did nothing.** It called `view_model_update( )`, which
+the interface declares *"obsolete — does NOTHING"*: changed bound data is
+pushed automatically, to an open popup and a nested view too. It shipped in the
+tables commit (§15) and `books.js` called it. The books test passed the whole
+time — because the automatic push did the work the call was taking credit for.
+
+Both are gone and throw an error naming the replacement, rather than quietly
+changing meaning or answering `undefined`. The ABI gate now also asserts the
+retired methods still take no parameters, so if upstream ever gives them
+behaviour the refusal is re-read instead of silently kept.
+
+**3. The browser test found what the wire test could not.** `nav.test.mjs` was
+green while Chromium was not: both picker buttons fired one event with **no
+argument**, and the wire test had hand-fed `T_EVENT_ARG` — simulating a
+frontend that would never have sent it. `c.event(name, args)` carries `t_arg`
+now, and the wire test asserts the composed markup so the cheap test fails next
+time too. The rule is in the plugin repo's AGENTS.md: *a facade method that
+composes view XML needs a browser test, not only a wire test.*
+
+### Where the work lives
+
+All of it in `cap2UI5/cap2UI5` (`claude/happy-turing-qt6ljo`), which is the
+plugin's home now — the copy under `builder-abap2UI5-js/docs/prototypes/` is
+the record of how the measurements were made and says so.
+
+### Still open, unchanged
+
+Everything in [HANDOVER.md](HANDOVER.md): the upstream merge, the npm token,
+the switch to the published package, the repository cutover, and the two
+decisions that are the maintainer's (the auth default, where the docs live).
+Nested structures and tables of tables as app state are still unsupported, and
+`c.raw` is still the escape hatch for anything the facade does not cover.
