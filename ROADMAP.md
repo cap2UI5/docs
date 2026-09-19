@@ -1186,3 +1186,46 @@ npm token, the switch to the published package, the repository cutover, and the
 two decisions that are the maintainer's. On the API: nested structures and
 tables of tables as app state are still unsupported, and `c.raw` is still the
 escape hatch for whatever the facade does not cover.
+
+## 19. 2026-09-19 — "unsupported" turned out to mean "not attempted"
+
+Three of these sections, the README and a pull request body all said the same
+thing: nested structures and tables of tables as app state are **unsupported**.
+§13 put it as *"a structure or table type cannot be derived from `{}` or `[]`"*,
+which reads like a property of the framework.
+
+It was a property of my code. `unwrap( )` and `wrap( )` in `define-app.js` had
+recursed through structures and tables all along, and the framework's model
+carries the whole tree. What refused it was one guard in the type derivation —
+*"a structure component must be a scalar"* — written when only scalars had been
+tried. Removing it was the whole change; the measurement is `nested.test.mjs`:
+
+```
+ORDER: { ID: "4711",
+         CUSTOMER: { NAME: "Ada", CITY: "London" },
+         LINES: [ { SKU: "A-1", QTY: 2, PRICE: 9.5 },
+                  { SKU: "B-2", QTY: 1, PRICE: 0.5 } ] }
+```
+
+— a structure inside a structure and a table inside a structure, decimals
+included, written in one assignment and read back as plain values on a **later**
+roundtrip, so it came out of the draft and not out of memory.
+
+The guard is replaced by a depth limit of 8, which is a *cycle* guard and not a
+judgement: an object that contains itself would otherwise recurse until the
+stack went. An untypeable field is reported **by its path**
+(`order.self.self.…`) and left out, the app runs without it.
+
+The lesson is in the plugin repo's AGENTS.md, because the fix is worth less than
+it: **"unsupported" must say whose limitation it is, and before writing that
+something cannot be done, try it.** Three documents carried my untried guess as
+a fact about somebody else's framework.
+
+**23 tests**, lint clean, cold test green on all three cases.
+
+### Still open
+
+Only what needs a person, all of it in [HANDOVER.md](HANDOVER.md): the upstream
+merge, the npm token, the switch to the published package, the repository
+cutover, and the two decisions that are the maintainer's. `c.raw` remains the
+escape hatch for whatever the facade does not cover.
