@@ -1229,3 +1229,107 @@ Only what needs a person, all of it in [HANDOVER.md](HANDOVER.md): the upstream
 merge, the npm token, the switch to the published package, the repository
 cutover, and the two decisions that are the maintainer's. `c.raw` remains the
 escape hatch for whatever the facade does not cover.
+
+## 20. 2026-09-19 — a security review of my own authorization code
+
+Everything else here had been reviewed for whether it worked. The owner binding
+had never been reviewed for whether it could be *defeated*, and it is the one
+piece of the plugin that decides who sees whose data — so I ran a security
+review over the branch diff and treated my own code as the suspect.
+
+It found a real one.
+
+### The defect: a truthiness check in an access decision
+
+All three ownership checks in `draft-store.js` were guarded by the *truthiness*
+of the stored owner rather than by its presence:
+
+```js
+if (r.owner && r.owner !== who()) throw await notFound();      // #read
+const ok = !!r && (!r.owner || r.owner === who());              // check_exists
+if (owner && owner.owner && owner.owner !== row.owner) throw …  // create
+```
+
+A `cap2ui5.Drafts` row whose `owner` is `NULL` or `""` therefore belonged to
+**everybody**: any authenticated caller presenting its id was served it, and
+`create( )`'s collision path would overwrite it. A draft row is not a small
+object — it carries the serialized model of another user's running app.
+
+Proof of concept, against the example project:
+
+```
+alice draft id: D46139087B1241DBBD701D4DC02F13AA
+owner as stored          : "alice"
+bob BEFORE (owner=alice) : refused          ← NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND
+owner after blanking     : ""
+bob AFTER  (owner='')    : SERVED: ["MESSAGE_BOX","show","Hello Ada", …]
+VERDICT empty-owner-readable-by-foreign-user=true
+```
+
+bob replayed alice's draft id and was handed alice's app instance. The only
+difference between the refused request and the served one is the emptiness of
+one column.
+
+Two ways such a row arises, neither exotic. `who( )` was
+`String(cds.context?.user?.id ?? "anonymous")`, and `?? ` catches `null` and
+`undefined` but not `""` — `new cds.User({id:''}).id === ''` is permitted by
+`@sap/cds` 9.9.3, so a strategy yielding an empty id would have published that
+user's drafts to everyone. And `cap2ui5.Drafts` is an ordinary entity in the
+*project's* model, so rows can arrive from a seed, a migration or another
+handler with no owner at all.
+
+The fix is the comparison the interface's own ABAP Doc always described:
+`r.owner !== who()` in all three places, `owner` in the `UPDATE`'s `WHERE` so a
+write cannot cross a change of hands, `not null` on the column, and a `who( )`
+that refuses an empty identity loudly instead of storing a draft under an owner
+it cannot tell from anybody else's. `create( )` also stops treating *every*
+INSERT failure as a key collision: with no colliding row it re-raises the
+original error rather than turning it into an update.
+
+`auth.test.mjs` grew the case, and it discriminates — red on the old condition
+(`not ok 3`), green on the new, with the other three assertions unmoved either
+way.
+
+### Three smaller ones, fixed in the same pass
+
+- **Internal error text reached the client.** `res.send(String(e?.message))`
+  relayed CDS, driver and runtime messages — entity names, SQL fragments,
+  deployment paths. Now the detail goes to the log and the caller gets
+  `roundtrip failed (<cds.context.id>)`.
+- **The body was buffered before the guard.** `express.raw` sat in front of the
+  authorization check, so an unauthenticated caller could make the server
+  buffer 10 MB before the 401 was decided. The guard reads `cds.context` and
+  nothing else, so it moved in front.
+- **CI ran another repository's code with an unbounded token.** `ci.yml` checks
+  out `abap2UI5/abap2UI5` at a mutable personal branch and runs `npm ci` plus
+  three build scripts from it — arbitrary execution by whoever can push there —
+  and declared no `permissions:`, so on `push: main` and the nightly schedule
+  that code ran with a write-capable `GITHUB_TOKEN`. Now `permissions:
+  contents: read` for the workflow and `persist-credentials: false` on that
+  checkout. A `workflow_dispatch` input interpolated into a `run:` moved to the
+  environment.
+
+### What the review cleared
+
+Worth recording, because each looked like a finding until it was checked:
+`cds.ql` tagged templates parameterize (no SQL injection in the example apps);
+the event-token substitution cannot be forged from app state; and
+`@abap2ui5/runtime` is **not** a dependency-confusion target — the package is
+unpublished, but the `@abap2ui5` npm scope is already claimed and carries three
+packages, so only that org can publish the name.
+
+Also measured and left alone: `cds.middlewares.before` contains two inert
+`{factory}` placeholder objects that the spread passes to `app.all`. They are
+accepted and harmless, and the auth middleware in the chain is a real function
+that does run — anonymous gets 401, alice 200. It is a fragility (the chain's
+shape is an undocumented `@sap/cds` internal, exercised here only against the
+development auth kinds) rather than a vulnerability.
+
+**24 tests**, lint clean, cold test green on all three cases.
+
+### The lesson
+
+In the plugin repo's AGENTS.md, because it outlives the fix: **an authorization
+check compares presence, never truthiness.** `&&` in front of a comparison in
+an access decision turns a missing value into a wildcard. I wrote that line
+three times in the same file and reviewed it twice for whether it worked.
