@@ -14,11 +14,23 @@ with the text and commands ready. The reasoning is in [ROADMAP.md](ROADMAP.md)
 | `cap2UI5/builder-abap2UI5-js` | the conformance gate, ADR-006/007/008, and `docs/prototypes/open-abap-cap/` — the plugin workspace with 15 tests, cold test, bench, browser test, `prototype.yml` |
 | `cap2UI5/docs` | ROADMAP §§8–16, this page |
 
-## Step 1 — upstream: open and merge the seams PR
+## The pull requests
 
-Repository `abap2UI5/abap2UI5`, base `main`, head `claude/happy-turing-qt6ljo`.
-Five commits; the last one adds the `runtime` job. Lead with Naht 3: it is a
-reproducible bug, not a feature request.
+All four are open.
+
+| | |
+|---|---|
+| upstream, the four seams + the runtime job | [abap2UI5/abap2UI5#2772](https://github.com/abap2UI5/abap2UI5/pull/2772) |
+| the plugin repository | [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) |
+| the conformance gate, the prototype, the ADRs | [cap2UI5/builder-abap2UI5-js#29](https://github.com/cap2UI5/builder-abap2UI5-js/pull/29) |
+| these pages | [cap2UI5/docs#20](https://github.com/cap2UI5/docs/pull/20) |
+
+## Step 1 — upstream: review and merge #2772
+
+Six commits; the last two add the `runtime` job and the changelog. Lead the
+review with Naht 3: it is a reproducible bug, not a feature request. `npm run
+verify` is green except `check:shared`, which fails identically on `main`
+(four drifts against repositories this branch does not touch).
 
 Suggested title: **Four seams for hosting the framework outside SAP, and the transpiled runtime as a package**
 
@@ -105,7 +117,7 @@ overwrite the plugin.
 1. **Disable the writers first**: `builder-cap2UI5` → Actions → `update_cap` →
    Disable workflow; `builder-cap2UI5-web` → `build web` → Disable.
 2. `cap2UI5/cap2UI5`: tag the current `main` as `generated-app-final`.
-3. Merge the branch `claude/happy-turing-qt6ljo` of `cap2UI5/cap2UI5` — it
+3. Merge [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) — it
    already carries the plugin repository layout (`plugin/`,
    `examples/bookshop/`, `runtime/`, `scripts/`, `.github/workflows/ci.yml`,
    README, AGENTS). See the PR text below.
@@ -146,7 +158,7 @@ Suggested PR title for `cap2UI5/cap2UI5`: **cap2UI5 is a CAP plugin hosting @aba
 
 ## What I could not do, and why
 
-- Open pull requests or issues (not asked; outward-facing).
+- Merge anything, or approve my own pull requests.
 - Anything on npmjs.com or in repository settings (no rights).
 - Render against the **current** UI5 release: the sandbox reaches npm but no
   CDN; `openui5-dist` on npm stops at 1.108. `prototype.yml` renders against
