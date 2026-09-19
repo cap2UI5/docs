@@ -17,7 +17,7 @@ with the text and commands ready. The reasoning is in [ROADMAP.md](ROADMAP.md)
 ## Step 1 — upstream: open and merge the seams PR
 
 Repository `abap2UI5/abap2UI5`, base `main`, head `claude/happy-turing-qt6ljo`.
-Nine commits; the last one adds the `runtime` job. Lead with Naht 3: it is a
+Five commits; the last one adds the `runtime` job. Lead with Naht 3: it is a
 reproducible bug, not a feature request.
 
 Suggested title: **Four seams for hosting the framework outside SAP, and the transpiled runtime as a package**
