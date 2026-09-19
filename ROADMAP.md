@@ -888,3 +888,94 @@ prototype code is the least exercised in the tree and needs that check most.
   §10 onwards is a record of what was tried rather than a plan. No issue or pull
   request has been opened at `abap2UI5/abap2UI5`.
 - The existing cap2UI5 port remains broken (§8, worklist items 1-3).
+
+## 14. 2026-09-19 — the plugin shape, a real defect, and the ABI gate
+
+§13 closed with a prototype that worked. A review against the two criteria —
+*as little own code as possible* and *open-abap logic into CAP* — found the
+shape wrong and one defect in it. Both are fixed; the third item is a test
+that names the design's one hazard.
+
+### The plugin shape
+
+The prototype was an express app with CAP around it: a `server.js` that
+replaced `cds.server`, a setup hook of its own, apps imported by hand. That
+collides with any project that has a `server.js`, and it is not what would
+ship. It is now an npm workspace of the three packages exactly as they would:
+
+```
+runtime/   @abap2ui5/runtime   what UPSTREAM would publish — a stand-in
+plugin/    cap2ui5             cds-plugin.js, index.cds, lib/
+example/   a CAP project       consumes cap2ui5 like any dependency
+```
+
+`npm i cap2ui5` is the installation: CAP loads `cds-plugin.js` from the
+dependency, `index.cds` reaches the model through
+`package.json#cds.requires.cap2ui5.model`, `cds deploy` creates
+`cap2ui5.Drafts` next to the project's own entities, and the project's own
+`server.js` is untouched. The plugin resolves the runtime from the project's
+`node_modules`, so the version the project installed wins.
+
+The `runtime/` stand-in is the concrete form of the one thing not in our hands:
+upstream's `release.yaml` already cuts a `X.Y.Z-702` tag as a function of each
+release; `node/output` + `node/setup/setup.mjs` + `app/webapp` published as
+`@abap2ui5/runtime` is the same kind of artefact, ~30 lines of workflow and an
+npm token. Until it exists, `scripts/assemble-runtime.sh` fills the directory
+from a downported, transpiled checkout.
+
+### The defect: every draft was `anonymous`
+
+§12 reported `owner` came out `anonymous` and blamed it on "no auth configured".
+That was wrong. The route was mounted straight on express, and CAP creates
+`cds.context` — and with it `cds.context.user` — only in
+`cds.middlewares.before`, which it mounts per service path and never globally.
+So the store could **never** see a user on that route. Measured before the fix:
+two roundtrips authenticated as alice, both stored as `anonymous`; and bob,
+sending alice's draft id, was answered *"Hello Ada"*. The owner binding the
+interface promises was void.
+
+The fix is the route running behind the same middleware chain as every CAP
+service, plus a one-line guard (`cds.cap2ui5.requires`, default
+`authenticated-user`). `example/test/auth.test.mjs` proves it: no credentials
+→ 401; bob with alice's id → `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND`; alice →
+*"Hello Ada"*; the stored row carries `alice`. The test was verified to
+discriminate: with the middleware removed and the guard off, all three fail
+with exactly the leak — *"bob was served alice's draft"*, owner `anonymous`.
+
+### The ABI gate
+
+cap2UI5 does not couple to a documented abap2UI5 API. It couples to what
+`@abaplint/transpiler` **emits**: the static `ATTRIBUTES`/`METHODS` maps and
+their entry shape, `constructor_( )`, `~` becoming `$` in interface method
+names, the `abap.types.*` boxes. None of that is a published contract, so a
+bump can change it without a compile error — the failure would be a
+`BINDING_ERROR` on the wire, the same class of hazard as the
+`clientSignature( )` regex the port was bitten by.
+
+`example/test/abi-gate.test.mjs` names every touchpoint `plugin/lib` has —
+10 runtime globals, 6 `z2ui5_if_client` and 7 `z2ui5_if_ui5_draft_store`
+methods with the parameter names passed to them, the draft structure
+components, the five emitted statics, the framework fields — and checks each
+against a class the transpiler itself produced. A transpiler or upstream bump
+that changes the emission fails there, with the touchpoint named.
+
+### Where that leaves the count
+
+Hand-written, in the plugin: `define-app.js` 213, `draft-store.js` 122,
+`cds-plugin.js` ~65, `runtime.js` ~60, `index.cds` 19 — **under 500 lines**,
+against 12,588 + 4,286 in the port and its translator. Tests and the example
+are on top of that and are not framework code.
+
+### Still open
+
+- **The UI has never rendered in a browser.** All of this is the wire.
+- **Objects and arrays as app state** are unsupported. Scalars only; the next
+  real piece of work on the API.
+- **The facade is a stub** — no popups, navigation, tables; `c.event` is not
+  readable as a value.
+- **`@abap2ui5/runtime` does not exist.** Nobody has asked upstream yet.
+- **Whether SQLite is still needed** once the store is installed — a
+  measurement, not yet made.
+- **The four upstream seams are unmerged.** No issue or pull request has been
+  opened at `abap2UI5/abap2UI5`.
+- The existing cap2UI5 port remains broken (§8, worklist items 1-3).
