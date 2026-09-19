@@ -1146,3 +1146,43 @@ the switch to the published package, the repository cutover, and the two
 decisions that are the maintainer's (the auth default, where the docs live).
 Nested structures and tables of tables as app state are still unsupported, and
 `c.raw` is still the escape hatch for anything the facade does not cover.
+
+## 18. 2026-09-19 — the claim the project rests on, finally tested
+
+Turn 12 of the session that started all this asked for one thing above the
+others: *"Es soll sich sauber ins Cap einfügen damit man auch parallel andere
+Cap Apps bauen kann mit der gleichen Datenbank und authorization usw."*
+
+That claim was in the README, in ADR-008 and in a pull request body, and it was
+demonstrated nowhere. `examples/bookshop` had **no CAP service at all** — only
+cap2UI5 apps, which is precisely the configuration in which the claim cannot
+fail and cannot be believed either.
+
+`srv/catalog-service.cds` is one now, as plain as a CAP service gets: one
+projection over the project's own `Books`, `@requires: 'authenticated-user'`,
+and nothing in it knows cap2UI5 exists. `coexistence.test.mjs` drives it and
+asserts the three things the claim actually means.
+
+| | |
+|---|---|
+| **One authorization, two doors** | anonymous → 401 from the OData service *and* 401 from the z2ui5 route; alice → 200 from both |
+| **The session state does not leak** | `cap2ui5.Drafts` is in the project's model and `cds deploy` creates the table, but a service exposes only what it projects: `/odata/v4/catalog/Drafts` is **404** and the metadata names no draft entity |
+| **One database, both directions** | the Books app writes through `cds.ql` and the OData client sees the row at once; a row POSTed through OData is found by the app's next search |
+
+The middle one is the one worth having. Session state reachable through
+somebody's OData service would be the worst kind of surprise, and "a service
+exposes only what it projects" is a thing one believes about CAP rather than a
+thing anyone had checked here.
+
+The Books app gained an `ADD` event for it — which also makes the example an
+app that *writes* the project's entities, not only reads them.
+
+**21 tests**, lint clean, CI green.
+
+### Still open
+
+Unchanged, and all of it in [HANDOVER.md](HANDOVER.md): the upstream merge, the
+npm token, the switch to the published package, the repository cutover, and the
+two decisions that are the maintainer's. On the API: nested structures and
+tables of tables as app state are still unsupported, and `c.raw` is still the
+escape hatch for whatever the facade does not cover.
