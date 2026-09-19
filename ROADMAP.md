@@ -979,3 +979,69 @@ are on top of that and are not framework code.
 - **The four upstream seams are unmerged.** No issue or pull request has been
   opened at `abap2UI5/abap2UI5`.
 - The existing cap2UI5 port remains broken (§8, worklist items 1-3).
+
+## 15. 2026-09-19 — everything that could be done without an org owner
+
+§14's review had five items. All five are done, and what the numbers say is
+below. What is left is exactly the set of things that need a human with
+rights — that list closes the section.
+
+### Done
+
+- **Tables and structures as app state.** `t.table({ …row… })` and plain
+  objects are boxed the way the transpiler emits them; rows cross as plain
+  objects; components are UPPERCASE in the model. `books.js` fills a table
+  from `SELECT.from(Books)` inside `main` and the framework carries it through
+  the draft into the next roundtrip (four roundtrips, `books.test.mjs`).
+- **`c.eventName` and `c.modelUpdate( )`.** The facade is now: `isInitial`,
+  `eventName`, `bind`, `event`, `view`, `modelUpdate`, `messageBox`,
+  `messageToast`, `raw`.
+- **SQLite measured.** With the CDS store installed, 200 roundtrips send the
+  runtime's private SQLite **no SQL** — only `rollback` and `endTransaction`,
+  two per roundtrip. It stays for ABAP apps' own Open SQL; a CAP-backed
+  `DatabaseClient` for those is a later step, not a precondition.
+- **Performance measured.** **14 ms per roundtrip**, sequential, over HTTP, on
+  SQLite (`bench.mjs`). The number nobody had.
+- **Concurrency tested.** The transpiled framework keeps CLASS-DATA in
+  process-global statics (`z2ui5_cl_ui5_app_cont=>mt_buffer` is the obvious
+  one; it is cleared per request by the handler and stays at one entry across
+  200 roundtrips). Three users interleaved in one process, twice, every answer
+  to its owner (`concurrency.test.mjs`).
+- **`@abap2ui5/runtime` as a job in upstream's `release.yaml`** (on the seams
+  branch): `node/package.json` is the manifest; the tarball is a workflow
+  artefact on every run; `npm publish` only from a tag and only with an
+  `NPM_TOKEN`, warning loudly without one. Dry run: 1,307 files, 1.5 MB
+  packed, 16.4 MB unpacked.
+- **ADR-008** records the decision — host, not port — the repository plan
+  (four archived, one repurposed, none created) and the cutover; ADR-007 is
+  superseded. **`prototype.yml`** rebuilds and runs the whole proof from a
+  scratch build of upstream, nightly and on every change.
+
+### Hand-written framework code, final count for this round
+
+`define-app.js` 300, `draft-store.js` 122, `cds-plugin.js` 66,
+`runtime.js` 59, `index.cds` 19 — **566 lines**, against 16,874 in the port
+and its translator. Tests, example and bench are on top and are not framework
+code.
+
+### What needs a person
+
+Nothing below can be done from a pull request or from this session.
+
+1. **Upstream: merge the seams branch** (`abap2UI5/abap2UI5`,
+   `claude/happy-turing-qt6ljo`: the four seams and the `runtime` release job).
+   No issue or PR has been opened; Naht 3 is the one to lead with — a
+   reproducible upstream bug, `test/core-runnable.test.js` red to green.
+2. **Upstream org: store an `NPM_TOKEN`** (automation token, `@abap2ui5`
+   scope) and cut a release; the first `@abap2ui5/runtime@X.Y.Z` appears.
+3. **`prototype.yml` → `main`**, and the `runtime/` stand-in → the published
+   package (a PR, after 1 and 2).
+4. **Render it in a browser.** Needs the UI5 CDN or a local `openui5-dist`;
+   the sandbox has neither. Frontend and backend come from one commit, so
+   the expectation is that it simply works — expectation, not proof.
+5. **cap2UI5 org: the repository cutover** (ADR-008 steps 3–5): tag and
+   repurpose `cap2UI5/cap2UI5`, move the Pages source, archive the four
+   builder repos and `builder-abap2UI5-js`, rotate the four deploy keys out.
+6. **Decide the facade's next slice** — popups, navigation, nested views —
+   against real apps, not in the abstract. `c.raw` covers everything until
+   then.
