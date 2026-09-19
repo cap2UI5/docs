@@ -792,3 +792,99 @@ upstream's unmodified transpiled framework.
   not a deliverable.
 - Nothing here changes the fact that the four upstream seams are unmerged, and
   that the existing cap2UI5 port remains broken (§8, worklist items 1-3).
+
+---
+
+## 13. 2026-09-19 — the app API, and where the prototype now lives
+
+§12 left one item: the `ATTRIBUTES` schema was real but too raw to put in front
+of users. It is gone, and so is every `await`.
+
+### An app is now this
+
+```js
+defineApp("ZCL_JS_HELLO", class {
+  name = "";                                   // plain field, plain value
+
+  main(c) {                                    // no async
+    if (c.isInitial) {
+      c.view(`… <Input value="${c.bind("name")}"/>
+               <Button text="Go" press="${c.event("GO")}"/> …`);
+    } else {
+      c.messageBox(`Hello ${this.name}`);
+    }
+  }
+});
+```
+
+No `ATTRIBUTES`, no `INTERNAL_TYPE`, no `abap.types.*`, no `async`, no `await`.
+The cold-restart test stays green, control included.
+
+### How the schema derives itself
+
+A field's type is already there: `name = ""` is a string, `true` a boolean, `1`
+an integer. `defineApp` boxes each declared field at construction and builds the
+`ATTRIBUTES` map RTTI needs from the same pass. Numbers are the one real
+ambiguity — ABAP has I, P and F and they render differently — so an integer
+becomes I, a fractional number F, and a decimal amount has to say so with
+`t.packed(12, 2)`. Fields with no type at construction (`null`, objects, arrays)
+are **reported**, not silently dropped:
+
+> `[defineApp] ZCL_JS_HELLO: cannot type notes — null/undefined and objects carry no ABAP type.`
+
+Booleans reach the app as real `true`/`false`, not ABAP's `"X"` / `" "`.
+
+### How the awaits went away
+
+They were never real. `_bind( )` and `_event( )` await nothing but their own
+internal calls — measured — and every method is `async` only because the
+transpiler marks all of them so. The only obstacle left was that JavaScript
+cannot unwrap a promise synchronously, and that is sidestepped from both ends:
+
+- **queries** answer a value the app uses inline, so they are resolved BEFORE
+  `main( )`: `c.isInitial` is a boolean, and every bind path is resolved for
+  every field up front. `c.event( )` cannot be — its names are invented by the
+  app — so it returns a placeholder token and the real wire string is
+  substituted in at flush time.
+- **commands** answer nothing the app reads, so `c.view( )`, `c.messageBox( )`
+  and `c.messageToast( )` are recorded synchronously and replayed in order after
+  `main( )` returns.
+
+An `async main` still works — the wrapper awaits it either way — so an app that
+does want to call a CAP service keeps that option without changing anything for
+the others. The one consequence to know: between `c.event("GO")` and the flush
+the app holds a token, not the wire format. Embedding it in markup is the point
+and works; parsing or comparing it does not.
+
+`this` inside `main` is a **Proxy** over the instance: reads unwrap the box,
+writes write through it. An earlier draft replaced the fields with their plain
+values instead, and `_bind( )` answered `BINDING_ERROR` — rightly, since the box
+was then no longer an attribute of the object and there was nothing left to match
+by identity (its signature has no name parameter; it matches by value).
+
+### The prototype is committed now
+
+It lived only in a scratchpad, which for the most substantial part of this work
+was the wrong place. It is now
+[`builder-abap2UI5-js/docs/prototypes/open-abap-cap/`](https://github.com/cap2UI5/builder-abap2UI5-js/tree/main/docs/prototypes/open-abap-cap)
+— the 548 hand-written lines plus a README with reproduction steps. The 19 MB of
+transpiled framework and the webapp are gitignored, because any checkout can
+rebuild them.
+
+Nothing in that repository builds, tests or depends on it, and that is
+deliberate: `core/`, the pipeline and every gate are unaffected. It is evidence,
+not a deliverable. It is still linted — `no-undef` stays an error there, since
+prototype code is the least exercised in the tree and needs that check most.
+
+### Still open
+
+- **The UI has never rendered in a browser.** All of this is the wire.
+- **No authorization exercised** — `owner` came out `anonymous`.
+- **Objects and arrays as app state** are unsupported: a structure or table type
+  cannot be derived from `{}` or `[]`. Scalars only, and that is the next real
+  piece of work on the API.
+- **The facade is a stub** — no popups, navigation or tables.
+- **The four upstream seams are unmerged.** If they are declined, everything from
+  §10 onwards is a record of what was tried rather than a plan. No issue or pull
+  request has been opened at `abap2UI5/abap2UI5`.
+- The existing cap2UI5 port remains broken (§8, worklist items 1-3).
