@@ -1045,3 +1045,38 @@ Nothing below can be done from a pull request or from this session.
 6. **Decide the facade's next slice** — popups, navigation, nested views —
    against real apps, not in the abstract. `c.raw` covers everything until
    then.
+
+## 16. 2026-09-19 — it renders, and the final round is prepared
+
+### It renders
+
+The last "unproven" is gone. `examples/bookshop/test/browser.e2e.mjs` opens,
+in a real Chromium, the page the framework itself serves on GET — the
+ABAP-generated index with the inlined webapp modules, bootstrapping UI5 from
+`sdk.openui5.org` — types into the hello app and gets its MessageBox, searches
+in the Books app and gets its table row. The sandbox reaches no CDN, so the
+CDN requests were answered from disk with OpenUI5 **1.108**, the newest
+`openui5-dist` on npm; the page itself was not touched. The CI workflow runs
+the same test against the real CDN. Screenshots are in the session.
+
+### Prepared, so that the final round is short
+
+- **`cap2UI5/cap2UI5`, branch `claude/happy-turing-qt6ljo`** carries the
+  plugin repository in its final layout — `plugin/`, `examples/bookshop/`,
+  `runtime/`, `scripts/`, `docs/adr/`, `.github/workflows/ci.yml`, README,
+  AGENTS — with the generated app removed (439 files, −82,806 lines). Lint
+  clean, 13/13, cold test, both browser tests green in that tree.
+- **`scripts/assemble-runtime.sh --package X.Y.Z`** — ADR-008 cutover step 2
+  in one flag, for the day `@abap2ui5/runtime` exists. `ci.yml` takes a
+  `runtime_version` input for the same purpose.
+- **[HANDOVER.md](HANDOVER.md)** — the manual steps in the order that works,
+  with the PR texts for upstream and for `cap2UI5/cap2UI5` ready to paste,
+  the npm-token steps, and the warning that matters: disable
+  builder-cap2UI5's `update_cap` before merging, or it overwrites the plugin
+  the next night.
+
+### What remains is only what needs a person
+
+Upstream merge, the npm token and a release, the two merges on the cap2UI5
+side, the archiving, and three decisions (the auth default, the facade's next
+slice, where the docs live). All of it is in HANDOVER.md.
