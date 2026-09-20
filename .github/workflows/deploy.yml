@@ -36,23 +36,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The docs make concrete claims about the cap2UI5 repository — paths,
-      # class names, sample ids, imports. Nothing else checks them:
-      # `vitepress build` validates internal links and stops there, so every
-      # rename upstream silently rots the prose. Verify against the real app.
+      # The docs make concrete claims about two repositories — paths, app ids,
+      # the plugin's exports and options against cap2UI5, and the framework's
+      # class names against the abap2UI5 source its runtime is transpiled
+      # from. Nothing else checks them: `vitepress build` validates internal
+      # links and stops there, so every rename silently rots the prose.
       - name: Check out cap2UI5 (reference target)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cap2UI5/cap2UI5
           path: .cap2ui5-ref
 
-      # verify-refs + vitepress build, through the same `npm run check` a
-      # contributor runs locally and check.yml runs on the pull request — one
-      # command, so the three cannot drift into checking different things.
+      - name: Check out abap2UI5 (the framework the runtime is built from)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: abap2UI5/abap2UI5
+          path: .abap2ui5-ref
+
+      # check:CI, not check: this job HAS both checkouts, so a missing one is
+      # a broken workflow rather than a laptop without a clone, and
+      # verify-refs' leniency would let the deploy publish while silently
+      # checking less than it says. The lenient `npm run check` is for a
+      # contributor's machine; both CI jobs refuse to skip.
       - name: Check (verify-refs + build)
-        run: npm run check
+        run: npm run check:ci
         env:
           CAP2UI5_DIR: .cap2ui5-ref
+          ABAP2UI5_DIR: .abap2ui5-ref
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
