@@ -1,11 +1,12 @@
 # API: `defineApp` and `t`
 
 ```js
-const { defineApp, t } = require("cap2ui5");
+const { defineApp, defineExit, t } = require("cap2ui5");
 ```
 
-Two exports. `defineApp` registers a class as an app; `t` declares the field
-types that cannot be inferred from a literal.
+`defineApp` registers a class as an app; `t` declares the field types that
+cannot be inferred from a literal; `defineExit` registers the one user exit —
+it has [a page of its own](../guide/user-exit).
 
 ## `defineApp(name, class, opts?)`
 
@@ -81,7 +82,25 @@ produce a view with the wrong number of decimals and nothing to point at.
 Structures and tables nest, to a depth of 8 — a cycle guard rather than a
 judgement. See [Data Binding](../guide/data-binding).
 
+## `defineExit(exit)`
+
+The framework's configuration hook — the CSP, the security headers, the UI5
+bootstrap URL, the theme, the draft expiry, the CSRF gate. One per project,
+registered from a file in the apps directory:
+
+```js
+defineExit({
+  onPage(cfg, ctx) { /* the bootstrap page */ },
+  onRoundtrip(cfg, ctx) { /* every roundtrip */ },
+});
+```
+
+Both hooks are optional, `cfg` arrives with the framework's defaults, and only
+what you change is written back. The fields, the defaults and why the exit is
+registered rather than discovered: [The User Exit](../guide/user-exit).
+
 ## Next
 
 - [**`c` — the client facade**](./client) — what `main` receives
 - [**Data Binding**](../guide/data-binding) — the types in practice
+- [**The User Exit**](../guide/user-exit) — `defineExit` in full

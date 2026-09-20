@@ -97,8 +97,14 @@ and the view is UI5 XML with two holes in it: `c.bind()` for a field and
 screen back — from a called app, a value help, a restored bookmark. Rendering
 only on `c.isFirstRun` produces an app that silently shows its previous screen
 after a navigation. See [App Lifecycle](./lifecycle).
-::: tip About those class names
-`z2ui5_cl_ui5_view_builder`, `check_on_init`, `_bind_edit` — the naming comes from abap2UI5's ABAP conventions and is kept intentionally, so every abap2UI5 sample and doc maps 1:1 to cap2UI5. It looks unusual in JS at first; you get used to it within an hour.
+:::
+
+::: tip About the names
+`ZCL_HELLO`, and `z2ui5_if_client` behind `c.raw` — the framework running under
+the plugin *is* ABAP, so its identifiers are ABAP's. The facade renames the
+handful you meet daily (`c.isDisplay`, `c.bind`, `c.event`); everything else
+keeps its original name, which is what lets every abap2UI5 sample and document
+still map onto what you are doing.
 :::
 
 ## The gap this closes {#the-gap}
@@ -145,7 +151,8 @@ And what it costs, plainly:
 |---|---|---|
 | The framework (handler, views, persistence) | `@abap2ui5/runtime` — upstream's own ABAP, transpiled | nobody: it is a dependency |
 | Your apps | `srv/apps/` or a folder you configure | **you** — this is where you work |
-| Static UI5 frontend | `app/z2ui5/webapp/` — mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5) | nobody — synced automatically |
+| The UI5 shell | served from the same `@abap2ui5/runtime` package, at `/z2ui5/webapp` | nobody — it ships with the framework |
+| UI5 itself | the OpenUI5 CDN, unless your [user exit](./user-exit#onpage) points elsewhere | you, if your server has no internet access |
 
 The frontend is not merely *compatible* with abap2UI5's — it **is** abap2UI5's, shipped in the same package as the backend that answers it, from the same upstream commit. The browser cannot tell whether ABAP or Node.js is on the other side, and backend and frontend cannot drift apart. See [Where cap2UI5 Comes From](./where-it-comes-from).
 

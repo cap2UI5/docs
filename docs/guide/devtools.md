@@ -58,12 +58,11 @@ has it.
 
 ## Turning it off
 
-There is no switch. The tools are part of the shipped webapp, and the webapp
-is a generated artifact mirrored from upstream abap2UI5 — patching it out
-locally would be overwritten by the next sync. If you must remove them, do it
-in the pipeline: the frontend is assembled by
-[builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) (see
-[Ecosystem](./ecosystem)).
+There is no switch. The tools are part of abap2UI5's own UI5 shell, which
+cap2UI5 serves straight out of `@abap2ui5/runtime` — patching it locally would
+be undone by the next `npm update`. If you need them gone, that is a request
+for [abap2UI5](https://github.com/abap2UI5/abap2UI5/issues) rather than for
+this project (see [Ecosystem](./ecosystem#where-to-report)).
 
 Worth knowing before you try: the tools expose nothing the browser could not
 already read. The payloads they show are this session's own requests and

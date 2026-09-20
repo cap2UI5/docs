@@ -97,6 +97,25 @@ Backend, UI5 shell and wire protocol version come from that one package, which
 is what makes a frontend/backend mismatch impossible. See
 [HTTP Protocol](./protocol).
 
+## What the plugin does not configure
+
+Everything the **framework** decides about a response — the UI5 bootstrap URL,
+the Content-Security-Policy, the security headers, the theme, the draft expiry
+and the CSRF gate — is not a `cds.cap2ui5` option. It comes from the user
+exit, registered with `defineExit`:
+
+```js
+// srv/apps/exit.js
+const { defineExit } = require("cap2ui5");
+
+defineExit({
+  onPage(cfg, ctx) { cfg.theme = "sap_horizon_dark"; },
+  onRoundtrip(cfg) { cfg.draft_exp_time_in_hours = 24; },
+});
+```
+
+One per project, and the whole surface is on [The User Exit](../guide/user-exit).
+
 ## Errors
 
 An unhandled error in the roundtrip answers `roundtrip failed (<id>)`, where
@@ -109,4 +128,5 @@ belongs in an HTTP response.
 
 - [**Deployment**](./deployment) — what changes when this leaves your laptop
 - [**Database Model**](./database) — `cap2ui5.Drafts`
+- [**The User Exit**](../guide/user-exit) — the CSP, the headers, the draft expiry
 - [**Architecture**](./architecture) — how the pieces fit
