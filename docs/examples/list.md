@@ -1,127 +1,109 @@
 # List & Detail
 
-A list with a selection-change event that reacts to a row selection. Shows the pattern for **table/list bindings** and how an item click is handled on the server side.
-
-## Code
+A table filled from your own CDS entity, and a row that can be written back.
+This is [`examples/bookshop/srv/apps/books.js`](https://github.com/cap2UI5/cap2UI5/blob/main/examples/bookshop/srv/apps/books.js)
+— the app the coexistence test drives, so both directions below are measured
+rather than sketched.
 
 ```js
-// srv/app/my_list.js
-const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
+// srv/apps/books.js
+const cds = require("@sap/cds");
+const { SELECT, INSERT } = cds.ql;
+const { defineApp, t } = require("cap2ui5");
 
-class my_list extends z2ui5_if_app {
+defineApp("ZCL_JS_BOOKS", class {
+  search = "";
+  hits   = 0;
+  books  = t.table({ ID: 0, title: "", author: "", price: t.packed(9, 2) });
 
-  t_tab = [];
+  async main(c) {
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="cap2UI5 - Books">` +
+        `<SearchField value="${c.bind("search")}" search="${c.event("SEARCH")}"/>` +
+        `<Table items="${c.bind("books")}">` +
+        `<columns><Column><Text text="Title"/></Column><Column><Text text="Author"/></Column>` +
+        `<Column><Text text="Price"/></Column></columns>` +
+        `<items><ColumnListItem><cells><Text text="{TITLE}"/><Text text="{AUTHOR}"/>` +
+        `<ObjectNumber number="{PRICE}"/></cells></ColumnListItem></items></Table>` +
+        `<Text text="${c.bind("hits")} hits"/>` +
+        `<Button text="Add" press="${c.event("ADD")}"/>` +
+        `</Page></Shell></mvc:View>`);
+      return;
+    }
 
-  async main(client) {
+    if (c.eventName === "SEARCH") {
+      const { Books } = cds.entities("my.bookshop");
+      this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
+      this.hits  = this.books.length;
+      c.messageToast(`${this.hits} found`);
+    }
 
-    if (client.check_on_init()) {
-
-      this.t_tab = [
-        { title: "row_01", descr: "Description 1", icon: "sap-icon://account", info: "completed",   selected: false },
-        { title: "row_02", descr: "Description 2", icon: "sap-icon://account", info: "incompleted", selected: false },
-        { title: "row_03", descr: "Description 3", icon: "sap-icon://account", info: "working",     selected: false },
-        { title: "row_04", descr: "Description 4", icon: "sap-icon://account", info: "working",     selected: false },
-        { title: "row_05", descr: "Description 5", icon: "sap-icon://account", info: "completed",   selected: false },
-      ];
-
-      const view = z2ui5_cl_ui5_view_builder.factory()
-        .ele({ n: `View`, ns: `mvc` })
-        .a({ n: `xmlns`,     v: `sap.m` })
-        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
-
-      const page = view.ele(`Shell`).ele(`Page`)
-        .a({ n: `title`,          v: `abap2UI5 - List` })
-        .a({ n: `navButtonPress`, v: client._event_nav_app_leave() })
-        .a({ n: `showNavButton`,  b: client.check_app_prev_stack() });
-
-      page.ele(`List`)
-        .a({ n: `headerText`,      v: `Items` })
-        .a({ n: `items`,           v: client._bind_edit(this.t_tab) })
-        .a({ n: `mode`,            v: `SingleSelectMaster` })
-        .a({ n: `selectionChange`, v: client._event(`SELCHANGE`) })
-        .tag(`StandardListItem`)
-        .a({ n: `title`,       v: `{TITLE}` })
-        .a({ n: `description`, v: `{DESCR}` })
-        .a({ n: `icon`,        v: `{ICON}` })
-        .a({ n: `info`,        v: `{INFO}` })
-        .a({ n: `press`,       v: client._event(`ITEM_PRESS`) })
-        .a({ n: `selected`,    v: `{SELECTED}` });
-
-      client.view_display(view.stringify());
-
-    } else if (client.check_on_event("SELCHANGE")) {
-      const sel = this.t_tab.find((row) => row.selected);
-      client.message_box_display(`Details for: ${sel?.title ?? ""}`);
-
-    } else if (client.check_on_event("ITEM_PRESS")) {
-      // click on item — could navigate to a detail view
-      client.message_toast_display("Item clicked");
+    if (c.eventName === "ADD") {
+      const { Books } = cds.entities("my.bookshop");
+      const max = await SELECT.one.from(Books).columns("max(ID) as m");
+      await INSERT.into(Books).entries({
+        ID: (max?.m ?? 0) + 1, title: this.search, author: "the app", stock: 1, price: 1.0,
+      });
+      c.messageToast(`added ${this.search}`);
     }
   }
-}
-
-module.exports = my_list;
+});
 ```
 
-## Important spots
+## The three things worth copying
 
-### Bindings for aggregation slots
+**`main` is `async` here** — because the *app* does I/O. The framework calls
+still need no `await`; `SELECT` does.
+
+**The table is declared, not inferred.** `t.table({…})` names the row, and
+`t.packed(9, 2)` makes `price` a decimal. An empty array carries no type, so a
+bare `books = []` would be left out of the model and named in a warning.
+
+**Assign the whole array.** `this.books = await SELECT…` replaces the table and
+the plugin rebuilds the rows. Mutating the array you read back does not write
+through.
+
+## Row fields are uppercase
+
+Inside the table's template the cells bind `{TITLE}`, `{AUTHOR}`, `{PRICE}` —
+uppercase, and relative to the row, so they take no `c.bind`. Component names
+are stored lowercase, as the transpiler does, and appear uppercase in the model.
+
+## `cds.ql` is the whole data layer
+
+There is no cap2UI5 data API. You use exactly what a CAP handler uses, with the
+same tagged templates and therefore the same parameterization:
 
 ```js
-page.ele(`List`)
-  .a({ n: `items`, v: client._bind_edit(this.t_tab) })
-  .tag(`StandardListItem`)
-  .a({ n: `title`,       v: `{TITLE}` })   // ← path relative to the item
-  .a({ n: `description`, v: `{DESCR}` })
-  .a({ n: `selected`,    v: `{SELECTED}` });
+await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`
 ```
 
-`items` gets the top-level binding (`{/XX/T_TAB}`). Inside `StandardListItem`, all paths are **relative to the item** — `{TITLE}` refers to `t_tab[N].title`.
+The `${…}` is a bound parameter, not string concatenation.
 
-::: tip Why the uppercase paths
-Model paths are uppercased on the way out (`this.t_tab` → `/XX/T_TAB`, the column `title` → `{TITLE}`) — the abap2UI5 wire format, where component names are ABAP identifiers. The write-back maps them onto your real, lowercase properties case-insensitively, so `this.t_tab[0].title` is what you read in `main()`. Write the relative paths uppercase and they will match.
-:::
+## Both directions, measured
 
-There is no `items` element in the chain: `items` is the default aggregation of `List`, so a child added with `.tag()` lands in it. An aggregation that is *not* the default one (a `Table`'s `columns`, a `Page`'s `footer`) is written out as an element of its own.
+`coexistence.test.mjs` drives an ordinary OData service beside this app and
+asserts:
 
-### `selectionChange` vs. `press`
+- a row the app writes through `INSERT` is there for the OData client **at
+  once** — same transaction, same database;
+- a row POSTed through OData is found by the app's next `SEARCH`;
+- `cap2ui5.Drafts` is **not** reachable through that service — 404, and absent
+  from `$metadata`.
 
-- `selectionChange` fires in **selection mode** (SingleSelectMaster, MultiSelect). The `selected` property of items is updated two-way in the model, so on the server you can check via `find(row => row.selected)`.
-- `press` fires on **item click** regardless of selection mode. Useful when you want an "open detail" click without a selection.
+That last one is asserted rather than assumed: session state reachable through
+somebody's OData service would be the worst kind of surprise.
 
-### Master-detail with navigation
+## A detail screen
 
-Extension — navigate to the detail app on click:
+For a second screen with its own state, call another app rather than growing
+this one — see [Navigation](../guide/navigation). The callee's result comes back
+through `c.prevApp`.
 
-```js
-} else if (client.check_on_event("ITEM_PRESS")) {
-  const sel = this.t_tab.find((r) => r.selected);
-  if (sel) {
-    const detail = new my_detail();
-    detail.parent_id = sel.title;     // simple "params" pattern
-    client.nav_app_call(detail);
-  }
-}
-```
+## Next
 
-In `my_detail.js`:
-
-```js
-class my_detail extends z2ui5_if_app {
-
-  parent_id = "";   // set by the caller
-  payload   = null;
-
-  async main(client) {
-    if (client.check_on_init()) {
-      this.payload = await this.load_payload(this.parent_id);
-      this.render(client);
-    }
-  }
-}
-```
-
-Because apps are **classes**, you simply pass parameters as fields. The caller sets them before `nav_app_call`, the callee reads them in `check_on_init`.
-
-→ Continue with [**External OData**](./external-odata).
+- [**Selection Screen**](./selection-screen) — a filter form
+- [**Data Binding**](../guide/data-binding) — tables, structures, nesting
+- [**Navigation**](../guide/navigation) — the detail screen

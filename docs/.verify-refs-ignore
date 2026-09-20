@@ -8,7 +8,7 @@
 # Format: <token> # <reason>
 
 # --- paths in OTHER repositories -------------------------------------------
-app/webapp              # the upstream abap2UI5 repo's frontend folder, which cap2UI5 mirrors
+app/webapp              # the upstream abap2UI5 repo's frontend folder, which @abap2ui5/runtime ships
 
 # --- illustrative paths the READER creates ---------------------------------
 srv/app/View1.view.xml  # a static view file the getting-started example tells you to add
@@ -19,19 +19,19 @@ z2ui5_cl_app_xyz        # stands for "your app class" in the interface descripti
 my_first_app            # the class the getting-started walkthrough has you write
 my_app                  # same, in the why-cap2ui5 pitch
 my_app_name             # stands for "your class" in the ?app_start= URL on the navigation page
+zcl_my_app              # stands for "the name you gave defineApp" in the why-cap2UI5 pitch
 ClassName               # literal placeholder in the URL-parameter description
 
-# --- classes that exist UPSTREAM and deliberately not here -----------------
-# cap2UI5 does not carry abap2UI5's frozen src/99 (see guide/vs-abap2ui5). The
-# names are named there precisely to say they are absent, so the checker must
-# not read the mention as a claim that they exist.
-z2ui5_cl_xml_view       # upstream's retired view builder — replaced here by z2ui5_cl_ui5_view_builder
-z2ui5_cl_xml_view_cc    # its custom-control decorator, retired with it
-z2ui5_cl_pop_bal        # one of upstream's frozen built-in popups, superseded by the popups add-on
+# Upstream's frozen src/99 needs no entries any more: the plugin hosts
+# upstream's whole transpiled runtime, so z2ui5_cl_xml_view and its siblings
+# ARE in it (measured in the assembled output) and resolve like any other
+# class. They are still not what to write new code against — see
+# guide/vs-abap2ui5 — but "do not use this" is a recommendation, and this file
+# is only about what exists.
 
-# --- release numbers that are NOT the pinned framework release --------------
-# The pin itself (1.142.0 today) is read from the checkout and never listed
+# --- release numbers that are NOT the pinned runtime release ----------------
+# The pin itself (1.144.0 today) is read from the checkout and never listed
 # here — listing it would keep the old number green after a pin move, which
 # is the one defect the release check exists to catch.
 1.143.0                 # the upstream release where _bind/_bind_edit merged — history, stays true whatever the pin says
-1.113.0                 # the OpenUI5 release served locally — a UI5 number, not a framework release
+1.113.0                 # an OpenUI5 release — a UI5 number, not a framework release

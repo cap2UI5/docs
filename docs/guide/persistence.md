@@ -1,147 +1,106 @@
 # Persistence & Sessions
 
-cap2UI5 apps are **stateful**: their fields survive a roundtrip, a browser refresh, sometimes even a server restart. This page explains how persistence works and where its limits are.
+A cap2UI5 app is **stateful across roundtrips** and stateless in memory. Your
+fields keep their values between clicks, and they do so because the server
+writes the app instance to the database after every roundtrip — not because
+anything stays alive between them.
 
-## The persistence table
+That distinction is the whole design, and it is what makes the apps survive a
+restart, a second server behind a load balancer, and a scale-to-zero.
 
-In `db/schema.cds`:
+## What happens per click
 
-```cds
-namespace cap2ui5;
-
-entity z2ui5_t_01 {
-  key id      : UUID;
-  id_prev     : UUID;          // ← predecessor ID, builds the history
-  data        : LargeString;   // ← serialized app instance
-}
+```
+browser  ──POST /rest/root/z2ui5 {id, event, model}──▶  CAP
+                                                        │  load draft <id>
+                                                        │  rebuild the app instance
+                                                        │  apply the model the browser sent
+                                                        │  call your main(c)
+                                                        │  write a NEW draft, new id
+         ◀──{S_FRONT:{ID:…}, actions, model}────────────┘
 ```
 
-On every roundtrip:
+Every roundtrip writes a **new** draft with a fresh uuid and a pointer to the
+previous one. Nothing is mutated in place, which is why the browser's back
+button and a restored bookmark land on a consistent state rather than a
+half-updated one.
 
-1. The app instance is **serialized** (`z2ui5_cl_ui5_srv_draft.serialize`).
-2. A new UUID is generated.
-3. An `INSERT` is made into `z2ui5_t_01` — `id_prev` points to the previous instance.
-4. The new UUID goes back in the response (`S_FRONT.ID`).
-5. The frontend sends this ID along on the next roundtrip.
-6. The server loads the instance again and applies the XX delta before `main()`.
+## What is persisted
 
-This is an **append-only history**. If you want, you can traverse the past via `id_prev` — for example, to build an "undo" mechanism.
-
-## What gets serialized?
-
-The engine walks `Object.getOwnPropertyNames(oApp)` and includes anything that:
-
-- Is **not a function**
-- Is **not in the `SKIP_PROPS` set** (`["client"]`)
-- Is JSON-serializable
-
-That means: your **data fields** survive, **bound methods** and **closures** do not.
+Your declared fields, and only those:
 
 ```js
-class my_app extends z2ui5_if_app {
+defineApp("ZCL_ORDER", class {
+  id       = "";
+  customer = { name: "", city: "" };
+  lines    = t.table({ sku: "", qty: 0, price: t.packed(9, 2) });
 
-  username    = "Alice";        // ✓ persisted
-  preferences = { lang: "de" }; // ✓ persisted
-  computed    = null;           // ✓ persisted (even when null)
-
-  client      = null;           // ← skipped (in SKIP_PROPS)
-
-  helper      = () => { … };    // ✗ function — not persisted
-  __cache     = new Map();      // ✗ Map is not JSON round-trippable
-  conn        = await cds.connect.to(...); // ✗ connection object
-}
-```
-
-::: tip Rule of thumb
-Keep app fields **JSON pure**: strings, numbers, booleans, arrays, plain objects. If you need maps, sets, connections, or streams, declare them as _local variables in `main()`_ — they then live for exactly one roundtrip.
-:::
-
-## Class restoration
-
-Serialization writes two meta fields into the output:
-
-```json
-{
-  "__className": "my_app",
-  "__filePath": "../../../app/samples/my_app.js",
-  "username": "Alice",
-  /* ... */
-}
-```
-
-On deserialization, `__filePath` is resolved and `require()`d, then a new instance is created and populated with `Object.assign`.
-
-`__filePath` is determined by the class lookup in `z2ui5_cl_util`. It searches, in order (first hit wins):
-
-1. Framework built-ins: `core/srv/z2ui5/01/04/` and `core/srv/z2ui5/02/`
-2. The core package's app folder, including the bundled samples: `core/srv/app/` + `core/srv/app/samples/`
-3. Directories registered at runtime via `z2ui5_cl_util.register_app_dir(dir)` — shortcut: `require("abap2UI5/register-apps")(dir)`; the project's own `srv/app/` is registered this way in `srv/server.js`
-4. Directories listed in the `Z2UI5_APP_DIRS` environment variable
-
-All directories are searched **recursively**; within one directory, a file at the top level wins over one in a subfolder. Classes registered directly via `z2ui5_cl_util.register_app_class(name, Cls)` bypass the filesystem entirely (that's how the [browser playground](./playground) works without a filesystem).
-
-::: warning File name = class name
-The lookup matches files by name, so a class is only found (and reloadable after a roundtrip) if its file is named `<className>.js` and lives in one of the paths above. If reloading fails, this convention is the first thing to check.
-:::
-
-## Database backend
-
-CAP-typically this is covered by your `cds.requires.db` driver:
-
-- **`@cap-js/sqlite`** in dev (`npx cds w` automatically starts an in-memory SQLite)
-- **HANA / HANA Cloud** in prod
-- **PostgreSQL** via `@cap-js/postgres`
-
-The engine uses only `INSERT.into(...)` and `SELECT.one.from(...)` — all CDS service backends work.
-
-## Cleanup
-
-Since every roundtrip writes a new entry into `z2ui5_t_01`, **the table grows linearly**. In production you need a cleanup strategy. Two ways:
-
-**1. CAP periodic job** (simple):
-
-```js
-// srv/cleanup.js
-const cds = require("@sap/cds");
-
-cds.on("served", () => {
-  setInterval(async () => {
-    const { z2ui5_t_01 } = cds.entities("cap2ui5");
-    const cutoff = new Date(Date.now() - 24*60*60*1000).toISOString();
-    await DELETE.from(z2ui5_t_01).where(`createdAt < '${cutoff}'`);
-  }, 60*60*1000);
+  main(c) { /* … */ }
 });
 ```
 
-(Assumes you have enabled `@cds.persistence.journal` or the `cuid` aspect with `createdAt`, or are logging the time yourself in `data`.)
+All three survive. Structures and tables nest as deeply as you like — the model
+carries `ORDER.CUSTOMER.CITY` and `ORDER.LINES[].PRICE`, decimals included, and
+the app reads the whole tree back as plain values on a later roundtrip.
 
-**2. DB-side job** with your DB operator tooling, e.g. a nightly cron on HANA that deletes older rows.
+A field the plugin cannot type is **left out of the model and named in a
+warning** rather than silently dropped:
 
-There is **currently no built-in cleanup** — that is intentional, because the right strategy is project-specific.
-
-## Sticky sessions
-
-Some apps need to ensure that roundtrips arrive **strictly serially** — e.g. a wizard where step 2 must never finish before step 1:
-
-```js
-this.check_sticky = true;
-client.set_session_stateful(true);
+```
+[defineApp] ZCL_ORDER: these fields are NOT part of the model —
+  total has no ABAP type: null, undefined and an empty array carry none.
+  Give it a value, or declare it with t.table(…) / t.packed(…).
 ```
 
-This sets a flag on the frontend that waits on the next click until the previous roundtrip is done — preventing race conditions for fast clickers.
+`null`, `undefined` and `[]` carry no type, so declare them: `t.table({…})` for
+a table, `t.packed(9, 2)` for a decimal, `t.char(3)` for a fixed-width string.
 
-## What happens on server restart?
+## What is NOT persisted
 
-- **Apps in the DB survive** (they're persisted).
-- **In-flight promises are lost** (logical).
-- The frontend doesn't notice — it sends its ID as usual, and the server reloads the app from the DB.
+Anything that is not a declared field. A value stashed on `this` inside `main`
+with no initializer at construction time is not part of the model and will be
+gone on the next roundtrip. If you want it to survive, declare it.
 
-Meaning: cap2UI5 apps are **inherently stateless on the server level** (in the sense of "no in-memory state per user"). You can scale them horizontally, as long as all instances share the same DB backend.
+## It survives a restart — measured
 
-## Performance tips
+`cold-test.mjs` is not a unit test. It starts a server, does a roundtrip,
+**SIGKILLs the process**, starts a fresh one and continues the session:
 
-- **Keep app instances small**: persist only what you really need for subsequent roundtrips. Reload database results fresh in `check_on_init()` instead of caching them in the app.
-- **Avoid huge arrays as fields**: 10,000 rows in `this.users` means 10,000 rows per roundtrip in the DB — that adds up.
-- **Use backed queries for tables**: bind `items` to an OData service via `set_odata_model` rather than to an app array.
+```
+VERDICT  control=ok  js-app-cold-restart=true  nav-stack-cold-restart=true
+```
 
-→ Continue with [**Popups & Toasts**](./popups).
+The third case is the sharp one: the kill happens *inside a called app*, so the
+new process has to take the callee's event, unwind an app stack it never built,
+run the caller's `main` again and carry the result home. It answers
+`{CHOSEN:"red", PICKS:1}` — only reachable if the caller, the callee and the
+stack between them all came out of `cap2ui5.Drafts`.
+
+Had any of it lived in memory, the new process would have answered the caller's
+start state with no error anywhere. That silence is why this is a test rather
+than an assumption.
+
+## Concurrency
+
+Three users interleaved in one process each get their own answer — one draft
+chain per session, no shared state, nothing to lock. `concurrency.test.mjs`
+drives exactly that.
+
+## Sessions belong to their user
+
+A draft answers to the user who created it and to nobody else, with the same
+"not found" a missing draft gives. The details, and the defect that once made an
+ownerless row everybody's, are in [Database Model](../reference/database).
+
+## Retention
+
+Drafts older than four hours are swept on the next roundtrip. A session left
+open over lunch is fine; one left open overnight starts fresh. Both the sweep
+and the framework's willingness to resume follow the same number, and your
+[user exit](./user-exit#onroundtrip) sets it.
+
+## Next
+
+- [**Database Model**](../reference/database) — the entity and the owner binding
+- [**App Lifecycle**](./lifecycle) — which branch runs when
+- [**Navigation**](./navigation) — the app stack the drafts encode

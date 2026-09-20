@@ -1,227 +1,116 @@
 # App Lifecycle
 
-A cap2UI5 app is a JavaScript class with a single mandatory method: `async main(client)`. When exactly it is called, what happens the first time, what happens on subsequent roundtrips — that is the app lifecycle.
-
-## The `main(client)` method
+An app is a class. Each roundtrip rebuilds an instance of it from the draft,
+applies what the browser sent, and calls `main(c)` exactly once.
 
 ```js
-class my_app extends z2ui5_if_app {
+const { defineApp } = require("cap2ui5");
 
-  some_field = "";
+defineApp("ZCL_HELLO", class {
+  name = "";
 
-  async main(client) {
-    // called on EVERY roundtrip
+  main(c) {
+    // called on EVERY roundtrip — the branches below decide what happens
   }
-}
+});
 ```
 
-It is called **on every roundtrip** — initial load, button click, selection change, navigation, popup close, … everything goes through `main()`. You differentiate via the `check_*` methods of the `client` object.
+`main` is **synchronous**. Make it `async` only when your app does I/O; the
+framework calls need no `await` either way.
 
-## The three main states
+## The two predicates, and the one that trips people
 
 ```js
-async main(client) {
+main(c) {
+  if (c.isFirstRun) {
+    // the first roundtrip of THIS app instance, and only that one.
+    // Seed state here.
+  }
 
-  if (client.check_on_init()) {
-    // first call of the app instance
+  if (c.isDisplay) {
+    // the first roundtrip AND every time this app gets the screen back:
+    // a called app leaving, a value help closing, a bookmark restored.
+    // RENDER here.
+    c.view(/* … */);
     return;
   }
 
-  if (client.check_on_navigated()) {
-    // app was just activated after a nav_app_call/leave
-    return;
-  }
-
-  if (client.check_on_event("MY_EVENT")) {
-    // a specific event has occurred
-    return;
-  }
+  if (c.eventName === "GO") { /* … */ }
 }
 ```
 
-### `check_on_init()`
+::: danger Render on `isDisplay`, not on `isFirstRun`
+`isFirstRun` implies `isDisplay`, so `if (c.isDisplay)` is the whole display
+condition — no `||`.
 
-Returns `true` **only on the first** `main()` call of a fresh app instance. This is the moment when you:
+An app that renders only on `isFirstRun` works perfectly until something
+navigates back into it, and then **leaves the previous screen standing with no
+error anywhere**. Nothing throws, nothing logs, the user just sees the wrong
+page. It is the framework's most common app bug, and `z2ui5_if_client`'s own
+documentation says so.
+:::
 
-- Set default values
-- Load external data (`cds.connect.to(...)`)
-- Render the initial view
+Underneath they are `check_on_init()` and `check_on_navigated()`. The facade
+renames them because the original names suggest the opposite of what they do —
+`check_on_navigated` reads like "arrived by navigation" and is in fact also true
+on the very first run.
 
-```js
-if (client.check_on_init()) {
-  this.customers = await (await cds.connect.to("northwind"))
-    .run(SELECT.from("Customers").limit(50));
-  this.render(client);
-  return;
-}
-```
+## The full surface
 
-Internally: `check_on_init()` returns `true` as long as `oApp.check_initialized` is falsy **and** there is no event name. After `main()`, the handler sets `check_initialized = true`, persists the instance, and returns the response. On the next roundtrip the instance is loaded from the DB — by then `check_initialized` is already `true` and `check_on_init()` returns `false`.
+Everything `c` offers, which is everything an app needs before reaching for
+`c.raw`:
 
-### `check_on_event(name?)`
+| | |
+|---|---|
+| **lifecycle** | `isFirstRun`, `isDisplay`, `canGoBack`, `eventName`, `eventArg(i)`, `prevApp` |
+| **binding** | `bind(field)`, `event(name, [args])` |
+| **screen** | `view(xml)`, `popup(xml)` / `popupClose()`, `nest(into, xml, opts)` / `nestClose()` |
+| **messages** | `messageBox(text)`, `messageToast(text)` |
+| **navigation** | `navTo(app)`, `navBack({event, data, app})` |
+| **escape hatch** | `raw` — the underlying async client |
 
-With argument: tests whether the given event is currently active.
-
-```js
-if (client.check_on_event("BUTTON_SAVE")) {
-  await this.save();
-}
-```
-
-Without argument: tests whether _any_ event is active.
-
-```js
-if (client.check_on_event()) {
-  switch (client.get().EVENT) {
-    case "BUTTON_SAVE":   /* ... */ break;
-    case "BUTTON_CANCEL": /* ... */ break;
-  }
-}
-```
-
-Which style is nicer is a matter of taste — both work identically.
-
-### `check_on_navigated()`
-
-Returns `true` directly after a `nav_app_call(...)` or `nav_app_leave(...)`. In the navigated-into app you can use it to react to the result of a popup or a sub-app:
+## A typical app
 
 ```js
-if (client.check_on_navigated()) {
-  const prev = client.get_app_prev();
-  if (prev instanceof MyPopup && prev.result?.confirmed) {
-    this.selected_id = prev.result.id;
-  }
-}
-```
+defineApp("ZCL_ORDER", class {
+  customer = "";
+  lines    = t.table({ sku: "", qty: 0 });
+  loaded   = false;
 
-→ More in [Navigation](./navigation).
-
-## What happens between roundtrips
-
-The lifecycle of an app instance:
-
-```
-            ┌──────────────────────────────────────┐
-            │ First GET → frontend loads           │
-            │ First POST (S_FRONT.ID = "")         │
-            ▼                                      │
-        action_factory                             │
-        → factory_first_start (?app_start=…)       │
-        → factory_system_startup                   │
-            │                                      │
-            ▼                                      │
-        new MyApp()                                │
-            │                                      │
-            ▼                                      │
-        apply XX delta (initial = empty)           │
-            │                                      │
-            ▼                                      │
-        main(client)  ← check_on_init() === true   │
-            │                                      │
-            ▼                                      │
-        check_initialized = true                   │
-            │                                      │
-            ▼                                      │
-        DB.saveApp() → new UUID generated          │
-            │                                      │
-            ▼                                      │
-        Response: { S_FRONT: { ID: <uuid>, … } }   │
-            │                                      │
-            ▼                                      │
-        Browser shows view                         │
-            │                                      │
-            ▼                                      │
-        User clicks button                         │
-            │                                      │
-            ▼                                      │
-        POST { S_FRONT: { ID: <uuid>, EVENT, … }, XX: { … delta … } }
-            │                                      │
-            ▼                                      │
-        action_factory → DB.loadApp(uuid)          │
-            │                                      │
-            ▼                                      │
-        deserialize → my_app instance with old state
-            │                                      │
-            ▼                                      │
-        apply XX delta (user inputs flow in)       │
-            │                                      │
-            ▼                                      │
-        main(client)  ← check_on_event(...) === true
-            │                                      │
-            ▼                                      │
-        DB.saveApp() → new UUID                    │
-            └──────────────────────────────────────┘
-```
-
-Important:
-
-1. **The app instance only lives for one roundtrip** in memory. Afterwards it is serialized.
-2. **Fields that are JSON-serializable survive.** Functions, closures, DOM refs, external connection objects → do not.
-3. **Properties like `client` are skipped** (see `SKIP_PROPS` in `z2ui5_cl_ui5_srv_draft.js`) so that no cyclic graph is created.
-
-## Pattern: fields ↔ reference-equality bindings
-
-```js
-class search_form extends z2ui5_if_app {
-
-  search    = "";    // ← bind_edit finds 'search' via reference equality
-  results   = [];
-  page_size = 25;
-
-  async main(client) {
-    if (client.check_on_init()) { /* ... */ }
-    if (client.check_on_event("DO_SEARCH")) {
-      this.results = await this.search_db(this.search, this.page_size);
+  async main(c) {
+    if (c.isFirstRun) {
+      this.customer = c.raw ? "" : "";      // seed once
     }
-    this.render(client);
+
+    if (c.eventName === "LOAD") {
+      const { Orders } = cds.entities("my.shop");
+      this.lines = await SELECT.from(Orders);
+      this.loaded = true;
+    }
+
+    if (c.isDisplay || c.eventName === "LOAD") {
+      c.view(/* … */);
+    }
   }
-
-  render(client) {
-    const view = z2ui5_cl_ui5_view_builder.factory()
-      .ele({ n: `View`, ns: `mvc` })
-      .a({ n: `xmlns`,     v: `sap.m` })
-      .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
-
-    view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Search` })
-      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.search) })
-      .tag(`Button`).a({ n: `press`, v: client._event(`DO_SEARCH`) })
-      .tag(`Table`).a({ n: `items`, v: client._bind(this.results) });
-
-    client.view_display(view.stringify());
-  }
-}
+});
 ```
 
-Fields you expose via bindings **must be direct properties** of the app. `_bind_edit(this.deep.path.field)` does _not_ work for deeply nested values — you would expose `this.deep` and bind the sub-path as a string:
+Note the last branch: after an event that changed what is on screen you render
+again. Changed **bound data** is pushed on its own — you only re-render when the
+view's *structure* changes.
 
-```js
-const path = client._bind_edit(this.deep, { path: true });
-// path = "/XX/DEEP"      ← model paths are uppercased
-page.tag(`Input`).a({ n: `value`, v: `{${path}/PATH/FIELD}` });
-```
+## Two members that used to exist and now throw
 
-→ Full explanation in [Data Binding](./data-binding).
+Both throw an error naming the replacement rather than quietly changing meaning:
 
-## Framework fields (don't use yourself)
+| gone | why |
+|---|---|
+| `c.isInitial` | it was wired to `check_on_navigated()` and named after `check_on_init()`. Use `c.isDisplay` to render, `c.isFirstRun` to seed |
+| `c.modelUpdate()` | it called `view_model_update()`, which the framework declares **obsolete and does nothing**. Changed bound data is pushed automatically — to an open popup and a nested view too |
 
-These properties on `z2ui5_if_app` are reserved:
+## Next
 
-```js
-id_draft          = "";
-id_app            = "";
-check_initialized = false;
-check_sticky      = false;
-```
-
-Don't override — the binding engine explicitly excludes them from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_ui5_client.js`), but don't use them as your own app state either.
-
-## Stickiness (optional)
-
-```js
-this.check_sticky = true;
-client.set_session_stateful(true);
-```
-
-Sets a sticky session — the frontend driver then serializes roundtrips more strictly back-to-back. Useful for apps with critical ordering or file upload sequences, otherwise unnecessary.
-
-→ Continue with [**View Builder**](./views).
+- [**Data Binding**](./data-binding) — `c.bind`, tables, structures
+- [**Events**](./events) — `c.event`, arguments, `c.eventName`
+- [**Navigation**](./navigation) — `navTo`, `navBack`, `prevApp`
+- [**Persistence**](./persistence) — why the instance survives at all

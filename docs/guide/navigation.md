@@ -1,166 +1,101 @@
 # Navigation
 
-cap2UI5 apps can navigate between each other — the server keeps a **stack** of app instances, so forward and back navigation work naturally.
+Navigation in cap2UI5 is one app **calling another**. The caller keeps its
+state, the callee runs with its own, and when the callee leaves, the caller gets
+the screen back and can read what the callee produced.
 
-## Forward: `nav_app_call(newApp)`
+## Calling an app
 
 ```js
-if (client.check_on_event("OPEN_DETAILS")) {
-  const detail = new my_detail_app();
-  detail.id = this.selected_id;
-  client.nav_app_call(detail);
+// ZCL_PICK
+if (c.eventName === "CHOOSE") {
+  c.navTo("ZCL_PICK_ONE");
+  return;
 }
 ```
 
-This **pushes the current app onto the stack** and makes `detail` the new main app. The handler loop will call `main()` of `detail` directly within the same roundtrip — `check_on_init()` is `true` there.
+`c.navTo` takes the name you gave `defineApp`, a `defineApp` class, or an
+instance you built yourself. A name that resolves to nothing is refused **here**,
+where you can see which name it was, rather than as a `NAV_APP_TARGET_NOT_BOUND`
+later.
 
-## Back: `nav_app_leave()`
+Navigation is scheduled for the end of the roundtrip, so it is usually the last
+thing a branch does.
+
+## Coming back
 
 ```js
-if (client.check_on_event("CANCEL")) {
-  client.nav_app_leave();
+// ZCL_PICK_ONE
+if (c.eventName === "TAKE") {
+  this.colour = c.eventArg(1);
+  if (c.canGoBack) c.navBack({ event: "PICKED" });
+  return;
 }
 ```
 
-**Pops** the topmost app off the stack. If the stack is empty, the framework falls back to the startup app.
+`c.navBack(opts)` hands the screen back. Guard it with `c.canGoBack` — there may
+be nothing to go back to.
 
-Optionally you can specify an **explicit app** to jump back to:
+| option | |
+|---|---|
+| `event` | the event the caller's `main` sees on its next run |
+| `data` | a value for the caller; a string goes as is, anything else is JSON |
+| `app` | leave to a *different* app than the one that called |
 
-```js
-client.nav_app_leave(some_specific_app);
-```
+## Reading what the callee produced
 
-## Convenience: page back button
-
-Practically every app wants a page back button that jumps to the previous app:
-
-```js
-view.Page({
-  title:          "Detail",
-  navButtonPress: client._event_nav_app_leave(),
-  showNavButton:  client.check_app_prev_stack()
-});
-```
-
-`_event_nav_app_leave()` builds a special event that **the framework intercepts** — your `main()` never sees it. It performs `nav_app_leave()` directly.
-
-`check_app_prev_stack()` returns `true` when the stack is not empty — useful so the button is only shown when it makes sense.
-
-## Pop result: `get_app_prev()`
-
-The classic pattern: an app opens a "selector" that returns a selection.
+Back in the caller, `c.prevApp` is the app on the other side of the last
+navigation — the instance that just returned, with its fields as plain values:
 
 ```js
-// main app
-if (client.check_on_event("PICK_USER")) {
-  const picker = new user_picker();
-  picker.search_term = this.search;
-  client.nav_app_call(picker);
+// ZCL_PICK again, after the callee left
+if (c.eventName === "PICKED" && c.prevApp) {
+  this.chosen = c.prevApp.colour ?? "";
+  this.picks += 1;
 }
 
-// after returning from picker
-if (client.check_on_navigated()) {
-  const prev = client.get_app_prev();
-  if (prev instanceof user_picker && prev.result?.confirmed) {
-    this.selected_user = prev.result.user;
-  }
+if (c.isDisplay) {
+  c.view(/* … shows this.chosen … */);
 }
 ```
 
-`get_app_prev()` returns the **just-left** app (not the stack top). It is readable for exactly one roundtrip after a back-nav — afterwards it is discarded.
+::: danger This is where `isDisplay` earns its name
+When the callee leaves, the caller's `main` runs again with **`isDisplay` true
+and `isFirstRun` false**. An app that renders only on `isFirstRun` shows the
+user its *old* screen — the pick never appears, and nothing anywhere reports an
+error.
 
-## App home & app back
+That is the single most common way to get a screen that does not refresh. See
+[App Lifecycle](./lifecycle).
+:::
 
-Two more convenience methods:
+## The stack is in the database
 
-```js
-client.nav_app_home();   // ← jumps to startup, clears the stack
-client.nav_app_back();   // ← single pop; falls back to home if empty
+`c.navTo` does not keep a call stack in memory. The draft rows carry it —
+`id_prev`, `id_prev_app`, `id_prev_app_stk` — which is why navigation survives a
+restart.
+
+Measured: a server is **SIGKILLed while inside the called app**, and a fresh
+process takes the callee's event, unwinds a stack it never built, runs the
+caller's `main` again and carries the value home:
+
+```
+B roundtrip 2  MODEL={"CHOSEN":"red","PICKS":1}
+RESULT: the app STACK survived the restart
 ```
 
-Difference from `nav_app_leave()`: `nav_app_back()` additionally sets the flag `_navTargetIsLeave = true`, so the stack pointer is not pushed again.
+## Popup or navigation?
 
-## Routing via URL
+| | |
+|---|---|
+| a dialog that belongs to this app's state | [`c.popup`](./popups) |
+| a screen with its own state, reusable from several places | `c.navTo` |
 
-You can directly start a specific app via URL parameter:
+A value help is usually the second: it is an app, and its result comes back
+through `c.prevApp`.
 
-```
-/z2ui5/webapp/index.html?app_start=my_app_name
-```
+## Next
 
-This works through `factory_first_start` in `z2ui5_cl_ui5_action.js` — on the first roundtrip without `S_FRONT.ID` the handler looks at the query string, finds the class via RTTI, and instantiates it.
-
-## Browser history
-
-If you want to couple the history with the browser history:
-
-```js
-client.set_push_state(true);
-```
-
-Pushes the current server state into `history.pushState`. With this the browser back button works — it then triggers a reload with the previous `S_FRONT.ID`.
-
-## Stack persistence
-
-The nav stack survives across roundtrips because:
-
-1. On `db_save` of the current app, all apps in the `_navStack` are also persisted.
-2. Their IDs are stored in `oApp.__navStackIds`.
-3. On the next load, `_rehydrate_nav_stack` reads these IDs and reloads the stack apps.
-
-Meaning: a user can refresh the browser and the entire navigation history is restored.
-
-## Example: master-detail with picker
-
-```js
-class my_master extends z2ui5_if_app {
-
-  selected_user_id  = "";
-  selected_username = "";
-
-  async main(client) {
-    if (client.check_on_init()) this.render(client);
-
-    if (client.check_on_navigated()) {
-      const prev = client.get_app_prev();
-      if (prev instanceof my_user_picker && prev.confirmed) {
-        this.selected_user_id  = prev.result_id;
-        this.selected_username = prev.result_name;
-      }
-      this.render(client);
-    }
-
-    if (client.check_on_event("PICK")) {
-      client.nav_app_call(new my_user_picker());
-    }
-  }
-
-  render(client) { /* ... */ }
-}
-```
-
-```js
-class my_user_picker extends z2ui5_if_app {
-
-  confirmed   = false;
-  result_id   = "";
-  result_name = "";
-
-  async main(client) {
-    if (client.check_on_init()) this.render(client);
-
-    if (client.check_on_event("CONFIRM")) {
-      this.confirmed   = true;
-      this.result_id   = client.get_event_arg(1);
-      this.result_name = client.get_event_arg(2);
-      client.nav_app_leave();
-    }
-
-    if (client.check_on_event("CANCEL")) client.nav_app_leave();
-  }
-
-  render(client) { /* ... */ }
-}
-```
-
-→ Continue with [**Persistence & Sessions**](./persistence).
+- [**App Lifecycle**](./lifecycle) — `isDisplay` vs. `isFirstRun`
+- [**Popups & Toasts**](./popups) — the lighter alternatives
+- [**Persistence**](./persistence) — why the stack survives

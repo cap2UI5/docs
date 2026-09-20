@@ -1,159 +1,183 @@
 # Quickstart
 
-This page takes you from "empty directory" to "clickable cap2UI5 app" in under five minutes.
-
-::: tip No installation at all?
-If you just want to *see* cap2UI5 first, open the [**browser playground**](./playground) — the whole stack, including all sample apps, runs on GitHub Pages.
-:::
+From an empty directory to a clickable cap2UI5 app. cap2UI5 is a **CAP plugin**:
+you add it to a CAP project you already have, or to a brand new one. There is
+no cap2UI5 project to clone.
 
 ## Prerequisites
 
-- **Node.js ≥ 22** (the app declares it in `engines` and `.nvmrc`)
-- Internet access (the frontend loads SAPUI5 from the SAP CDN)
+- **Node.js ≥ 22**
+- A CAP project (`cds init` makes one in seconds)
+- Internet access — the frontend loads SAPUI5 from the SAP CDN
 
-That's it. No database setup (CAP starts an in-memory SQLite automatically), no global CLI installs (`@sap/cds-dk` is a dev dependency of the project).
+No database setup: CAP starts SQLite for you. No global installs.
 
-## 1. Clone the project
+## 1. A CAP project
 
-Clone the reference project — the repo root **is** the CAP application:
-
-```bash
-git clone https://github.com/cap2UI5/cap2UI5.git
-cd cap2UI5
-npm install
-```
-
-The repository is a complete, self-contained CAP project:
-
-```
-cap2UI5/
-├── srv/
-│   ├── z2ui5-service.cds       # service definitions incl. the z2ui5 action
-│   ├── z2ui5-service.js        # service handler bindings
-│   ├── server.js               # CAP bootstrap (HTML + CSRF endpoints)
-│   └── app/                    # your own apps go here
-├── db/
-│   └── schema.cds              # CDS entity z2ui5_t_01 for persistence
-├── app/
-│   └── z2ui5/                  # static UI5 frontend (don't touch)
-├── core/                       # vendored framework package (don't touch)
-│   └── srv/app/samples/        # ~105 demo apps (from abap2UI5/samples)
-└── package.json                # "abap2UI5": "file:./core"
-```
-
-## 2. Start
+Skip this if you already have one.
 
 ```bash
-npx cds watch
-# or: start and open the app in the browser right away
-npm run watch-z2ui5
+npm init -y && npm add @sap/cds @cap-js/sqlite
+npx cds init
 ```
 
-The server listens on [http://localhost:4004](http://localhost:4004):
+## 2. Add the plugin
 
-| URL | What you get |
+```bash
+npm add cap2ui5
+```
+
+That is the whole installation. On the next `cds watch` three things exist that
+did not before:
+
+| | |
 |---|---|
-| [`/z2ui5/webapp/index.html`](http://localhost:4004/z2ui5/webapp/index.html) | the app — without a parameter, the startup launcher is shown |
-| [`/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world`](http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world) | start a specific app class directly — works for every sample, e.g. `z2ui5_cl_smp_app_000` |
-| `/rest/root/z2ui5` | the roundtrip endpoint the frontend talks to |
+| the roundtrip route | `/sap/bc/z2ui5` and `/rest/root/z2ui5` |
+| the UI5 shell | `/z2ui5/webapp/` — served from the runtime package, not copied into your project |
+| `cap2ui5.Drafts` | a CDS entity for session state, created by `cds deploy` next to your own |
 
-Click around the demo apps first — everything you see in `core/srv/app/samples/` can be started via `?app_start=<class_name>`.
+Your own `server.js`, if you have one, is not touched. Nothing is generated
+into your repository.
 
-## 3. Your first own app
+::: danger Neither package is on npm yet — the one step that does not work as written
+`npm add cap2ui5` answers **404** today, and so would `@abap2ui5/runtime`, which
+the plugin depends on. Both are published from a release that has not been cut
+yet. Verified while writing this page, so that the line above is what you *will*
+run and not what you can run now.
 
-Create a new file `my_first_app.js` in `srv/app/`:
+Until then, work from the repository — `examples/bookshop` in it is a complete
+CAP project using the plugin:
+
+```bash
+git clone https://github.com/cap2UI5/cap2UI5 && cd cap2UI5
+
+# fill runtime/ from an upstream build (once, ~3 minutes)
+git clone https://github.com/abap2UI5/abap2UI5 /tmp/ref
+(cd /tmp/ref && npm ci && npm run deps && npm run auto_downport && npm run auto_transpile)
+scripts/assemble-runtime.sh /tmp/ref
+
+npm install && npm start
+```
+
+The workspace links `plugin/` into the example, so `require("cap2ui5")` resolves
+exactly as it will from npm. Everything below this box is accurate today — only
+the `npm add` line waits on the release.
+:::
+
+## 3. Your first app
+
+One file in `srv/apps/` — the directory the plugin scans:
 
 ```js
-// srv/app/my_first_app.js
-const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
+// srv/apps/hello.js
+const { defineApp } = require("cap2ui5");
 
-class my_first_app extends z2ui5_if_app {
-
-  who   = "World";
+defineApp("ZCL_HELLO", class {
+  name  = "";
   count = 0;
 
-  async main(client) {
-
-    if (client.check_on_init()) {
-      this.render(client);
+  main(c) {
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="My first cap2UI5 app">` +
+        `<Input value="${c.bind("name")}"/>` +
+        `<Text text="clicks: ${c.bind("count")}"/>` +
+        `<Button text="Say hello" press="${c.event("GO")}" type="Emphasized"/>` +
+        `</Page></Shell></mvc:View>`);
       return;
     }
 
-    if (client.check_on_event("CLICK")) {
+    if (c.eventName === "GO") {
       this.count++;
-      client.message_toast_display(`Hi, ${this.who}! You clicked ${this.count}x.`);
-      this.render(client);
+      c.messageToast(`Hi, ${this.name}! You clicked ${this.count}x.`);
     }
   }
-
-  render(client) {
-    const view = z2ui5_cl_ui5_view_builder.factory()
-      .ele({ n: `View`, ns: `mvc` })
-      .a({ n: `xmlns`,      v: `sap.m` })
-      .a({ n: `xmlns:mvc`,  v: `sap.ui.core.mvc` })
-      .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
-
-    const form = view.ele(`Shell`).ele(`Page`)
-      .a({ n: `title`, v: `My first cap2UI5 app` })
-      .ele({ n: `SimpleForm`, ns: `form` })
-      .a({ n: `editable`, b: true })
-      .ele({ n: `content`, ns: `form` });
-
-    form.tag(`Label`).a({ n: `text`, v: `Your name` })
-      .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.who) })
-      .tag(`Label`).a({ n: `text`, v: `Clicks` })
-      .tag(`Text`).a({ n: `text`, v: client._bind(this.count) })
-      .tag(`Button`)
-      .a({ n: `text`,  v: `Click me` })
-      .a({ n: `press`, v: client._event(`CLICK`) })
-      .a({ n: `type`,  v: `Emphasized` });
-
-    client.view_display(view.stringify());
-  }
-}
-
-module.exports = my_first_app;
+});
 ```
 
-Two things worth noting:
+Four things worth knowing, and each of them is a rule rather than a style:
 
-- The imports use the vendored core package's exports (`require("abap2UI5/...")`, resolved via the `"abap2UI5": "file:./core"` dependency) — no fragile relative paths. All bundled samples use the same style.
-- **File name = class name.** That convention is how the framework finds your class (see [Persistence](./persistence)).
+- **`main` is synchronous.** No `async`, no `await`. Make it `async` only when
+  *your app* does I/O — reading your own entities with `await SELECT.from(Books)`.
+- **`c.isDisplay` is the render branch, not `c.isFirstRun`.** `isDisplay` is
+  also true every time the app gets the screen back from a navigation or a
+  value help. An app that renders only on `isFirstRun` works perfectly until
+  something navigates back into it, and then leaves the previous screen
+  standing with no error anywhere. `isFirstRun` is for seeding state once.
+- **State is ordinary fields.** `name = ""` and `count = 0` are the app's
+  model; `c.bind("name")` binds one into the view. They survive the roundtrip
+  because the plugin stores the instance in `cap2ui5.Drafts`.
+- **The first argument of `defineApp` is the app's name on the wire** — it is
+  what `?app_start=` takes. The file name does not matter.
 
-## 4. Launch it
+## 4. Run it
 
-Open [http://localhost:4004/z2ui5/webapp/index.html?app_start=my_first_app](http://localhost:4004/z2ui5/webapp/index.html?app_start=my_first_app) — done. (`cds watch` picks the new file up automatically.)
+```bash
+npx cds watch
+```
+
+Then open:
+
+```
+http://localhost:4004/rest/root/z2ui5?app_start=ZCL_HELLO
+```
+
+That is the **roundtrip route**, not a static page: the framework answers a GET
+on it with the composed HTML that boots UI5 and starts the app named in
+`app_start` — measured at 346 KB against 950 bytes for the shell's own
+`index.html`, which is why the distinction matters. `/sap/bc/z2ui5?app_start=…`
+is the same door under its ABAP-side name; `/z2ui5/webapp/` serves the shell's
+assets and is not an entry point.
+
+You will be asked to log in: the plugin requires an authenticated user by
+default, and `cds watch` uses CAP's mocked auth, so any configured user works
+(`alice` with an empty password in a stock project). See
+[Configuration](../reference/configuration) to open the route to anonymous
+callers — and what that costs.
 
 ## What you just built
 
-In one file you built a **stateful UI5 app** that:
+A **stateful UI5 app** in one file that
 
-- Two-way-binds `who` to an input field (you type, the server receives it)
-- Persists `count` across roundtrips — the click counter even survives a browser refresh, because the server stores the app instance in the database
-- Needed no OData service, no manifest, no controller, no frontend build
+- binds `name` two-way — you type, the server receives it;
+- keeps `count` across roundtrips, and across a server restart, because the
+  state is a row in your database rather than memory;
+- needed no OData service, no manifest, no controller, no frontend build.
 
-## Where do my apps live long-term?
+## Reading your own data
 
-`srv/app/` is user-owned and scanned automatically — unlike `core/srv/app/samples/`, where the sync pipeline maintains the transpiled abap2UI5 demos (overwritten on every sync). Beyond `srv/app/` you can keep apps in **any folder** and register it:
+The point of running inside CAP. `main` may be `async` when the app does I/O,
+and `cds.ql` works exactly as it does in a handler:
 
 ```js
-// srv/server.js (or any file loaded at startup)
-require("abap2UI5/register-apps")(__dirname + "/my-apps");
+const cds = require("@sap/cds");
+const { SELECT } = cds.ql;
+const { defineApp, t } = require("cap2ui5");
+
+defineApp("ZCL_BOOKS", class {
+  search = "";
+  books  = t.table({ ID: 0, title: "", price: t.packed(9, 2) });
+
+  async main(c) {
+    if (c.isDisplay) { c.view(/* … a Table bound to c.bind("books") … */); return; }
+
+    if (c.eventName === "SEARCH") {
+      const { Books } = cds.entities("my.bookshop");
+      this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
+    }
+  }
+});
 ```
 
-or via environment variable, without touching code:
-
-```bash
-Z2UI5_APP_DIRS=/abs/path/to/my-apps npx cds watch
-```
-
-Registered directories are searched recursively; the file-name-equals-class-name convention still applies.
+`t.table({…})` declares the row type; `t.packed(9, 2)` a decimal. The whole
+tree — structures, tables, nested ones — goes through the draft and comes back
+as plain values.
 
 ## Next steps
 
-- [**Project Structure**](./project-structure) — what lives where
-- [**App Lifecycle**](./lifecycle) — `check_on_init`, `check_on_event`, `check_on_navigated`
-- [**View Builder**](./views) — everything you can render
-- [**Data Binding**](./data-binding) — `_bind` vs. `_bind_edit`, the reference-equality pattern
-- [**Examples**](../examples/hello-world) — from Hello World to Selection Screen
+- [**Project Structure**](./project-structure) — what the plugin adds, and what stays yours
+- [**App Lifecycle**](./lifecycle) — `isFirstRun` vs. `isDisplay`, events, navigation
+- [**Data Binding**](./data-binding) — `c.bind`, tables, structures
+- [**Persistence**](./persistence) — `cap2ui5.Drafts` and the owner binding
+- [**Configuration**](../reference/configuration) — routes, the auth default, the apps directory

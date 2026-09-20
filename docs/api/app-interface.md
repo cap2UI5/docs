@@ -1,98 +1,106 @@
-# API: App Interface
-
-Every cap2UI5 app must extend `z2ui5_if_app`. Source: [`core/srv/z2ui5/02/z2ui5_if_app.js`](https://github.com/cap2UI5/cap2UI5/blob/main/core/srv/z2ui5/02/z2ui5_if_app.js).
-
-## Definition
+# API: `defineApp` and `t`
 
 ```js
-const z2ui5_if_app = require("abap2UI5/z2ui5_if_app");
+const { defineApp, defineExit, t } = require("cap2ui5");
+```
 
-class my_app extends z2ui5_if_app {
-  async main(client) {
-    // ...
-  }
+`defineApp` registers a class as an app; `t` declares the field types that
+cannot be inferred from a literal; `defineExit` registers the one user exit —
+it has [a page of its own](../guide/user-exit).
+
+## `defineApp(name, class, opts?)`
+
+```js
+defineApp("ZCL_HELLO", class {
+  name = "";
+
+  main(c) { /* … */ }
+});
+```
+
+| | |
+|---|---|
+| `name` | the app's name **on the wire** — what `?app_start=` takes and `c.navTo()` resolves. Uppercased. The file name is irrelevant |
+| `class` | a plain class with a `main(c)` method and its state as fields |
+| `opts.interfaces` | rarely needed; defaults to `["Z2UI5_IF_APP", "IF_SERIALIZABLE_OBJECT"]` |
+
+It returns the wrapped class and registers it, so `defineApp` may be called
+more than once per file.
+
+Without a `main`, it throws:
+
+```
+defineApp(ZCL_HELLO): the class needs a main( client ) method
+```
+
+### `main(c)` is synchronous
+
+No `async`, no `await` for anything the framework offers. Make it `async` only
+when **your app** does I/O:
+
+```js
+async main(c) {
+  this.books = await SELECT.from(cds.entities("my.bookshop").Books);
 }
 ```
 
-## Mandatory method
+The wrapper awaits it either way.
 
-### `async main(client)`
+### State is the fields
 
-Called on **every roundtrip**. Receives the `client` object as the only argument. Must be `async` (or return a promise).
+Every field with an initial value becomes part of the model and survives the
+roundtrip. A field the plugin cannot type is left out and **named in a
+warning**, never silently dropped.
 
-```js
-async main(client) {
-  if (client.check_on_init()) { /* ... */ }
-  if (client.check_on_event(...)) { /* ... */ }
-}
-```
+## `t` — the type declarations
 
-## Reserved fields (framework)
+A field's type comes from its initial value where that is unambiguous. Where it
+is not, declare it:
 
-These properties are predefined on the base class. **Don't override** them and don't use them as your own app state:
-
-| Property | Type | Meaning |
-|---|---|---|
-| `id_draft` | `string` | Draft ID, managed internally |
-| `id_app` | `string` | App ID, managed internally |
-| `check_initialized` | `boolean` | Set to `true` after the first `main()` — controls `check_on_init()` |
-| `check_sticky` | `boolean` | If `true`, sticky session active |
-
-The binding engine explicitly excludes these fields from the reference lookup (`_FRAMEWORK_FIELDS` in `z2ui5_cl_ui5_client.js`).
-
-## Static constants
+| | |
+|---|---|
+| `t.string()` | `string` — same as `""` |
+| `t.int()` | integer — same as `0` |
+| `t.float()` | float — same as `1.5` |
+| `t.bool()` | `abap_bool`; the app sees `true`/`false` — same as `false` |
+| `t.char(len)` | fixed-width character |
+| `t.packed(len, dec)` | **packed decimal.** Use this for money |
+| `t.struct({…})` | a structure. A plain object literal is one implicitly |
+| `t.table(row)` | a table; the argument is one **row** |
 
 ```js
-z2ui5_if_app.version    // "1.142.0"
-z2ui5_if_app.origin     // "https://github.com/abap2UI5/abap2UI5"
-z2ui5_if_app.authors    // link to contributors page
-z2ui5_if_app.license    // "MIT"
+price = t.packed(9, 2);
+books = t.table({ ID: 0, title: "", price: t.packed(9, 2) });
+addr  = { street: "", zip: 0 };            // t.struct is implicit here
 ```
 
-## Validation
+Numbers are the ambiguity worth knowing: ABAP has `I`, `P` and `F` and they
+render with different decimals, so an integer literal becomes `I`, a fractional
+one `F`, and a decimal amount has to say so with `t.packed()`. Guessing would
+produce a view with the wrong number of decimals and nothing to point at.
 
-On the first roundtrip, `z2ui5_cl_ui5_app_cont.validate(oApp)` is called — if your class does not extend `z2ui5_if_app`, it throws:
+Structures and tables nest, to a depth of 8 — a cycle guard rather than a
+judgement. See [Data Binding](../guide/data-binding).
 
-```
-my_app must extend z2ui5_if_app (INTERFACES z2ui5_if_app)
-```
+## `defineExit(exit)`
 
-## Persistence annotations
-
-There are currently **no annotations** to exclude fields from persistence. If you need transient fields, declare them as **local variables in `main()`** instead of as app properties. The only hard-coded skip list is `["client"]` in `z2ui5_cl_ui5_srv_draft.js`.
-
-Suggestion if you need this — patch `SKIP_PROPS`:
+The framework's configuration hook — the CSP, the security headers, the UI5
+bootstrap URL, the theme, the draft expiry, the CSRF gate. One per project,
+registered from a file in the apps directory:
 
 ```js
-// core/srv/z2ui5/01/01/z2ui5_cl_ui5_srv_draft.js
-static SKIP_PROPS = new Set(["client", "_my_transient_field"]);
+defineExit({
+  onPage(cfg, ctx) { /* the bootstrap page */ },
+  onRoundtrip(cfg, ctx) { /* every roundtrip */ },
+});
 ```
 
-(Keeping in mind that your patch may be lost on the next sync.)
+Both hooks are optional, `cfg` arrives with the framework's defaults, and only
+what you change is written back. The fields, the defaults and why the exit is
+registered rather than discovered: [The User Exit](../guide/user-exit).
 
-## Constructor
+## Next
 
-The base class has a constructor that **forbids direct instantiation**:
-
-```js
-new z2ui5_if_app();   // ❌ throws
-```
-
-It also checks that your subclass implements `main` as a function:
-
-```js
-class broken extends z2ui5_if_app { /* main() missing */ }
-new broken();  // ❌ "broken must implement async main(client)"
-```
-
-## Lifecycle
-
-→ see [App Lifecycle](../guide/lifecycle).
-
-## Convention: naming
-
-abap2UI5 convention is `z2ui5_cl_app_xyz`. cap2UI5 sticks to that for library apps (Startup, Hello World, Pop helpers), but **your own apps** can be named however you like. Important:
-
-- **Class name === file name** (otherwise the class lookup won't find the class on reload).
-- The file must live in one of the lookup paths: the framework folders (`core/srv/z2ui5/01/04/`, `core/srv/z2ui5/02/`), the core package's app folder (`core/srv/app/`, incl. the bundled `samples/`), a directory registered via `z2ui5_cl_util.register_app_dir(...)` / `require("abap2UI5/register-apps")(dir)` — like the project's own `srv/app/` — or a path listed in `Z2UI5_APP_DIRS` — see [Persistence](../guide/persistence#class-restoration).
-- Class names should be **case-sensitive unique** — the lookup forces lowercase, so `MyApp` and `myapp` collide.
+- [**`c` — the client facade**](./client) — what `main` receives
+- [**Data Binding**](../guide/data-binding) — the types in practice
+- [**The User Exit**](../guide/user-exit) — `defineExit` in full

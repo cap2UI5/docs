@@ -29,19 +29,33 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The documented target. verify-refs checks every path, class, sample id
-      # and `require("abap2UI5/…")` on this site against a real checkout, so
-      # without it the run proves only that the site builds — it skips itself
-      # and exits 0 when the checkout is missing, which is exactly the silent
-      # pass this job exists to prevent. Hence `check:ci` below, which passes
-      # --require-checkout: if this step is ever removed, renamed or fails to
-      # land the tree, the job goes red instead of quietly checking nothing.
+      # The documented targets. verify-refs checks every path, class, app id,
+      # plugin option and `require("cap2ui5")` on this site against real
+      # checkouts, so without them the run proves only that the site builds —
+      # it skips those checks when a checkout is missing, which is exactly the
+      # silent pass this job exists to prevent. Hence `check:ci` below, which
+      # passes --require-checkout: if a step is ever removed, renamed or fails
+      # to land the tree, the job goes red instead of quietly checking nothing.
+      #
+      # TWO checkouts since cap2UI5 became a plugin: cap2UI5 answers for repo
+      # paths, app ids, the plugin's exports and the pinned runtime release,
+      # while the FRAMEWORK CLASSES the docs name live in abap2UI5's ABAP —
+      # the runtime package is transpiled from it and is assembled rather than
+      # committed, so a fresh cap2UI5 checkout has none of those names.
       - name: Check out cap2UI5 (reference target)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: cap2UI5/cap2UI5
           ref: main
           path: .cap2ui5-ref
+          fetch-depth: 1
+
+      - name: Check out abap2UI5 (the framework the runtime is built from)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: abap2UI5/abap2UI5
+          ref: main
+          path: .abap2ui5-ref
           fetch-depth: 1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -53,8 +67,9 @@ jobs:
       # verify-refs + vitepress build, in that order: a dead reference is
       # reported even when the site would have built fine around it. Same two
       # steps as the `npm run check` AGENTS.md tells a contributor to run —
-      # the :ci variant only refuses to skip the reference check.
+      # the :ci variant only refuses to skip the reference checks.
       - name: npm run check:ci
         run: npm run check:ci
         env:
           CAP2UI5_DIR: .cap2ui5-ref
+          ABAP2UI5_DIR: .abap2ui5-ref

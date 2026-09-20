@@ -1,203 +1,94 @@
 # Popups & Toasts
 
-Beyond the main view, a cap2UI5 app can fill four additional UI slots: **popup** (dialog), **popover**, **message toast**, and **message box**. There are also **nested views** (two levels) for master-detail layouts.
+Four ways to put something on the screen that is not the main view.
 
-## Message toast
+## Messages
 
 ```js
-client.message_toast_display("Data saved");
+c.messageToast("saved");                 // transient, bottom of the screen
+c.messageBox("Hello " + this.name);      // a dialog with an OK button
 ```
 
-A short message that fades out automatically. Optionally with control parameters:
+Both are recorded and replayed in the order you wrote them, so two toasts arrive
+in that order.
+
+## A popup — a fragment on top of the view
 
 ```js
-client.message_toast_display("Save failed", {
-  duration:                 5000,
-  width:                    "20em",
-  closeonbrowsernavigation: false,
-  class:                    "myToast"
-});
-```
-
-## Message box
-
-```js
-client.message_box_display("Really delete?", "warning", "Confirm delete");
-```
-
-Arguments in order: `text, type, title, styleclass, onclose, actions, emphasizedaction, initialfocus, textdirection, icon, details, closeonnavigation`.
-
-Possible `type` values: `"information"`, `"success"`, `"warning"`, `"error"`, `"confirm"`.
-
-With action buttons (e.g. confirm dialog):
-
-```js
-client.message_box_display(
-  "Really delete?",
-  "confirm",
-  "Confirmation",
-  "",                                        // styleclass
-  client._event("DELETE_CONFIRMED"),         // onclose
-  ["Yes", "No"],                             // actions
-  "Yes"                                      // emphasizedaction
-);
-```
-
-`onclose` is an event string — when the user clicks "Yes", the event comes back as a roundtrip and you can react in `client.check_on_event("DELETE_CONFIRMED")`.
-
-## Popup (dialog)
-
-A **popup** is a second view overlaid as a modal dialog. It is a *fragment*, not a view, so the root element is `core:FragmentDefinition` instead of `mvc:View` — everything else is the ordinary builder:
-
-```js
-const popup = z2ui5_cl_ui5_view_builder.factory()
-  .ele({ n: `FragmentDefinition`, ns: `core` })
-  .a({ n: `xmlns`,      v: `sap.m` })
-  .a({ n: `xmlns:core`, v: `sap.ui.core` })
-  .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
-
-const dialog = popup.ele(`Dialog`)
-  .a({ n: `title`,        v: `Edit User` })
-  .a({ n: `afterClose`,   v: client._event(`CLOSE_DIALOG`) })
-  .a({ n: `contentWidth`, v: `30em` });
-
-dialog.ele({ n: `SimpleForm`, ns: `form` })
-  .a({ n: `editable`, b: true })
-  .ele({ n: `content`, ns: `form` })
-  .tag(`Label`).a({ n: `text`, v: `Name` })
-  .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.user_name) })
-  .tag(`Label`).a({ n: `text`, v: `Role` })
-  .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.user_role) });
-
-dialog.ele(`endButton`).tag(`Button`)
-  .a({ n: `text`,  v: `Save` })
-  .a({ n: `type`,  v: `Emphasized` })
-  .a({ n: `press`, v: client._event(`SAVE_USER`) });
-dialog.ele(`beginButton`).tag(`Button`)
-  .a({ n: `text`,  v: `Cancel` })
-  .a({ n: `press`, v: client._event(`CANCEL_DIALOG`) });
-
-client.popup_display(popup.stringify());
-```
-
-::: warning `stringify()` renders the whole tree, always
-`stringify()` starts at the root of the tree, not at the node you call it on — `dialog.stringify()` and `popup.stringify()` produce the same string. Keep the root in a variable and hand *that* to `popup_display`, so the intent is visible.
-:::
-
-In subsequent roundtrips:
-
-- `client.popup_close()` → closes the dialog (frontend action)
-- `client.popup_destroy()` → marks it as destroyed (server side)
-- `client.popup_model_update()` → sends only the model delta, not the entire view
-
-## Popover
-
-Very similar, but anchored to a UI5 control in the main view:
-
-```js
-client.popover_display(view.stringify(), "buttonId");
-```
-
-The second argument is the ID of a control in the main view next to which the popover appears. There is no convenience helper for a "please confirm" popover — build it like any other fragment:
-
-```js
-const popover = z2ui5_cl_ui5_view_builder.factory()
-  .ele({ n: `FragmentDefinition`, ns: `core` })
-  .a({ n: `xmlns`,      v: `sap.m` })
-  .a({ n: `xmlns:core`, v: `sap.ui.core` });
-
-popover.ele(`Popover`)
-  .a({ n: `placement`, v: `Right` })
-  .a({ n: `showHeader`, b: false })
-  .tag(`Text`).a({ n: `text`, v: `Really save?` })
-  .a({ n: `class`, v: `sapUiSmallMargin` })
-  .tag(`Button`)
-  .a({ n: `text`,  v: `Yes` })
-  .a({ n: `type`,  v: `Emphasized` })
-  .a({ n: `press`, v: client._event(`CONFIRM`) });
-
-client.popover_display(popover.stringify(), "saveButtonId");
-```
-
-## Nested views
-
-Some layouts have **two or three views side by side** — e.g. a classic master-detail setup. cap2UI5 supports this with `nest_view_display`:
-
-```js
-// 1. main view with two containers
-client.view_display(masterView.stringify());
-
-// 2. inject detail view into the right panel
-client.nest_view_display(
-  detailView.stringify(),
-  "rightPanel",      // ID of the container control
-  "addItem",         // method to insert (e.g. "addItem", "addContent", …)
-  "removeAllItems"   // optional: method to clean up
-);
-```
-
-There is a second level (`nest2_view_display`) if you need to nest deeper — e.g. a FlexibleColumnLayout with three columns.
-
-`nest_view_destroy()` and `nest_view_model_update()` round it out.
-
-## Overview of UI slots
-
-| Slot | Display method | Update method | Destroy method |
-|---|---|---|---|
-| Main view | `view_display(xml)` | `view_model_update()` | `view_destroy()` |
-| Nested 1   | `nest_view_display(xml, id, m_ins, m_dest)` | `nest_view_model_update()` | `nest_view_destroy()` |
-| Nested 2   | `nest2_view_display(...)` | `nest2_view_model_update()` | `nest2_view_destroy()` |
-| Popup      | `popup_display(xml)` | `popup_model_update()` | `popup_destroy()` |
-| Popover    | `popover_display(xml, by_id)` | `popover_model_update()` | `popover_destroy()` |
-| Toast      | `message_toast_display(text, opts?)` | – | – |
-| Box        | `message_box_display(text, type, ...)` | – | – |
-
-Multiple slots in one roundtrip are allowed — e.g. "update the toast AND update the popup model".
-
-## Example: confirm pattern
-
-```js
-async main(client) {
-
-  if (client.check_on_init()) this.render(client);
-
-  if (client.check_on_event("DELETE")) {
-    this.show_confirm_dialog(client);
-  }
-
-  if (client.check_on_event("DELETE_CONFIRMED")) {
-    await this.do_delete();
-    client.popup_close();
-    client.message_toast_display("Deleted");
-    this.render(client);
-  }
-
-  if (client.check_on_event("DELETE_CANCELLED")) {
-    client.popup_close();
-  }
+if (c.eventName === "HELP") {
+  c.popup(
+    `<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">` +
+    `<Dialog title="Help">` +
+    `<Text text="Choose picks a colour."/>` +
+    `<beginButton><Button text="Close" press="${c.event("HELP_CLOSE")}"/></beginButton>` +
+    `</Dialog></core:FragmentDefinition>`);
+  return;
 }
 
-show_confirm_dialog(client) {
-  const popup = z2ui5_cl_ui5_view_builder.factory()
-    .ele({ n: `FragmentDefinition`, ns: `core` })
-    .a({ n: `xmlns`,      v: `sap.m` })
-    .a({ n: `xmlns:core`, v: `sap.ui.core` });
-
-  const dialog = popup.ele(`Dialog`)
-    .a({ n: `title`,        v: `Confirmation` })
-    .a({ n: `contentWidth`, v: `20em` });
-
-  dialog.tag(`Text`).a({ n: `text`, v: `Really delete entry?` });
-  dialog.ele(`endButton`).tag(`Button`)
-    .a({ n: `text`,  v: `Delete` })
-    .a({ n: `type`,  v: `Reject` })
-    .a({ n: `press`, v: client._event(`DELETE_CONFIRMED`) });
-  dialog.ele(`beginButton`).tag(`Button`)
-    .a({ n: `text`,  v: `Cancel` })
-    .a({ n: `press`, v: client._event(`DELETE_CANCELLED`) });
-
-  client.popup_display(popup.stringify());
+if (c.eventName === "HELP_CLOSE") {
+  c.popupClose();
+  return;
 }
 ```
 
-→ That wraps up the concepts section. Have a look at the [**examples**](../examples/hello-world) for end-to-end apps.
+A popup is a **`FragmentDefinition`**, not an `mvc:View` — that is the shape UI5
+expects here. It shares the main view's model, so `c.bind()` and `c.event()`
+work inside it exactly as they do outside.
+
+Close it with `c.popupClose()`. Changed bound data is pushed into an open popup
+automatically; you do not re-render it to refresh a value.
+
+## A nested view — a fragment INSIDE the main view
+
+For a region of the page that changes while the rest stays put:
+
+```js
+c.view(
+  `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">` +
+  `<Shell><Page title="pick">` +
+  `<Button text="Detail" press="${c.event("DETAIL")}"/>` +
+  `<VBox id="slot"/>` +                                   // ← the receiving control
+  `</Page></Shell></mvc:View>`);
+
+// later
+if (c.eventName === "DETAIL") {
+  c.nest("slot",
+    `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">` +
+    `<VBox><Text text="chosen: ${c.bind("chosen")}"/>` +
+    `<Button text="Hide" press="${c.event("DETAIL_HIDE")}"/></VBox></mvc:View>`);
+  return;
+}
+
+if (c.eventName === "DETAIL_HIDE") c.nestClose();
+```
+
+The main view stays as it is; only the fragment re-renders on the next `nest`.
+
+`c.nest(into, xml, opts)` takes the receiving control's `id`, and `opts` names
+the UI5 mutators for its aggregation:
+
+| | default | when to change it |
+|---|---|---|
+| `insert` | `addContent` | `addItem` for a `List`, etc. |
+| `clear` | `removeAllContent` | `removeAllItems` for a `List` |
+
+**Without `clear`, every call adds one more fragment.** The defaults fit a
+`Page` or a `VBox`.
+
+There is exactly **one** nested slot, and `c.nestClose()` takes no argument: it
+clears that slot rather than a named one.
+
+## Which one do I want?
+
+| | |
+|---|---|
+| a short confirmation | `messageToast` |
+| something the user must acknowledge | `messageBox` |
+| a modal that takes input or a decision | `popup` |
+| a region of the page that updates independently | `nest` |
+| a whole second screen with its own state | [navigation](./navigation) — a separate app |
+
+## Next
+
+- [**Navigation**](./navigation) — when a popup is really another app
+- [**Events**](./events) — the handlers the buttons above use
