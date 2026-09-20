@@ -1,159 +1,102 @@
 # Database Model
 
-cap2UI5 uses **a single CDS entity** for app persistence: `z2ui5_t_01`. This page describes it and gives hints on cleanup, scaling, and backend choice.
+cap2UI5 adds **one entity** to your model. That is the whole persistence
+footprint.
 
-## Entity definition
-
-`db/schema.cds`:
+## `cap2ui5.Drafts`
 
 ```cds
 namespace cap2ui5;
 
-entity z2ui5_t_01 {
-  key id      : UUID;
-  id_prev     : UUID;          // ← predecessor ID (app history)
-  owner       : String(255);   // ← the user the draft belongs to
-  data        : LargeString;   // ← serialized app instance (JSON)
-  createdAt   : Timestamp @cds.on.insert: $now;
+entity Drafts {
+  key id              : String(36);
+      id_prev         : String(36);
+      id_prev_app     : String(36);
+      id_prev_app_stk : String(36);
+      owner           : String(120) not null;
+      createdAt       : Timestamp;
+      data            : LargeString;
 }
 ```
 
-Every roundtrip performs an `INSERT.into(z2ui5_t_01)` with:
+It arrives through the plugin's `package.json#cds.requires`, so `cds deploy`
+creates it beside your own tables — same database, same connection, same
+transaction, same authorization.
 
-- `id` — newly generated (UUID v4)
-- `id_prev` — the ID the frontend driver passed along as `S_FRONT.ID`
-- `owner` — `cds.context.user.id`, from the identity provider
-- `data` — `JSON.stringify(oApp)` plus `__className` + `__filePath`
-- `createdAt` — set by CAP, and what the retention job prunes on
+| column | |
+|---|---|
+| `id` | the draft's uuid; the frontend carries it and sends it back on the next roundtrip |
+| `id_prev` | the draft this one continues — the chain that makes back-navigation work |
+| `id_prev_app`, `id_prev_app_stk` | the app stack: who called whom, and who gets the screen back |
+| `owner` | who created it. `not null`, and the reason is below |
+| `createdAt` | when, for the retention sweep |
+| `data` | the serialized app instance — the state your fields hold |
 
-`owner` is not bookkeeping. A row holds the complete serialized state of a
-session, so it is bound to its creator in two independent places: the OData
-projection is `@readonly` with `where: 'owner = $user'`, and the draft store
-filters on the owner again when loading. A draft id travels through request
-bodies, logs and browser history — it is not treated as a secret.
+## The owner binding
 
-## Data format in `data`
+A draft is not a small object: it carries the serialized model of a running
+app. So a read answers **only** to the user who created it:
 
-```json
-{
-  "__className": "my_app",
-  "__filePath":  "../../../app/samples/my_app.js",
-  "id_draft":    "",
-  "id_app":      "",
-  "check_initialized": true,
-  "check_sticky":      false,
-  "username":          "Alice",
-  "preferences":       { "language": "de" },
-  "__navStackIds":     ["xyz-789", "abc-123"]
-}
+```js
+if (r.owner !== who()) throw notFound();
 ```
 
-`__className` and `__filePath` are used for the reload. `__navStackIds` contains the IDs of the stacked apps (see [Persistence](../guide/persistence)).
+and the refusal is the *same* `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND` a
+missing draft produces — deliberately, so a caller cannot tell a foreign draft
+from an absent one. A shared bookmark degrades to a fresh app start rather than
+to somebody else's session.
 
-The engine is **cycle-safe** — a built-in `WeakSet` tracker prevents accidental circular references from breaking stringify.
+::: danger Why the column is `not null`, and why the comparison is `!==`
+An earlier version wrote `if (r.owner && r.owner !== who())`. That is the same
+check with a hole in it: a row whose `owner` was `NULL` or `""` passed it, so it
+belonged to **everybody** rather than to nobody. A security review found it and
+a proof of concept confirmed it — one user replayed another's draft id against
+a blanked row and was handed her running app.
 
-## Database backends
-
-CAP supports several persistence backends. All work with cap2UI5:
-
-| Backend | Driver | When |
-|---|---|---|
-| SQLite (in-memory) | `@cap-js/sqlite` | Dev default (`npx cds w`) |
-| SQLite (file) | `@cap-js/sqlite` | Local testing with persistence |
-| HANA / HANA Cloud | `@cap-js/hana` | Production on BTP |
-| PostgreSQL | `@cap-js/postgres` | Self-hosted Cloud Foundry / Kubernetes |
-
-In `package.json`:
-
-```json
-{
-  "cds": {
-    "requires": {
-      "db": { "kind": "sqlite", "credentials": { "url": ":memory:" } }
-    }
-  }
-}
-```
-
-Switching to HANA in production goes via the `@sap/cds` `profile` mechanism, no code changes.
-
-## Indexes & performance
-
-The default schema generation has **only the primary key** on `id`. For production loads I recommend:
-
-- **Index on `id_prev`** if you ever want to traverse (undo, audit). Not needed otherwise.
-- With many parallel users: the `INSERT` is called often enough that HANA with indexes enabled becomes noticeable — keep your indexes minimal.
-
-The schema already carries `createdAt` (that is what retention prunes on) and
-`owner`. If you want CAP's full audit set, swap in the `managed` aspect:
-
-```cds
-entity z2ui5_t_01 : managed {  // ← adds createdAt/createdBy/modifiedAt/modifiedBy
-  key id      : UUID;
-  id_prev     : UUID;
-  owner       : String(255);
-  data        : LargeString;
-}
-```
-
-The `managed` aspect requires no code patch in cap2UI5 — the engine ignores the additional fields during deserialization since it only reads `data`.
-
-## Cleanup strategy
-
-::: warning Table grows linearly
-**Each roundtrip = one new row.** A 50-click session = 50 rows. 1,000 users with 50 clicks each = 50,000 rows per day.
+An authorization check compares presence, never truthiness. `&&` in front of a
+comparison in an access decision turns a missing value into a wildcard. The
+column is `not null` now, the comparison is `!==`, the `UPDATE` carries `owner`
+in its `WHERE`, and the test for it discriminates — red on the old condition,
+green on the new.
 :::
 
-### Option 1: the retention job that already ships
+## What is NOT reachable
 
-You do not have to write this one — it ships inside the framework package
-(`core/srv/cap/retention.js`) and is started by its `cds-plugin`, so it is
-running in any project that installs cap2UI5, not only in this repository. It
-deletes rows past their TTL once at startup and hourly after that, on an
-`unref`'d timer so it never holds the process open.
+`cap2ui5.Drafts` is in your model, which is what lets `cds deploy` create it —
+but a CAP service exposes only what it *projects*. Unless you write a
+projection over it (do not), it is not reachable through any OData service.
 
-Configure it with one environment variable:
+Measured rather than assumed, because session state reachable through somebody's
+OData service would be the worst kind of surprise: in `coexistence.test.mjs`,
+`/odata/v4/catalog/Drafts` answers **404** and the service metadata names no
+draft entity.
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `Z2UI5_DRAFT_TTL_HOURS` | the framework's own `draft_exp_time_in_hours` (`4`) | how long a draft row is kept; `0` disables cleanup entirely |
-| `Z2UI5_DRAFT_RETENTION_INSTANCE` | `0` | which Cloud Foundry instance runs the cleanup loop; `*` lets every instance run it |
+## Retention
 
-```bash
-Z2UI5_DRAFT_TTL_HOURS=2 npx cds watch     # shorter retention
-Z2UI5_DRAFT_TTL_HOURS=0 npx cds watch     # keep everything (debugging)
-```
-
-Anything unparseable falls back to the framework's own TTL rather than
-disabling cleanup —
-a typo in the variable must not silently turn retention off.
-
-### Option 2: DB-side job
-
-Strongly recommended in production: a nightly cron on the DB deletes older rows.
+`cleanup()` runs once per roundtrip and deletes drafts older than four hours:
 
 ```sql
--- HANA procedure (simplified)
-DELETE FROM "MY_DOMAIN_Z2UI5_T_01"
-WHERE "CREATEDAT" < ADD_DAYS(CURRENT_TIMESTAMP, -1);
+DELETE FROM cap2ui5_Drafts WHERE createdAt < <now - 4h>
 ```
 
-### Option 3: limit per user
+It never raises — a failed sweep must not fail a roundtrip. It is not scoped by
+owner, because it is a retention policy rather than an access decision; in a
+multitenant CAP app it is scoped by the tenant like every other `cds.run`.
 
-If you have a user ID (via `cds.context.user.id`), you can enforce a user-specific LIMIT in the handler — delete the oldest rows per user.
+## Your own tables
 
-This requires extending the schema with `user_id` and patching `z2ui5_cl_ui5_srv_draft.saveApp` — currently not built in.
+Untouched. The apps read and write them through `cds.ql` exactly like a
+handler, and a plain OData service beside the apps sees the same rows:
 
-## Important caveats
+```js
+const { Books } = cds.entities("my.bookshop");
+this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
+```
 
-- **Rows are immutable.** Never `UPDATE` an existing row — the engine assumes that every ID identifies **a specific app instance**.
-- **`id_prev` is NOT unique.** If a user tries two different "next steps" via browser back, there are two rows with the same `id_prev`. That is intentional — it's a forking history.
-- **No foreign-key constraint.** `id_prev` points to `id`, but CAP won't enforce that if you leave the schema unchanged. Cleanup jobs can orphan arbitrary sub-trees.
+Both directions are tested: a row the app writes is there for the OData client
+at once, and a row POSTed through OData is found by the app's next search.
 
-## Scaling to multi-tenant
+## Next
 
-cap2UI5 is **multi-tenant capable** out of the box, because CAP is. With `@sap/cds-mtxs` each tenant DB runs separately — no code patch needed.
-
-Per tenant you then see your own `z2ui5_t_01` table. Cleanup strategies run per tenant.
-
-→ Continue with [Deployment](./deployment).
+- [**Persistence & Sessions**](../guide/persistence) — what this means while writing an app
+- [**Configuration**](./configuration) — the auth default the owner binding depends on

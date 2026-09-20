@@ -62,12 +62,10 @@ export default defineConfig({
       { text: 'Examples', link: '/examples/hello-world' },
       { text: 'API', link: '/api/client' },
       { text: 'Reference', link: '/reference/architecture' },
-      { text: 'Playground', link: 'https://cap2ui5.github.io/web-cap2UI5-build/' },
       {
         text: 'Links',
         items: [
           { text: 'GitHub (cap2UI5)',     link: 'https://github.com/cap2UI5/cap2UI5' },
-          { text: 'GitHub (builder-cap2UI5-web)', link: 'https://github.com/cap2UI5/builder-cap2UI5-web' },
           { text: 'GitHub (docs)',        link: 'https://github.com/cap2UI5/docs' },
           { text: 'abap2UI5',             link: 'https://github.com/abap2UI5/abap2UI5' }
         ]
@@ -81,10 +79,8 @@ export default defineConfig({
           items: [
             { text: 'What is cap2UI5?',            link: '/guide/what-is-cap2ui5' },
             { text: 'Why cap2UI5?',                link: '/guide/why-cap2ui5' },
-            { text: 'Try It in the Browser',       link: '/guide/playground' },
             { text: 'Quickstart',                  link: '/guide/getting-started' },
-            { text: 'Project Structure',           link: '/guide/project-structure' },
-            { text: 'Sample Catalogue',            link: '/guide/samples' }
+            { text: 'Project Structure',           link: '/guide/project-structure' }
           ]
         },
         {

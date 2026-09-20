@@ -1,229 +1,96 @@
 # Deployment
 
-cap2UI5 apps deploy like any other CAP project — with a few caveats around the frontend bundle. This page shows the standard Cloud Foundry path.
+A cap2UI5 project deploys like **any other CAP project**, because it is one.
+The plugin adds a dependency, an entity and a route — nothing that needs its own
+module, its own build step or its own pipeline.
+
+::: warning What is verified here, and what is not
+Everything on this page about the *plugin's* behaviour is measured: the entity,
+the route, the shell, and the authentication chain under `xsuaa` and `ias`. The
+Cloud Foundry topology below is the standard CAP one and has **not** been
+exercised end to end for this plugin. Treat it as the shape to expect rather
+than as a tested recipe, and tell us if it bites.
+:::
 
 ## Locally
 
 ```bash
-npx cds w
-# or
-npm start
+npx cds watch
 ```
 
-The default is in-memory SQLite. That fits dev — all app instances vanish on restart.
-
-If you want **persistent local**:
+In-memory SQLite by default, so every session vanishes on restart — which is
+usually what you want while developing. For persistence across restarts:
 
 ```json
-"cds": {
-  "requires": {
-    "db": { "kind": "sqlite", "credentials": { "url": "db.sqlite" } }
-  }
-}
+{ "cds": { "requires": { "db": { "kind": "sqlite", "credentials": { "url": "db.sqlite" } } } } }
 ```
 
-Run `cds deploy` once, done.
+then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
+
+## What changes in production, and what does not
+
+| | |
+|---|---|
+| **The shell** | served by your CAP server from `node_modules/@abap2ui5/runtime/webapp`. There is no separate frontend project to build, no HTML5 module to push, no UI5 tooling in the pipeline |
+| **The entity** | `cap2ui5.Drafts` deploys through your normal `db` module, HDI container included. Nothing special |
+| **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
+| **Scaling** | app state is in the database, not in memory, so a second instance is a second instance. No sticky sessions, no shared cache |
+| **The runtime** | `@abap2ui5/runtime` is an ordinary dependency. **Pin it.** |
+
+## Pin the runtime
+
+```json
+{ "dependencies": { "@abap2ui5/runtime": "1.144.0", "cap2ui5": "^0.1.0" } }
+```
+
+Backend, UI5 shell and wire version come from that one package. Pinning it is
+what stops a redeploy from silently pairing your app with a different framework.
 
 ## Cloud Foundry (BTP)
 
-The reference project contains an `mta.yaml` with all standard modules:
+The usual CAP modules, with one fewer than a hand-built UI5 app needs:
 
 ```yaml
 modules:
-- name: abap2UI5-srv               # CAP service
-- name: abap2UI5-db-deployer       # HDI container (the draft table)
-- name: abap2UI5                   # HTML5 module with the frontend
-- name: abap2UI5-app-deployer      # HTML5 repo push
-- name: abap2UI5-destinations      # FLP destinations
+  - name: my-srv                 # the CAP service — serves the apps AND the shell
+  - name: my-db-deployer         # HDI container, incl. cap2ui5.Drafts
+  - name: my-approuter           # if you want one in front
 
 resources:
-- name: abap2UI5-destination       # destination service
-- name: abap2UI5-html5-repo-host   # HTML5 repo
-- name: abap2UI5-auth              # XSUAA
+  - name: my-uaa                 # xsuaa
+  - name: my-hdi                 # HANA
 ```
 
-Build & deploy:
+There is **no HTML5 module for the frontend** and no app-repo push, because the
+shell is a static directory inside a dependency of the service.
 
-```bash
-npm run build       # → mbt build, produces mta_archives/archive.mtar
-npm run deploy      # → cf deploy mta_archives/archive.mtar
-```
-
-### What the production build has to do
-
-`mbt build` runs the project's `before-all`, which is `npm ci` followed by
-`npm run build:production` — **not** a bare `cds build --production`. The CDS
-build stages the server module into `gen/srv` and copies the app's dependency
-on the vendored framework (`"abap2UI5": "file:./core"`) along with it, but not
-the folder that specifier points at. `scripts/vendor-core.js` is the second
-half: it puts the vendored core into `gen/srv/core`, so the pushed module can
-resolve `abap2UI5/engine`. Skip it and the archive still builds, `cf deploy`
-still succeeds, and the instance crash-loops on
-`Cannot find module 'abap2UI5/engine'`.
-
-`openui5-dist` is not pushed either. It is the UI5 runtime `cds watch` serves
-at `/resources` locally; on BTP the approuter routes `/resources` to the `ui5`
-destination, so the CAP module never serves it — and the package is a
-deprecated 611 MB tree of release tooling that carried 43 advisories, 3 of
-them critical. The framework declares it as an *optional peer* dependency and
-cap2UI5 carries it as a devDependency, so `npm ci --omit=dev` in the staged
-module leaves it out: 19 MB, no advisories. (The vendor step also prunes it
-defensively, for a framework version that still declares it.)
-
-If you build your own CAP project around the core package rather than
-deploying this one, the same rule applies to any `file:` dependency you vendor:
-`cds build` will not stage it for you. The alternative CAP supports is npm
-workspaces plus `cds build --ws-pack`, which packs the workspace dependency
-into a tarball and rewrites the specifier.
-
-Prerequisites:
-
-- **Multi-Target Build Tool**: `npm i -g mbt`
-- **CF CLI** with MTA plugin: `cf install-plugin multiapps`
-- BTP subaccount with permissions for destination + HTML5 apps + XSUAA
-
-After deploy, the app is reachable via the FLP URL (standard pattern: `https://<subdomain>.launchpad.cfapps.<region>.hana.ondemand.com`).
-
-## Kyma / Kubernetes
-
-CAP supports direct Kyma deployment since `@sap/cds ^7`. Setup:
-
-1. CAP-typical container build (multi-stage Dockerfile)
-2. HANA Cloud connection via `cds.requires.db.kind = "hana"`
-3. XSUAA service binding via the Kyma operator pattern
-
-The `app/z2ui5/` frontend files can either:
-
-- **Be served as static assets** in the same container (Express static)
-- **Be hosted by a separate Nginx pod** with a reverse proxy to the CAP service
-
-In the simplest case: `srv/server.js` lets CAP serve the `app/` directory statically. The `GET /rest/root/z2ui5` returns the bootstrap HTML, which references relative UI5 paths (CDN or local bundle).
-
-## Self-hosted Express
-
-If you want to live without BTP plumbing entirely:
-
-```bash
-node srv/server.js
-```
-
-This runs CAP as a normal Node.js server on port 4004. Behind an Nginx or directly — either works.
-
-You then need:
-
-- Host the DB yourself (Postgres / SQLite file / HANA Express)
-- Implement auth yourself (`cds.requires.auth.kind = "mocked"` for local, something else for prod)
-- Serve frontend assets (Express static on `app/`)
-
-## Frontend update
-
-The `app/z2ui5/webapp` directory is **not maintained by hand** — it's a 1:1 mirror of abap2UI5's `app/webapp`, refreshed by the sync pipeline in [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js):
-
-```bash
-# in a builder-abap2UI5-js checkout
-npm run mirror_app        # snapshot the abap2UI5 webapp into the input mirror
-npm run prepare_app       # webapp + patches → prepared output
-npm run build_core        # assemble + publish → core/app/z2ui5/webapp
-```
-
-Only two values are patched in (`scripts/patch-frontend.js`): the UI5 bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json`. Everything else stays identical to upstream.
-
-In CI the `update_frontend` workflow (mirror → prepare → build core) runs nightly and can be dispatched manually; [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5)'s `update_cap` workflow then rebuilds the CAP app and publishes it 1:1 into the [cap2UI5 repo](https://github.com/cap2UI5/cap2UI5). A jest suite gates the sync commit — only a green build is pushed. See [Where cap2UI5 comes from](../guide/where-it-comes-from#how-the-port-actually-works) for the full picture.
-
-## Sticky session recommendation
-
-If your apps have file uploads, wizards with tight roundtrips, or similar, the frontend driver wants to serialize roundtrips. On Cloud Foundry that goes via:
-
-```yaml
-# mta.yaml — abap2UI5-srv
-parameters:
-  routes:
-    - route: my-app.cfapps.eu10.hana.ondemand.com
-      route_service_url: https://stickysession.cfapps.eu10.hana.ondemand.com
-```
-
-Or via a Cloud Foundry sticky cookie: the default XSUAA login setup already sets `JSESSIONID`, which is enough for sticky routing.
-
-## Auth & XSUAA
-
-The reference project is authenticated by default — XSUAA in production,
-mocked users in development:
+If an approuter sits in front, route the two POST paths and the shell to the
+CAP service:
 
 ```json
 {
-  "cds": {
-    "requires": {
-      "auth": {
-        "[production]": "xsuaa",
-        "[development]": { "kind": "mocked", "users": { "alice": { "password": "alice" } } }
-      }
-    }
-  }
+  "routes": [
+    { "source": "^/sap/bc/z2ui5.*",  "destination": "srv-api", "authenticationType": "xsuaa" },
+    { "source": "^/rest/root/z2ui5.*", "destination": "srv-api", "authenticationType": "xsuaa" },
+    { "source": "^/z2ui5/webapp/.*", "destination": "srv-api", "authenticationType": "xsuaa" }
+  ]
 }
 ```
 
-Both services carry the requirement, so the roundtrip and the OData entities
-are unreachable without a token:
+Adjust the paths if you changed `cds.cap2ui5.routes` or `webapp`.
 
-```cds
-@(requires: 'authenticated-user')
-service rootService { ... }        // POST /rest/root/z2ui5
-@(requires: 'authenticated-user')
-service AdminService { ... }       // the draft table, Northwind
-```
+## Scale-to-zero and restarts
 
-`GET`/`HEAD /rest/root/z2ui5` stay public on purpose: they serve the static
-UI5 bootstrap shell and the CSRF ack, carry no user data, and keeping them
-open preserves the offline/dev flow. In BTP the approuter authenticates
-before the frontend can reach them at all.
+Both are fine, and tested rather than argued: a process can be **SIGKILLed
+mid-session** and a fresh one continues it, navigation stack included. See
+[Persistence & Sessions](../guide/persistence).
 
-### Separating users
+## Health
 
-Authentication alone does not separate users — that is what the identity port
-is for. `srv/server.js` injects CAP's request user into the framework:
+The roundtrip route requires an authenticated user by default, so it is a poor
+health probe. Use CAP's own (`/health`) or a service of yours.
 
-```js
-engine.set_identity(() => ({
-  user: cds.context?.user?.id,
-  tenant: cds.context?.tenant,
-}));
-```
+## Next
 
-That one injection drives all three separation mechanisms: `sy-uname` inside
-apps, the `owner` column each draft row is stamped with and filtered by, and
-the per-session keying of retained sticky app state. Without it every user
-shares one identity and, with it, one another's drafts.
-
-::: warning Before going productive
-Two things the reference project leaves at demo level: the services require
-`authenticated-user` rather than the `User` scope declared in
-`xs-security.json` (so every subaccount user passes, role assigned or not),
-and the framework's CSRF gate is opt-in through the user exit and off by
-default.
-:::
-
-## CI/CD
-
-For GitHub Actions a sample workflow:
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-on: { push: { branches: [main] } }
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '22' }
-      - run: npm ci
-      - run: npm run build
-      - run: cf api $CF_API && cf auth $CF_USER $CF_PASSWORD
-      - run: cf target -o $CF_ORG -s $CF_SPACE
-      - run: npm run deploy
-```
-
-The secrets (CF_USER, CF_PASSWORD, …) come from the GitHub repo settings.
-
-→ You're now through the entire reference set. Back to the [**examples**](../examples/hello-world) or to the [**API reference**](../api/client).
+- [**Configuration**](./configuration) — routes, authentication, the runtime
+- [**Database Model**](./database) — what lands in the HDI container

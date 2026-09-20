@@ -1,237 +1,113 @@
 # Architecture
 
-This page shows in detail **how a roundtrip flows through the system** — from the click in the browser to DB persistence and back.
+cap2UI5 does not reimplement abap2UI5. It **hosts** it.
 
-## Component overview
+That sentence is the whole architecture, and it is a change from what this
+project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-from).
 
-```
-┌────────── Browser ──────────┐
-│  Static UI5 bundle          │
-│  (from abap2UI5 mirror)     │
-│   ├ index.html              │
-│   ├ Component.js            │
-│   ├ actions/*.js (eF/eB)    │
-│   └ JSONModel               │
-└────────────┬────────────────┘
-             │ POST /rest/root/z2ui5
-             │ { S_FRONT, XX, MODEL }
-             ▼
-┌──────── CAP server ─────────┐
-│  Express + @sap/cds         │
-│  z2ui5-service.cds          │
-│   action z2ui5(value)       │
-│  z2ui5-service.js           │
-│   srv.on('z2ui5', handler)  │
-└────────────┬────────────────┘
-             │
-             ▼
-┌─ z2ui5_cl_ui5_http_handler ─┐
-│  unwrap req.data.value      │
-└────────────┬────────────────┘
-             │
-             ▼
-┌──── z2ui5_cl_ui5_handler ───┐
-│  1. action.factory_main     │── ▶ DB.loadApp(id)
-│  2. validate                │
-│  3. apply XX delta          │
-│  4. await app.main(client)  │── ▶ your app class
-│  5. nav loop (if active)    │
-│  6. db_save                 │── ▶ DB.saveApp
-│  7. build response          │
-└────────────┬────────────────┘
-             │
-             ▼
-┌────── CDS persistence ──────┐
-│  Entity z2ui5_t_01          │
-│  (UUID, id_prev, data)      │
-└─────────────────────────────┘
-```
-
-## Roundtrip in detail
-
-### 1. HTTP reception
-
-The `z2ui5-service.cds` declares:
-
-```cds
-@protocol: 'rest'
-service rootService {
-  @open type object {};
-  action z2ui5(value : object) returns object;
-}
-```
-
-CAP automatically exposes this under `POST /rest/root/z2ui5`. The body lands as the CDS action parameter `value` (type `object`).
-
-In addition, `server.js` registers via `cds.on("bootstrap", ...)`:
-
-- `GET /rest/root/z2ui5` → returns the bootstrap HTML via `engine.bootstrap_html(...)`
-- `HEAD /rest/root/z2ui5` → CSRF token prefetch and sap-terminate ack
-
-### 2. CDS action handler
-
-In `z2ui5-service.js`:
-
-```js
-srv.on("z2ui5", z2ui5_cl_ui5_http_handler);
-```
-
-`z2ui5_cl_ui5_http_handler` only does the action wrapper unwrapping:
-
-```js
-const oBody = req?.data?.value ?? req?.data ?? req;
-const oHandler = new z2ui5_cl_ui5_handler();
-const responseJson = await oHandler.main(oBody);
-return JSON.parse(responseJson);
-```
-
-It unwraps the abap2UI5-compatible body from the CDS action wrapper. With that, `oBody` is exactly what the abap2UI5 ICF interface receives directly.
-
-### 3. Roundtrip orchestrator
-
-`z2ui5_cl_ui5_handler.main(body)` runs through seven phases:
-
-#### Phase 1 — app resolution
-
-```js
-let oApp = await Action.factory_main(oReq, oClient);
-```
-
-`z2ui5_cl_ui5_action.factory_main` determines which app serves this roundtrip:
-
-1. `oClient._navTarget` (in-memory, from a previous hop) — rare
-2. `oReq.S_FRONT.ID` — DB load
-3. `?app_start=ClassName` URL parameter — RTTI lookup
-4. **Fallback**: `z2ui5_cl_ui5_app_start` (built-in launcher)
-
-It also rehydrates the nav stack from `oApp.__navStackIds`.
-
-#### Phase 2 — validation
-
-```js
-z2ui5_cl_ui5_app_cont.validate(oApp);
-```
-
-Throws if the app does not extend `z2ui5_if_app`.
-
-#### Phase 3 — apply XX delta
-
-```js
-z2ui5_cl_ui5_srv_model.main_json_to_attri(oApp, oReq.XX);
-```
-
-The `XX` object on the request contains the user edits from two-way bindings (e.g. `{XX: { username: "Alice" }}`). The engine applies them to the app instance (deep merge).
-
-#### Phase 4 — call `main()`
-
-```js
-await oApp.main(oClient);
-oApp.check_initialized = true;
-```
-
-This is where your own app logic runs. While `main()` runs, it writes slots into `oClient` via `client.view_display(...)`, `client.message_toast_display(...)` etc.
-
-#### Phase 5 — nav loop
-
-If `main()` triggered a `nav_app_call(...)` or `nav_app_leave()`, `oClient._navTarget` is set. The handler "takes one step further":
-
-```js
-while (oClient._navTarget) {
-  // ... push / pop stack ...
-  await z2ui5_cl_ui5_app_cont.run(navApp, oClient, oReq, true);
-}
-```
-
-That means: up to N nested navigations can take place in **a single** roundtrip — e.g. "open picker → user immediately clicks a default → close picker → return".
-
-#### Phase 6 — persistence
-
-```js
-const generatedId = await z2ui5_cl_ui5_app_cont.db_save(oApp, oClient, previousId);
-```
-
-First the stack apps, then the final app. Stack IDs are recorded on `oApp.__navStackIds`.
-
-#### Phase 7 — build response
-
-```js
-const oResponse = {
-  S_FRONT: { APP, ID: generatedId, PARAMS: { S_VIEW, S_POPUP, ... } },
-  MODEL:   z2ui5_cl_ui5_srv_model.main_json_stringify(oClient.aBind)
-};
-return JSON.stringify(oResponse);
-```
-
-`MODEL` is built from the `aBind` entries that the builder registered during `main()`. That's the JSONModel that runs as the default model on the frontend.
-
-## Class architecture
-
-The `core/srv/z2ui5/` library mirrors **abap2UI5's layered model**:
+## The three pieces
 
 ```
-00 — Pure utilities (no framework dependencies)
-├─ 00/cl_abap_*                  ABAP runtime shims the transpiled code needs
-├─ 01/z2ui5_cl_ajson_*           JSON tree (the ajson port)
-├─ 02/z2ui5_cl_srt_*             Serialization helpers
-├─ 03/z2ui5_cl_util              RTTI, class lookup, URL builder
-├─ 03/z2ui5_cl_util_http         Request/response facade
-└─ 03/02/z2ui5_cl_util_api*      Context, conversions, UUIDs
-
-01 — Core
-├─ 01/z2ui5_cl_ui5_srv_draft    Serialize / deserialize / DB
-├─ 02/z2ui5_cl_ui5_handler      Roundtrip orchestrator
-├─ 02/z2ui5_cl_ui5_action       App resolution
-├─ 02/z2ui5_cl_ui5_app_cont          Lifecycle helper
-├─ 02/z2ui5_cl_ui5_client       The client class (your API)
-├─ 02/z2ui5_cl_ui5_srv_bind     _bind / _bind_edit implementation
-├─ 02/z2ui5_cl_ui5_srv_event    _event string builder
-├─ 02/z2ui5_cl_ui5_srv_model    XX delta + response model
-├─ 02/z2ui5_if_ui5_types        internal type containers
-└─ 03/z2ui5_cl_ui5f_index_html    bootstrap HTML as a JS module
-
-01/04 — The apps the framework ships
-├─ z2ui5_cl_ui5_app_start        Built-in launcher
-├─ z2ui5_cl_ui5_app_hi_world     Mini example
-├─ z2ui5_cl_ui5_app_select       Value-help app
-├─ z2ui5_cl_ui5_app_error        Error view
-└─ z2ui5_cl_ui5_user_exit        Config hook (theme, CSP, security headers)
-
-02 — Public API (app developer imports)
-├─ z2ui5_if_app                  Base class for your apps
-├─ z2ui5_if_client               The client contract (cs_event / cs_view constants)
-├─ z2ui5_cl_ui5_http_handler     CDS action adapter
-└─ z2ui5_cl_ui5_view_builder     View Builder
+  your CAP project
+  ├── srv/apps/*.js          your apps          ← you write this
+  ├── db/, srv/*.cds         your model          ← you write this
+  └── node_modules/
+      ├── cap2ui5            the plugin          ← ~485 lines of code
+      │   ├── cds-plugin.js    mounts the route, serves the shell
+      │   ├── index.cds        cap2ui5.Drafts
+      │   └── lib/
+      │       ├── define-app.js    a JS class → something the runtime can call
+      │       ├── draft-store.js   the draft store, over a CDS entity
+      │       └── runtime.js       locate and boot the runtime
+      └── @abap2ui5/runtime  abap2UI5 itself     ← 1,244 transpiled files
+          ├── output/            upstream's ABAP, downported + transpiled
+          └── webapp/            the UI5 shell, from the same commit
 ```
 
-Those three numbers are the whole tree: `core/srv/z2ui5/` has `00/`, `01/` and `02/` and nothing else. The layering is **no accident** — it's the abap2UI5 convention, ported to JS. If you read into one of these files, you'll find the same layout in the abap2UI5 repo.
+The plugin contains **no framework logic**. No view builder, no wire format, no
+lifecycle, no model service — all of that is upstream's code running unmodified.
 
-## Wire-format compatibility
+## Why that removes a whole class of bug
 
-The **frontend webapp** under `app/z2ui5/webapp` is mirrored 1:1 from the abap2UI5 repo by the [sync pipeline](../guide/where-it-comes-from#how-the-port-actually-works) in [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) (workflow `update_frontend`, or locally `npm run mirror_app && npm run prepare_app && npm run build_core`); [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5)'s `update_cap` workflow then publishes it into the app repo. Only the UI5 bootstrap URL in `index.html` and the `/rest/root/z2ui5` data source in `manifest.json` are patched. This means: every patch in the abap2UI5 frontend code flows over here automatically.
+The runtime is built from one upstream commit and carries the backend *and* the
+frontend. A response and the page that reads it can therefore never be of
+different ages — which was not a hypothetical: the previous design paired a
+hand-maintained backend with a separately synced frontend, and they drifted into
+speaking different protocols without anything noticing.
 
-For that to work, cap2UI5's backend must speak **bit-exact the same wire format** as abap2UI5's ABAP backend:
+Upstream also stamps each response with a wire version, and the shell refuses a
+mismatch loudly. See [HTTP Protocol](./protocol).
 
-- `S_FRONT.ID`, `S_FRONT.EVENT`, `S_FRONT.T_EVENT_ARG` — all uppercase
-- `MODEL.XX.<path>` for two-way, `MODEL.<path>` for one-way
-- `S_VIEW.XML`, `S_POPUP.XML`, `S_POPOVER.XML`
-- `S_FOLLOW_UP_ACTION.CUSTOM_JS` as an array
-- `S_MSG_TOAST`, `S_MSG_BOX` with ABAP-typical `"X"`/`""` booleans
+## A roundtrip, end to end
 
-This is visible in the code (see `z2ui5_cl_ui5_handler.main` at the bottom).
+```
+POST /rest/root/z2ui5
+  │
+  ├─ cds.middlewares.before        ← context, auth: cds.context.user now exists
+  ├─ guard                         ← cap2ui5.requires, before the body is read
+  ├─ express.raw                   ← up to 10 MB
+  └─ cl_express_icf_shim.run       ← upstream's own express adapter
+        │
+        ├─ load the draft          ← ZCL_CDS_DRAFT_STORE → cap2ui5.Drafts
+        ├─ rebuild the app instance
+        ├─ apply the browser's model
+        ├─ call your main(c)       ← defineApp's wrapper
+        ├─ compose the response    ← upstream's handler
+        └─ write the next draft
+```
 
-## CAP-specific notes
+Two of those steps are the plugin's, and both are *seams upstream opened* rather
+than patches:
 
-- **CDS REST action instead of custom Express routing**: makes the z2ui5 endpoint an ordinary CAP service entry — auth, auditing, tracing apply automatically.
-- **CDS entity instead of a custom SQL table**: app persistence uses the normal CAP DB connection. Deploy on SQLite (dev), HANA (cloud), Postgres — works without code changes.
-- **`cds.connect.to(...)` in `main()`**: your apps have immediate access to all declared external services, without separate connection registration.
+| seam | what it lets a host do |
+|---|---|
+| `z2ui5_if_ui5_draft_store` | put session state wherever it lives — here, a CDS entity |
+| `z2ui5_if_ui5_serializer` | serialize the app container without `CALL TRANSFORMATION` |
 
-## Extension hooks
+Both default to upstream's original code paths, so an SAP system behaves exactly
+as before.
 
-Two additive hooks decouple the framework core from Node/CAP specifics:
+## `defineApp` — the part that earns its keep
 
-- **`z2ui5_cl_util.register_app_class(name, Cls)` / `register_app_dir(dir)`** — plug app classes or directories into the class lookup without touching framework files (see [Persistence](../guide/persistence#class-restoration)).
-- **`z2ui5_cl_ui5_srv_draft.set_store(store)`** — swap the draft persistence backend (default: the CDS entity `z2ui5_t_01`).
+The runtime expects what `@abaplint/transpiler` emits: static `ATTRIBUTES` and
+`METHODS` maps, `constructor_()`, `~` becoming `$` in interface method names,
+values boxed in `abap.types.*`. `defineApp` bridges a plain JavaScript class to
+that:
 
-These two hooks are all it takes to run the entire backend **without CAP and without a filesystem** — that's how the [browser playground](../guide/playground) bundles the stack into a static site.
+- it **boxes** each declared field at construction and derives the RTTI schema
+  from the same pass, because `_bind()` matches a value by *identity* among the
+  object's attributes — there is no name parameter;
+- it hands `main` a **Proxy** whose reads unwrap the boxes and whose writes write
+  through, so your code sees plain values while the framework keeps its boxes;
+- it makes `main` **synchronous**: queries are resolved before it runs, commands
+  are recorded and replayed after, and event tokens are substituted once the
+  async call can be awaited.
 
-→ Continue with the [HTTP Protocol](./protocol).
+## The hazards, and what guards each
+
+Neither coupling surface is a published contract, so both have a gate whose job
+is to fail there rather than on the wire.
+
+| | guarded by |
+|---|---|
+| what the **transpiler emits** — the statics, the boxes, the `$` naming | `abi-gate.test.mjs`: every touchpoint named and checked against a class the transpiler itself produced |
+| **`@sap/cds` internals** — above all `cds.middlewares.before`, which is a *mixed* array of functions and `{factory}` objects | `cap-abi.test.mjs`: the chain read per auth kind, asserting the auth middleware is a plain function and the rest are inert |
+
+Both are verified to discriminate: break the thing they pin, and they go red
+naming it.
+
+## What is measured
+
+| | |
+|---|---|
+| Roundtrip | **14 ms**, sequential, HTTP, SQLite |
+| The runtime's private SQLite | **no SQL at all** once the CDS store is installed — only `rollback`/`endTransaction` |
+| Restart | state and the navigation stack survive SIGKILL |
+| Concurrency | three users interleaved in one process, every answer to its owner |
+| Browser | real Chromium on every CI run, against the CDN |
+
+## Next
+
+- [**HTTP Protocol**](./protocol) — what goes over the wire
+- [**Database Model**](./database) — `cap2ui5.Drafts`
+- [**Configuration**](./configuration) — the knobs

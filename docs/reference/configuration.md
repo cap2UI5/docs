@@ -1,164 +1,112 @@
 # Configuration
 
-Two mechanisms cover almost everything you can configure: **environment
-variables** for the platform wiring, and the **user exit** for anything the
-framework renders or sends.
+Everything the plugin reads lives under `cds.cap2ui5` and is a plain CAP
+configuration value: `package.json#cds`, a `.cdsrc.json`, an environment
+variable, a profile — whatever you already use.
 
-## Environment variables
+## The defaults
 
-| Variable | Default | Effect |
-|---|---|---|
-| `Z2UI5_APP_DIRS` | — | extra directories to search for app classes, separated by the platform path separator |
-| `Z2UI5_DRAFT_TTL_HOURS` | the exit's `draft_exp_time_in_hours` | how long draft rows are kept; `0` disables the retention job entirely |
-| `Z2UI5_DRAFT_RETENTION_INSTANCE` | `0` | which Cloud Foundry instance runs the retention loop; `*` for all of them |
-| `PORT` | `4004` (CAP) | the port the server listens on |
+These ship in the plugin's own `package.json` and apply until you override one:
 
-```bash
-Z2UI5_APP_DIRS=/srv/my-apps:/srv/more-apps npx cds-serve
-Z2UI5_DRAFT_TTL_HOURS=24 npx cds watch
-```
-
-Retention has **one** clock, not two. Unset, `Z2UI5_DRAFT_TTL_HOURS` follows
-the framework's own draft expiry — `draft_exp_time_in_hours` from the user exit,
-4 hours by default — so rows are not deleted while the framework still considers
-the session live. Set, it overrides both. An unparseable value falls back to the
-framework expiry rather than disabling cleanup: a typo must not silently turn
-retention off.
-
-Outside Cloud Foundry every process runs the retention loop, which is the right
-answer for a single server. On CF only the instance whose `CF_INSTANCE_INDEX`
-matches `Z2UI5_DRAFT_RETENTION_INSTANCE` does — the same hourly `DELETE` run by
-N instances is the same work done N times.
-
-## Registering app directories in code
-
-The equivalent of `Z2UI5_APP_DIRS`, for when the path is known at startup:
-
-```js
-// srv/server.js
-require("abap2UI5/register-apps")(__dirname + "/my-apps");
-```
-
-Both are additive and searched recursively; a file at the top level of a
-directory wins over one in a subfolder. Classes can also be registered
-directly, bypassing the filesystem entirely — that is how the browser
-playground works with no filesystem at all:
-
-```js
-const engine = require("abap2UI5/engine");
-engine.register_app_class(MyApp);              // by constructor name
-engine.register_app_class("my_alias", MyApp);  // under a chosen name
-```
-
-## The user exit
-
-The user exit is a class implementing `z2ui5_if_exit`. The framework finds it
-by scanning for an implementation — you do not register it anywhere. Its two
-methods are called after the framework defaults, so you receive a fully
-populated config object and change only what you care about.
-
-This section is the summary; [**The User Exit**](../guide/user-exit) is the
-full treatment — discovery, the request context, and every field.
-
-```js
-// srv/app/my_exit.js
-class my_exit {
-  set_config_http_get(s_context, s_config) {
-    s_config.title = "My Application";
-    s_config.theme = "sap_horizon_dark";
-    return s_config;
-  }
-
-  set_config_http_post(s_context, s_config) {
-    return s_config;
+```json
+{
+  "cds": {
+    "cap2ui5": {
+      "apps": "srv/apps",
+      "requires": "authenticated-user",
+      "routes": ["/sap/bc/z2ui5", "/rest/root/z2ui5"],
+      "webapp": "/z2ui5/webapp"
+    }
   }
 }
-module.exports = my_exit;
 ```
 
-`z2ui5_if_exit` is a contract, not a base class: an exit is any class carrying
-both methods, and `extends z2ui5_if_exit` throws. Both must be present, even
-when one only hands back what it was given.
+| key | what it does |
+|---|---|
+| `apps` | the directory scanned for app modules, relative to `cds.root`. Every `.js`/`.mjs`/`.cjs` in it is imported once the runtime is up. A project without the directory simply has no JavaScript apps |
+| `requires` | the role the route demands. `null` lets anonymous callers in — read the box below first |
+| `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works |
+| `webapp` | where the UI5 shell is mounted, served straight from the runtime package |
 
-### What `set_config_http_get` controls
+## Overriding
 
-| Field | Default | Notes |
-|---|---|---|
-| `title` | `abap2UI5` | the browser tab title |
-| `theme` | `sap_horizon` | any UI5 theme id |
-| `favicon` | an inline SVG data URI | the tab icon; clear it and the page emits no icon link at all |
-| `src` | `/resources/sap-ui-core.js` | the UI5 bootstrap — the local runtime by default, so the stack works offline |
-| `content_security_policy` | a full `<meta>` tag | see below |
-| `t_security_header` | 7 headers | `[{n, v}]`, applied to the bootstrap response |
-| `t_add_config` | — | extra `data-sap-ui-*` bootstrap attributes, as `[{n, v}]` |
+In your project's `package.json`:
 
-The default security headers are `cache-control: no-cache, no-store,
-must-revalidate`, `Pragma: no-cache`, `Expires: 0`,
-`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
-`Referrer-Policy: strict-origin-when-cross-origin` and a `Permissions-Policy`
-that allows geolocation/microphone/camera for same-origin only.
-
-### CSP
-
-The default policy allows `'unsafe-eval'` for one specific reason: the
-OpenUI5 1.71 `ui5loader` evaluates module source as a string, and without it
-the 1.71 bootstrap fails with a CSP `EvalError`. Modern UI5 releases do not
-need it. If you pin a modern UI5, tighten the policy in your exit:
-
-```js
-set_config_http_get(s_context, s_config) {
-  s_config.content_security_policy = s_config.content_security_policy
-    .replace(" 'unsafe-eval'", "");
-  return s_config;
+```json
+{
+  "cds": {
+    "cap2ui5": {
+      "apps": "srv/ui",
+      "routes": ["/ui5"]
+    }
+  }
 }
 ```
 
-The policy also allow-lists the public UI5 CDNs and jsDelivr/cdnjs. If you
-serve everything locally you can strip those hosts too.
+or per profile, the usual CAP way:
 
-### `set_config_http_post`
-
-The same idea for the roundtrip. Two fields: `draft_exp_time_in_hours` (default
-`4`) and `check_csrf_active`, the cross-origin POST gate, which is **on by
-default** — turn it off only when something in front of the app already covers
-it:
-
-```js
-set_config_http_post(s_context, s_config) {
-  s_config.draft_exp_time_in_hours = 24;
-  s_config.check_csrf_active = false;
-  return s_config;
-}
+```json
+{ "cds": { "[production]": { "cap2ui5": { "requires": "MyUi5Role" } } } }
 ```
 
-## Identity
+## Authentication — and what `null` costs
 
-Who the framework thinks it is acting for — `sy-uname`, the draft `owner`
-column, and the key that isolates retained sticky app state per session:
+The route runs **behind CAP's own middleware chain**, so whatever
+`cds.requires.auth` is configured to has already identified the caller by the
+time the plugin's guard decides. That is not a detail: `cds.context`, and with
+it `cds.context.user`, only exists where CAP's middlewares ran.
 
-```js
-// srv/server.js — what the CAP app wires
-engine.set_identity(() => ({
-  user: cds.context?.user?.id,
-  tenant: cds.context?.tenant,
-}));
+The guard is one line: the caller must satisfy `cap2ui5.requires`.
+
+::: warning Setting `requires: null` opens more than the door
+With `null`, every caller is CAP's anonymous user — and the draft store binds
+each session to `cds.context.user.id`. So *all* anonymous visitors share one
+owner and therefore each other's sessions. That is the documented consequence
+of turning authentication off, not a defect, but a public demo and a shared
+staging system are very different things.
+:::
+
+Verified for **every** auth kind, not just the development ones — the chain is
+read in a child process per kind in `cap-abi.test.mjs`:
+
+```
+mocked  ["cds_context","OBJ:[]","basic_auth","OBJ:[]"]
+basic   ["cds_context","OBJ:[]","basic_auth","OBJ:[]"]
+dummy   ["cds_context","OBJ:[]","dummy_auth","OBJ:[]"]
+jwt     ["cds_context","OBJ:[]","jwt_auth","OBJ:[]"]
+xsuaa   ["cds_context","OBJ:[]","jwt_auth","OBJ:[]"]
+ias     ["cds_context","OBJ:[]","ias_auth","OBJ:[]"]
 ```
 
-The provider is called **per use**, not once at wiring time, so it can read a
-request-scoped context and one installed provider serves every concurrent
-request. Without one, identity falls back to the OS account of the server
-process — fine for a single-user demo, wrong for anything with more than one
-user, because every user then shares one identity.
+The auth middleware is a plain function in all six, so the route really does
+run behind it under `xsuaa` and `ias` and not only under `mocked`.
 
-## Draft store
+## The runtime
 
-```js
-engine.set_store({
-  load: async (id) => /* → {id, id_prev, data} | null */,
-  save: async (entry) => { /* persist */ },
-});
+`@abap2ui5/runtime` is resolved from **your project** (`cds.root`), not from
+the plugin's own `node_modules`. The version you install is the version that
+runs; the plugin only declares the range.
+
+Pin it in production:
+
+```json
+{ "dependencies": { "@abap2ui5/runtime": "1.144.0" } }
 ```
 
-The CAP app wires this to the `cap2ui5.z2ui5_t_01` table; the other adapters
-use an in-memory Map. Without injection the framework uses a volatile
-in-memory fallback and warns once — correct for tests, wrong for production.
+Backend, UI5 shell and wire protocol version come from that one package, which
+is what makes a frontend/backend mismatch impossible. See
+[HTTP Protocol](./protocol).
+
+## Errors
+
+An unhandled error in the roundtrip answers `roundtrip failed (<id>)`, where
+`<id>` is `cds.context.id`. The detail — the stack, the SQL, the entity names —
+goes to the server log under the same id. That is deliberate: CDS and driver
+messages carry entity names, SQL fragments and deployment paths, and none of it
+belongs in an HTTP response.
+
+## Next
+
+- [**Deployment**](./deployment) — what changes when this leaves your laptop
+- [**Database Model**](./database) — `cap2ui5.Drafts`
+- [**Architecture**](./architecture) — how the pieces fit

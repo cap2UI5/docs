@@ -1,217 +1,111 @@
 # HTTP Protocol
 
-::: danger This page documents a protocol upstream has moved off
-Verified 2026-09-18 by diffing live responses from upstream's own Node runtime
-against cap2UI5 (`scripts/conformance.js` in
-[builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js), ADR-006).
+One endpoint, one POST per interaction, JSON both ways. The protocol is
+**abap2UI5's own** — cap2UI5 does not define it, translate it or version it
+independently, because the backend answering it *is* abap2UI5.
 
-The response shape below — `S_FRONT.PARAMS.S_VIEW.XML` and friends — is what
-**cap2UI5 emits today**, so it is accurate for debugging this backend. It is
-**no longer what abap2UI5 emits**. Upstream delivers frontend instructions as an
-ordered action table:
-
-```json
-"S_FRONT": { "S_ACTION": { "T_SYSTEM": [["VIEW_SLOTS","display","MAIN","<mvc:View …>"]] } }
-```
-
-and it has flattened two-way bindings out of `MODEL.XX` (`{/NAME}`, not
-`{/XX/NAME}`). The bundled frontend is mirrored 1:1 from upstream and therefore
-reads `S_ACTION`.
-
-So the claim this page opened with — that the wire format is *identical* to
-abap2UI5 — is currently false, and the mismatch is tracked as a P0. Treat this
-page as "the protocol cap2UI5 speaks", not "the protocol abap2UI5 speaks", until
-ADR-006's worklist items 1–2 are closed.
+::: tip This page used to carry a warning. It no longer needs to.
+It used to say that the page described what cap2UI5 emitted and not what
+abap2UI5 emitted — the two had drifted apart, and a hand-maintained port was
+still writing a superseded envelope. That cannot happen now: the backend and
+the shell come from one upstream commit. The measurements below are from a
+running server rather than from a specification.
 :::
 
-The wire format between the frontend and the cap2UI5 backend was designed to be
-identical to abap2UI5. This page documents it for reference — you don't need to know it as an app developer, but it's helpful when debugging or when swapping out the frontend.
+## The endpoint
 
-## Endpoints
+| | |
+|---|---|
+| `POST /rest/root/z2ui5` | a roundtrip |
+| `POST /sap/bc/z2ui5` | the same door, under its ABAP-side name |
+| `GET  /rest/root/z2ui5?app_start=<APP>` | the composed HTML page that boots UI5 and starts an app |
+| `GET  /z2ui5/webapp/**` | the shell's assets, straight from the runtime package |
 
-| Method | Path | Effect |
-|---|---|---|
-| `GET`  | `/rest/root/z2ui5` | Bootstrap HTML (loads UI5 + Component) |
-| `HEAD` | `/rest/root/z2ui5` | CSRF token prefetch (`X-CSRF-Token: disabled`) |
-| `POST` | `/rest/root/z2ui5` | Roundtrip — JSON body see below |
+Both POST paths are configurable — see [Configuration](./configuration).
 
-Mounts:
-
-- `GET`/`HEAD` are registered in `srv/server.js` via `cds.on("bootstrap", ...)`.
-- `POST` is automatically exposed by CAP because `z2ui5-service.cds` declares the action `z2ui5(value: object)`.
-
-## Request body
-
-The frontend driver always sends `Content-Type: application/json`. Body structure:
+## Request
 
 ```json
 {
   "value": {
     "S_FRONT": {
-      "ID":            "<UUID of the predecessor app instance, or empty>",
-      "APP":           "<class name of the currently loaded app>",
-      "EVENT":         "<event name or empty string>",
-      "T_EVENT_ARG":   ["arg1", "arg2", ...],
-      "R_EVENT_DATA":  { /* optional object payload */ },
-      "ORIGIN":        "https://my-host.cf.eu10.hana.ondemand.com",
-      "PATHNAME":      "/rest/root/z2ui5",
-      "SEARCH":        "?app_start=...",
-      "HASH":          "",
-      "CONFIG":        { /* ComponentData */ }
+      "ID": "<the draft id of the previous roundtrip, empty on a start>",
+      "APP": "ZCL_JS_HELLO",
+      "EVENT": "GO",
+      "T_EVENT_ARG": ["red"],
+      "SEARCH": "?app_start=ZCL_JS_HELLO",
+      "PATHNAME": "/rest/root/z2ui5",
+      "ORIGIN": "http://localhost:4004",
+      "HASH": "",
+      "CONFIG": {}
     },
-    "XX":    { /* two-way bindings: user edits */ },
-    "MODEL": { /* current model state on the frontend */ }
+    "XX": {},
+    "MODEL": { "NAME": "Ada" }
   }
 }
 ```
 
-CDS requires, through the action signature `z2ui5(value: object)`, that the actual oBody be wrapped as `value`. The `z2ui5_cl_ui5_http_handler` unwraps it again.
+| | |
+|---|---|
+| `ID` | which draft to continue. Empty starts a new app |
+| `EVENT`, `T_EVENT_ARG` | what the user did, and the arguments the control carried — `c.eventName` and `c.eventArg(i)` |
+| `MODEL` | the bound data as the browser has it; applied to the app instance before `main` runs |
 
-### `S_FRONT` fields
+## Response
 
-| Field | Type | Description |
-|---|---|---|
-| `ID` | `string` | UUID of the most recently persisted app instance; empty on the first roundtrip |
-| `APP` | `string` | Class name of the current app (informational) |
-| `EVENT` | `string` | Event name from `_event(...)`. Empty on init call. |
-| `T_EVENT_ARG` | `string[]` | Event arguments from `_event(name, args)` |
-| `R_EVENT_DATA` | `any` | Optional object payload from `_event(name, args, ctrl, data)` |
-| `ORIGIN` / `PATHNAME` / `SEARCH` / `HASH` | `string` | Browser `location` |
-| `CONFIG.ComponentData.startupParameters` | `object` | FLP startup parameters |
-
-### `XX` (two-way delta)
-
-Plain JSON object with the fields the user edited. Example:
-
-```json
-"XX": {
-  "username": "Alice",
-  "preferences": { "language": "de" },
-  "is_active": true
-}
-```
-
-The engine applies it to the deserialized app via `main_json_to_attri`.
-
-## Response body
+Measured against the example, a start of `ZCL_JS_HELLO`:
 
 ```json
 {
   "S_FRONT": {
-    "APP":   "<class name>",
-    "ID":    "<new UUID>",
-    "PARAMS": {
-      "S_MSG_TOAST":         { "TEXT": "...", "AUTOCLOSE": "X", ... } | null,
-      "S_MSG_BOX":           { "TEXT": "...", "TYPE": "warning", ... } | null,
-      "S_VIEW":              { "XML": "<mvc:View>..." } | null,
-      "S_VIEW_NEST":         { "XML": "...", "ID": "...", "METHOD_INSERT": "..." } | null,
-      "S_VIEW_NEST2":        { ... } | null,
-      "S_POPUP":             { "XML": "..." } | null,
-      "S_POPOVER":           { "XML": "...", "OPEN_BY_ID": "..." } | null,
-      "S_FOLLOW_UP_ACTION":  { "CUSTOM_JS": [".eF('OPEN_NEW_TAB','...')", ...] } | null,
-      "SET_PUSH_STATE":      <any> | null,
-      "SET_APP_STATE_ACTIVE":"X" | null,
-      "SET_NAV_BACK":        "X" | null,
-      "S_STATEFUL":          { "ACTIVE": true } | null
-    }
+    "APP": "ZCL_JS_HELLO",
+    "ID": "D46139087B1241DBBD701D4DC02F13AA",
+    "PROTOCOL": 2,
+    "S_ACTION": { "T_SYSTEM": [["VIEW_SLOTS", "display", "<mvc:View …>"]] }
   },
-  "MODEL": {
-    /* one-way bindings on top level */
-    "users": [...],
-    "title": "...",
-    "XX": {
-      /* two-way bindings */
-      "username": "...",
-      ...
-    }
-  }
+  "MODEL": { "NAME": "" }
 }
 ```
 
-### `MODEL` structure
+| | |
+|---|---|
+| `ID` | the **new** draft id — every roundtrip writes a new one and the browser carries it forward |
+| `PROTOCOL` | the wire version, see below |
+| `S_ACTION.T_SYSTEM` | ordered framework actions: render a view, open a popup, show a message box, navigate |
+| `S_ACTION.T_CUSTOM` | app-issued frontend actions |
+| `MODEL` | the bound data as the server has it after `main` |
 
-The engine builds `MODEL` from the `aBind` array:
+`S_ACTION` is an **ordered list**, which is why two `c.messageToast()` calls
+arrive in the order you wrote them.
 
-```js
-client.aBind = [
-  { name: "users",    val: [...], type: "one_way" },
-  { name: "username", val: "...", type: "two_way" },
-  ...
-];
-```
+## `PROTOCOL` — the wire carries its own version
 
-One-way entries land directly under `MODEL`; two-way entries under `MODEL.XX`. The frontend JSONModel is set as the default model on the view, from which the bindings (`{/...}` and `{/XX/...}`) resolve.
+`S_FRONT.PROTOCOL` is stamped from `z2ui5_if_ui5_types=>c_protocol` and the
+shell compares it against its own before reading anything else. It is **not**
+the product version and does not move with a release; it moves when a response
+can no longer be read by a frontend written for the previous number.
 
-## Sample roundtrip
+It exists because of exactly the failure this project hit: the `S_ACTION`
+envelope replaced an older `S_FRONT.PARAMS` shape, and a frontend written for
+the old one looked for a key the backend no longer wrote — then rendered its
+empty result, silently. A mismatch is now reported to the user.
 
-### Initial roundtrip (init)
+A response *without* the field is let through: a backend older than the field
+cannot be told apart from one that is merely older.
 
-**Request:**
-```json
-{ "value": {
-  "S_FRONT": { "ID": "", "EVENT": "", "ORIGIN": "...", "PATHNAME": "/rest/root/z2ui5", "SEARCH": "?app_start=z2ui5_cl_ui5_app_hi_world" },
-  "XX": {},
-  "MODEL": {}
-}}
-```
+For a cap2UI5 project the check is belt and braces — both halves come from one
+`@abap2ui5/runtime` — but it protects anyone pairing them by hand.
 
-**Response:**
-```json
-{
-  "S_FRONT": {
-    "APP": "z2ui5_cl_ui5_app_hi_world",
-    "ID": "abc-123",
-    "PARAMS": {
-      "S_VIEW": { "XML": "<mvc:View>...<Input value=\"{/XX/NAME}\"/>...</mvc:View>" }
-    }
-  },
-  "MODEL": { "XX": { "NAME": "" } }
-}
-```
+## Errors
 
-### Button-click roundtrip
+An unhandled error answers `500` with `roundtrip failed (<cds.context.id>)`.
+The detail goes to the server log under the same id; see
+[Configuration](./configuration).
 
-**Request:**
-```json
-{ "value": {
-  "S_FRONT": { "ID": "abc-123", "EVENT": "BUTTON_POST", "T_EVENT_ARG": [] },
-  "XX": { "NAME": "Alice" },
-  "MODEL": {}
-}}
-```
+Authentication is decided **before** the body is read: an unauthenticated
+caller gets `401` without the server buffering the payload.
 
-**Response:**
-```json
-{
-  "S_FRONT": {
-    "APP": "z2ui5_cl_ui5_app_hi_world",
-    "ID": "def-456",
-    "PARAMS": {
-      "S_MSG_BOX": { "TEXT": "Your name is Alice", "TYPE": "information" }
-    }
-  },
-  "MODEL": { "XX": { "NAME": "Alice" } }
-}
-```
+## Next
 
-## Frontend action strings (`eB`/`eF`)
-
-Action strings travel from the server to the frontend driver in the UI5 binding slot (`press="..."`):
-
-- **`eB(...)`** = "event Backend" → triggers a roundtrip
-- **`eF(...)`** = "event Frontend" → runs only in the frontend
-
-Format:
-
-```
-.eB([['EVENT_NAME', '', '', '']], 'arg1', 'arg2')
-                  ↑    ↑    ↑   ↑
-                  |    |    |   force_main_model (truthy)
-                  |    |    bypass_busy (truthy)
-                  |    reserved
-                  event name
-```
-
-`_event(name, args, ctrl)` builds this automatically — you only need the internals if you extend the frontend yourself.
-
-→ Continue with the [Database Model](./database).
+- [**Architecture**](./architecture) — what sits behind the endpoint
+- [**Configuration**](./configuration) — routes and authentication
