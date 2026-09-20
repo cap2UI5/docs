@@ -1421,3 +1421,58 @@ Establishing that a failure is not yours is the *first* half of the work and
 reads like the whole of it, because the PR goes quiet either way. The second
 half is cheap here — `git log` on the failing file found both causes in
 minutes — and it is the half that lets somebody else act.
+
+## 22. 2026-09-20 — the documentation is correct today and wrong on merge day
+
+I rewrote HANDOVER.md this morning because it had gone stale, and then wrote a
+step 4 for the repository cutover that said nothing about the 5,434 lines of
+documentation the cutover invalidates. The same failure I had just fixed, one
+section further down.
+
+Measured over `docs/`: **36 pages, 5,434 lines, of which 27 pages describe the
+port.** Only ROADMAP.md, HANDOVER.md and a single line of
+`reference/database.md` know the plugin exists.
+
+It is not a matter of stale paths. The whole guide teaches the port's app API,
+and the plugin's is a different one rather than a renamed one:
+
+```js
+class my_app extends z2ui5_if_app {     // the plugin: defineApp("ZCL_X", class {
+  async main(client) {                  //   main(c) {           <- synchronous
+    if (client.check_on_init()) { … }   //     if (c.isFirstRun) { … }
+    client.view_display(xml);           //     c.view(xml);
+  }                                     //   }
+}                                       // })
+```
+
+The audit is in [HANDOVER.md](HANDOVER.md) under step 4, split three ways: 12
+pages of structure and reference to write from scratch (1,949 lines), 15 pages
+of app-authoring API to write against `defineApp` (2,416), and 9 that survive
+with corrections (1,069) because their arguments hold even where their
+mechanics do not.
+
+One finding worth naming on its own: **`docs/guide/samples.md` is generated and
+its generator breaks.** `scripts/gen-samples.mjs` line 39 hardcodes
+`…/cap2UI5/blob/main/core/srv/app/samples` as its source and lines 122/188
+write that path into the prose. The plugin PR deletes that folder, so the
+page's 98 rows lose their input — a build script that fails silently into a
+stale page, not a compile error.
+
+### What I did NOT do, deliberately
+
+I did not rewrite any of it. These pages are **correct today**: they describe
+the cap2UI5 that is published and working. Rewriting them into the future
+tense would replace accurate documentation with speculative documentation, and
+if the approach is rejected the repository would have lost both. The trigger is
+the merge, not my having the knowledge in hand.
+
+The maintainer decision about where the docs live should also come first, since
+it decides whether 3,400 lines land here or in the plugin repository — and
+nobody wants to write them twice.
+
+### The lesson
+
+Twice today the same shape: a page or a job I had "handled" while looking only
+at the part I expected. The handover I rewrote, and then under-scoped by one
+section. The job I diagnosed, and then read one failing step of. Both times the
+thing I missed was adjacent to the thing I fixed.

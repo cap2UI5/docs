@@ -120,6 +120,49 @@ overwrite the plugin.
    `ACTION_KEY_WEB`, `BUILT_DEPLOY_KEY`) from the archived repositories'
    secrets.
 
+### What the cutover does to THESE pages — the part I had left out
+
+Merging the plugin invalidates most of this repository's documentation on the
+same day, and step 4 above said nothing about it. Measured, not estimated: of
+`docs/`'s 36 pages and 5,434 lines, **27 pages describe the port**. Only
+ROADMAP.md, HANDOVER.md and one line of `reference/database.md` know the
+plugin exists.
+
+It is not a matter of stale paths. The whole guide teaches the port's app API:
+
+```js
+class my_app extends z2ui5_if_app {     // the plugin: defineApp("ZCL_X", class {
+  async main(client) {                  //   main(c) {           <- synchronous
+    if (client.check_on_init()) { … }   //     if (c.isFirstRun) { … }
+    client.view_display(xml);           //     c.view(xml);
+  }                                     //   }
+}                                       // })
+```
+
+| | pages | lines | what happens |
+|---|---|---|---|
+| **A** structure & reference | 12 | 1,949 | rewritten from scratch — `getting-started`, `project-structure`, `architecture`, `database`, `protocol`, `configuration`, `deployment`, `persistence`, `playground`, `samples`, `ecosystem`, `where-it-comes-from`. Every one describes `core/`, `srv/z2ui5-service.cds`, `z2ui5_t_01`, `file:./core` or the nightly generation — none of which survives |
+| **B** app-authoring API | 15 | 2,416 | rewritten against `defineApp` — `lifecycle`, `data-binding`, `events`, `navigation`, `popups`, `views`, `user-exit`, all of `api/`, all of `examples/`. The API is not a rename: synchronous `main`, `c.isFirstRun`/`c.isDisplay` instead of the two `check_on_*` predicates, `c.bind`/`c.event`, `t.table( )` for state |
+| **C** survives with corrections | 9 | 1,069 | `why-cap2ui5`, `what-is-cap2ui5`, `vs-abap2ui5`, `vs-fiori-elements`, `migration-from-abap2ui5`, `troubleshooting`, `devtools`, `roadmap`, `index` — the arguments hold, the mechanics in them do not |
+
+Two things follow for the order of work:
+
+- **`docs/guide/samples.md` is generated and its generator breaks.**
+  `scripts/gen-samples.mjs` line 39 hardcodes
+  `…/cap2UI5/blob/main/core/srv/app/samples` as its source, and lines 122/188
+  write that path into the prose. The plugin PR deletes that folder, so the
+  page's 98 rows have no input left. Either the generator is repointed at the
+  example project, or the page goes with the samples it indexes.
+- **Do not rewrite these pages before the plugin merges.** They are *correct
+  today* — they describe the cap2UI5 that is published and working. Rewriting
+  them into the future tense would replace accurate documentation with
+  speculative documentation, and if the approach is rejected the repository
+  loses both. The trigger is step 4.3, not this page.
+
+The decision in step 5 about where the docs live should be taken **before**
+this rewrite, not after: it decides whether the work lands here or as a folder
+in the plugin repository, and nobody wants to do 3,400 lines twice.
+
 ## Step 5 — decisions that are yours, not mine
 
 - **`requires: "authenticated-user"` as the plugin default.** Anonymous callers
