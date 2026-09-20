@@ -1,107 +1,91 @@
-# Static XML View
+# A View From a File
 
-If you already have a UI5 view **as an XML file** — exported from a designer, copied from an existing app, or because your designer prefers reading XML over JS — you can use it 1:1 without going through the view builder.
+The view is a string, which means it does not have to be a template literal in
+the middle of your logic. For a large screen, keep the XML in its own file and
+read it once.
 
-## Code
+::: info Illustrative
+`c.view()` taking any string is the tested part. Loading it from disk is
+ordinary Node — shown here because it is the question that comes up as soon as a
+view passes a screenful.
+:::
 
-```js
-// srv/app/read_view.js
-const fs                = require("fs");
-const path              = require("path");
-const z2ui5_if_app      = require("abap2UI5/z2ui5_if_app");
-
-class read_view extends z2ui5_if_app {
-
-  async main(client) {
-    const viewPath    = path.join(__dirname, "View1.view.xml");
-    const viewContent = fs.readFileSync(viewPath, "utf8");
-    client.view_display(viewContent);
-  }
-}
-
-module.exports = read_view;
-```
-
-## `View1.view.xml`
-
-Place the file right next to your app class (`srv/app/View1.view.xml`):
+## The view
 
 ```xml
-<mvc:View
-    controllerName="Quickstart.App"
-    displayBlock="true"
-    xmlns:mvc="sap.ui.core.mvc"
-    xmlns:l="sap.ui.layout"
-    xmlns:core="sap.ui.core"
-    xmlns:tnt="sap.tnt"
-    xmlns="sap.m">
-  <App id="app">
-    <Page title="Create Enterprise-ready Web Apps with Ease">
-      <l:BlockLayout background="Light">
-        <l:BlockLayoutRow>
-          <l:BlockLayoutCell>
-            <core:Icon color="#1873B4" src="sap-icon://sap-ui5" size="5rem" class="sapUiSmallMarginBottom" width="100%"/>
-            <Title level="H1" titleStyle="H1" text="This is UI5!" width="100%" textAlign="Center"/>
-          </l:BlockLayoutCell>
-        </l:BlockLayoutRow>
-        <l:BlockLayoutRow>
-          <l:BlockLayoutCell>
-            <FlexBox items="{/features}" justifyContent="Center" wrap="Wrap">
-              <tnt:InfoLabel text="{}" class="sapUiSmallMarginTop sapUiSmallMarginEnd"/>
-            </FlexBox>
-          </l:BlockLayoutCell>
-        </l:BlockLayoutRow>
-      </l:BlockLayout>
+<!-- srv/apps/views/orders.xml -->
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">
+  <Shell>
+    <Page title="Orders">
+      <Input value="{CUSTOMER_PATH}"/>
+      <Button text="Go" press="{GO_HANDLER}"/>
+      <Table items="{ROWS_PATH}">
+        <columns><Column><Text text="Customer"/></Column></columns>
+        <items><ColumnListItem><cells><Text text="{CUSTOMER}"/></cells></ColumnListItem></items>
+      </Table>
     </Page>
-  </App>
+  </Shell>
 </mvc:View>
 ```
 
-## When does this make sense?
+Two kinds of placeholder are in there, and the difference matters:
 
-✅ **Migrating an existing classical UI5 app.** You want to switch it from "three-layer OData CRUD" to cap2UI5. You can leave the XML views in place for now and only move the controller logic into `main()`.
-✅ **Wireframe designs from a WYSIWYG tool.** If your UX team works with [SAP Build](https://sap.com/products/build.html) or a similar designer, you'll have XML output.
-✅ **Complex static layouts** where the builder gets cumbersome (e.g. deeply nested BlockLayouts with many custom classes).
+- `{CUSTOMER}` inside the table's template is a **UI5 row binding**. It is
+  relative to the row, needs nothing from you, and must survive to the browser
+  untouched.
+- `{CUSTOMER_PATH}` and `{GO_HANDLER}` are **yours** — they stand where
+  `c.bind()` and `c.event()` go.
 
-## When not?
-
-❌ When you have **dynamic** UIs (showing/hiding fields based on state). In the JS builder that's `if`/`switch`; in XML you need `visible="{= ...}"` expressions or custom data.
-❌ When you have to **rebuild your form per user input**. The builder thrives on the fact that you reassemble a tree in `main()`.
-
-## Bindings in static XML
-
-The XML view may use any bindings the view builder would generate:
-
-```xml
-<Input value="{/XX/username}" />
-<Text  text="{/customer_count}" />
-<Button text="Save" press=".eB([['SAVE','','','']])" />
-```
-
-That is brittle, however — the `.eB(...)` strings are the internal wire format that the builder normally generates for you via `client._event(...)`. **My tip:** even in the static-view case, fetch the event strings from `client._event()` and inject them into the view via model bindings, e.g. like this:
+## The app
 
 ```js
-const eventSave = client._event("SAVE");
-client.view_display(viewContent.replace("__EVENT_SAVE__", eventSave));
+const fs   = require("node:fs");
+const path = require("node:path");
+const { defineApp, t } = require("cap2ui5");
+
+// read once at load, not per roundtrip
+const XML = fs.readFileSync(path.join(__dirname, "views", "orders.xml"), "utf8");
+
+defineApp("ZCL_ORDERS_FILE", class {
+  customer = "";
+  rows     = t.table({ customer: "" });
+
+  main(c) {
+    if (c.isDisplay) {
+      c.view(XML
+        .replace("{CUSTOMER_PATH}", c.bind("customer"))
+        .replace("{GO_HANDLER}",    c.event("GO")));
+      return;
+    }
+    if (c.eventName === "GO") { /* … */ }
+  }
+});
 ```
 
-This keeps the wire format encapsulated and you stay safe across updates.
+`String.replace` with a string pattern replaces the **first** occurrence, which
+is what you want for a placeholder that appears once. For one that repeats, use
+`replaceAll` — and pick placeholder names that cannot collide with a UI5 binding
+(`{GO_HANDLER}`, not `{GO}`).
 
-## Hybrid: view builder + static XML snippets
+## Why read it at load
 
-Sometimes you only want a **piece** of the view to come from a file — a static footer, say. The builder has no "embed this XML here" method: it renders a tree of elements it built itself, and `stringify()` is the only way out of it. So the seam is the string, not the builder:
+`readFileSync` at module scope runs once, when the plugin imports the file.
+Reading per roundtrip would put a synchronous disk read on every click for a
+file that never changes.
 
-```js
-// … build the dynamic part with the builder, and mark the seam with an
-// element you can find again in the output:
-page.tag(`Text`).a({ n: `text`, v: `__FOOTER__` });
+While developing, `cds watch` restarts on a change to the `.js` — but **not** on
+a change to the `.xml`, since nothing imports it. Touch the app file, or read
+inside `main` until you are done.
 
-const footer = fs.readFileSync(path.join(__dirname, "footer.xml"), "utf8");
-client.view_display(
-  view.stringify().replace(`<Text text="__FOOTER__"/>`, footer),
-);
-```
+## When to bother
 
-Build the dynamic part with the builder, put a placeholder element where the static part goes, and splice the file in before `view_display`. Nothing in the framework has to know the difference — the frontend renderer sees one XML string either way.
+| | |
+|---|---|
+| a screenful of XML | keep it inline. The template literal is easier to follow |
+| a large form, or a view a designer edits | a file, with your editor's XML support |
+| a view assembled from repeated pieces | neither — build it with functions, see [Views](../guide/views) |
 
-→ You're now through all the examples. Continue to the [**API reference**](../api/client) for full method listings.
+## Next
+
+- [**Views**](../guide/views) — composing XML in JavaScript
+- [**Selection Screen**](./selection-screen) — a form inline

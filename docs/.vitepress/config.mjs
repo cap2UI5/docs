@@ -87,7 +87,7 @@ export default defineConfig({
           text: 'Concepts',
           items: [
             { text: 'App Lifecycle',        link: '/guide/lifecycle' },
-            { text: 'View Builder',         link: '/guide/views' },
+            { text: 'Views',                link: '/guide/views' },
             { text: 'Data Binding',         link: '/guide/data-binding' },
             { text: 'Events',               link: '/guide/events' },
             { text: 'Navigation',           link: '/guide/navigation' },
@@ -138,8 +138,7 @@ export default defineConfig({
         {
           text: 'API Reference',
           items: [
-            { text: 'client',               link: '/api/client' },
-            { text: 'View Builder',         link: '/api/view-builder' },
+            { text: 'c — the client facade', link: '/api/client' },
             { text: 'App Interface',        link: '/api/app-interface' }
           ]
         }

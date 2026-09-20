@@ -1,6 +1,6 @@
 # What is cap2UI5?
 
-**cap2UI5** lets you build complete SAPUI5 applications **inside your CAP backend (Node.js)** — as plain JavaScript classes. No separate frontend project, no hand-written XML views, no `manifest.json`, no second build pipeline. One class in `srv/` = one app.
+**cap2UI5** lets you build complete SAPUI5 applications **inside your CAP backend (Node.js)** — as plain JavaScript classes. No separate frontend project, no `manifest.json`, no second build pipeline. One file in `srv/apps/` is one app, and `npm i cap2ui5` is the whole installation.
 
 It is the CAP/Node.js twin of [abap2UI5](https://github.com/abap2UI5/abap2UI5), a popular open-source framework from the ABAP world. Never heard of abap2UI5? That's expected — it lives on the other side of the SAP fence. The short version: it lets ABAP developers write UI5 apps purely in ABAP, and it's been very successful at that. cap2UI5 brings the exact same concept to CAP. The full story, including how the two stay in sync, is on [Where cap2UI5 comes from](./where-it-comes-from).
 
@@ -58,43 +58,45 @@ So it is **not** classical SSR (no HTML pages are re-sent) and **not** an SPA (t
 
 ## What you write
 
-A cap2UI5 app is **a single JavaScript class** extending `z2ui5_if_app`:
+A cap2UI5 app is **a single JavaScript class**, registered with `defineApp`:
 
 ```js
-const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
+// srv/apps/hello.js
+const { defineApp } = require("cap2ui5");
 
-class my_hello_world extends z2ui5_if_app {
+defineApp("ZCL_HELLO", class {
 
-  name = "";        // ← app state, persisted automatically
+  name = "";                      // ← app state, persisted automatically
 
-  async main(client) {
-    if (client.check_on_init()) {
-      // first call: render the view
-      const view = z2ui5_cl_ui5_view_builder.factory()
-        .ele({ n: `View`, ns: `mvc` })
-        .a({ n: `xmlns`,     v: `sap.m` })
-        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
+  main(c) {                       // ← synchronous: no async, no await
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="Hello World">` +
+        `<Input value="${c.bind("name")}"/>` +
+        `<Button text="Send" press="${c.event("GO")}"/>` +
+        `</Page></Shell></mvc:View>`);
+      return;
+    }
 
-      view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Hello World` })
-        .tag(`Input`).a({ n: `value`, v: client._bind_edit(this.name) })
-        .tag(`Button`)
-        .a({ n: `text`,  v: `Send` })
-        .a({ n: `press`, v: client._event(`BUTTON_POST`) });
-
-      client.view_display(view.stringify());
-
-    } else if (client.check_on_event("BUTTON_POST")) {
-      // button clicked: this.name already contains the user's input
-      client.message_box_display(`Hello, ${this.name}!`);
+    if (c.eventName === "GO") {
+      // the button was clicked; this.name already holds what the user typed
+      c.messageBox(`Hello, ${this.name}!`);
     }
   }
-}
-module.exports = my_hello_world;
+});
 ```
 
-That's the whole app. No `manifest.json`, no `Component.js`, no controller file, no i18n setup. The class fields are your state, `main(client)` is your logic, and the view builder produces the UI.
+That is the whole app. No `manifest.json`, no `Component.js`, no controller
+file, no i18n setup. The class fields are your state, `main(c)` is your logic,
+and the view is UI5 XML with two holes in it: `c.bind()` for a field and
+`c.event()` for a handler.
 
+::: tip Render on `isDisplay`
+`c.isDisplay` is true on the first roundtrip **and** whenever the app gets the
+screen back — from a called app, a value help, a restored bookmark. Rendering
+only on `c.isFirstRun` produces an app that silently shows its previous screen
+after a navigation. See [App Lifecycle](./lifecycle).
 ::: tip About those class names
 `z2ui5_cl_ui5_view_builder`, `check_on_init`, `_bind_edit` — the naming comes from abap2UI5's ABAP conventions and is kept intentionally, so every abap2UI5 sample and doc maps 1:1 to cap2UI5. It looks unusual in JS at first; you get used to it within an hour.
 :::
@@ -122,13 +124,13 @@ There was **nothing in between** — no lightweight way to get a free-form UI5 U
 - **Not a UI5 replacement.** It *uses* UI5, in its full breadth — Page, Table, SimpleForm, charts, file upload, camera, geolocation. Only the view *definition* moves to the server.
 - **Not a replacement for CAP services.** Your `srv/*.cds` services keep running unchanged. cap2UI5 is one additional REST action alongside them; OData consumers never see it.
 - **Not classical server-side rendering.** The server sends view XML + a JSON delta, not finished HTML pages.
-- **Not a big framework dependency.** It's a pattern plus a vendored library package (`core/`) that travels inside your CAP project.
+- **Not a big framework dependency.** It is a CAP plugin: two packages in `node_modules`, nothing generated into your repository.
 
 ## When is cap2UI5 the right choice?
 
 ✅ **Internal tools, admin backends, workflow apps** — quickly assembled, one developer is enough, no frontend build setup.
 ✅ **Migration and data-maintenance UIs** — you're writing CAP services anyway and need a small UI on top.
-✅ **Prototyping** — from idea to clickable UI in minutes; try it in the [browser playground](./playground) right now.
+✅ **Prototyping** — from idea to clickable UI in minutes.
 ✅ **Wizards and state-heavy flows** — the next screen depends on previous inputs? That's an `if` statement here, not an annotation puzzle.
 
 And what it costs, plainly:
@@ -141,10 +143,10 @@ And what it costs, plainly:
 
 | Piece | Where | Who touches it? |
 |---|---|---|
-| Backend library (handler, view builder, persistence) | [`cap2UI5/cap2UI5`](https://github.com/cap2UI5/cap2UI5) → `core/srv/z2ui5/` | nobody — carried along as-is |
-| Your apps | `srv/app/` or your own folder | **you** — this is where you work |
+| The framework (handler, views, persistence) | `@abap2ui5/runtime` — upstream's own ABAP, transpiled | nobody: it is a dependency |
+| Your apps | `srv/apps/` or a folder you configure | **you** — this is where you work |
 | Static UI5 frontend | `app/z2ui5/webapp/` — mirrored 1:1 from [abap2UI5](https://github.com/abap2UI5/abap2UI5) | nobody — synced automatically |
 
-The frontend is **wire-format compatible** with abap2UI5: the browser cannot tell whether ABAP or Node.js answers. Every upstream frontend improvement flows into cap2UI5 automatically via a [sync pipeline](./where-it-comes-from#how-the-port-actually-works).
+The frontend is not merely *compatible* with abap2UI5's — it **is** abap2UI5's, shipped in the same package as the backend that answers it, from the same upstream commit. The browser cannot tell whether ABAP or Node.js is on the other side, and backend and frontend cannot drift apart. See [Where cap2UI5 Comes From](./where-it-comes-from).
 
 → Continue with [**Why cap2UI5?**](./why-cap2ui5) for the case in your own project's terms, or jump straight to the [**Quickstart**](./getting-started).

@@ -1,139 +1,109 @@
-# External OData Service
+# Calling an External Service
 
-cap2UI5 apps have full access to the CAP connection pool. You can consume any **external OData service** — the call goes _inside_ your `main()` via the normal `cds.connect.to(...)` API.
+An app is a CAP handler in every way that matters, so calling a remote service
+is CAP's job rather than cap2UI5's: import the service, declare it in
+`cds.requires`, `cds.connect.to` it, and run a query.
 
-## Configuration
+::: warning Not exercised by this project's test suite
+Everything here is standard CAP remote-service usage, and it works from an app
+because an app is ordinary handler code with `cds` in scope. But there is no
+test in the repository that calls a remote service, so treat this page as the
+shape rather than as a measured recipe — unlike [Hello World](./hello-world)
+and [List & Detail](./list), which are files the CI runs.
+:::
 
-In `package.json`:
+## Import the service
+
+Once, with CAP's own tooling:
+
+```bash
+cds import https://services.odata.org/V2/Northwind/Northwind.svc/\$metadata \
+  --as cds --out srv/external
+```
+
+and declare it:
 
 ```json
 {
   "cds": {
     "requires": {
-      "northwind": {
+      "Northwind": {
         "kind": "odata-v2",
-        "model": "srv/external/northwind",
-        "credentials": {
-          "url": "https://services.odata.org/V2/Northwind/Northwind.svc/"
-        }
+        "model": "srv/external/Northwind",
+        "credentials": { "url": "https://services.odata.org/V2/Northwind/Northwind.svc" }
       }
     }
   }
 }
 ```
 
-The CSN model is generated as usual with `cds import https://services.odata.org/V2/Northwind/Northwind.svc/` and saved at `srv/external/northwind.csn`.
+In production the `credentials` come from a destination binding instead — again,
+plain CAP.
 
-## App code
+## The app
 
 ```js
-// srv/app/read_odata.js
-const cds                       = require("@sap/cds");
-const z2ui5_if_app              = require("abap2UI5/z2ui5_if_app");
-const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
+// srv/apps/northwind.js
+const cds = require("@sap/cds");
+const { SELECT } = cds.ql;
+const { defineApp, t } = require("cap2ui5");
 
-class read_odata extends z2ui5_if_app {
+defineApp("ZCL_NORTHWIND", class {
+  country  = "";
+  products = t.table({ ProductID: 0, ProductName: "", UnitPrice: t.packed(11, 2) });
+  status   = "";
 
-  customers = [];
+  async main(c) {
+    if (c.eventName === "LOAD") {
+      try {
+        const nw = await cds.connect.to("Northwind");
+        this.products = await nw.run(SELECT.from("Products").limit(20));
+        this.status   = `${this.products.length} products`;
+      } catch (e) {
+        // a remote call fails in ways a local one does not
+        this.status = "the service did not answer";
+        c.messageBox(`Northwind unreachable: ${e.message}`);
+      }
+    }
 
-  async main(client) {
-
-    if (client.check_on_init()) {
-      const northwind = await cds.connect.to("northwind");
-      this.customers  = await northwind.run(SELECT.from("Customers").limit(50));
-
-      const view = z2ui5_cl_ui5_view_builder.factory()
-        .ele({ n: `View`, ns: `mvc` })
-        .a({ n: `xmlns`,     v: `sap.m` })
-        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
-
-      const tab = view.ele(`Shell`).ele(`Page`)
-        .a({ n: `title`, v: `Northwind - Customers` })
-        .ele(`Table`)
-        .a({ n: `items`, v: client._bind_edit(this.customers) });
-
-      const cols = tab.ele(`columns`);
-      cols.ele(`Column`).tag(`Text`).a({ n: `text`, v: `CompanyName` });
-      cols.ele(`Column`).tag(`Text`).a({ n: `text`, v: `ContactName` });
-      cols.ele(`Column`).tag(`Text`).a({ n: `text`, v: `Country` });
-
-      tab.ele(`items`).ele(`ColumnListItem`).ele(`cells`)
-        .tag(`Input`).a({ n: `value`, v: `{COMPANYNAME}` }).a({ n: `enabled`, b: true })
-        .tag(`Input`).a({ n: `value`, v: `{CONTACTNAME}` }).a({ n: `enabled`, b: true })
-        .tag(`Text`).a({ n: `text`, v: `{COUNTRY}` });
-
-      client.view_display(view.stringify());
-
-    } else if (client.check_on_event("SAVE_BACK")) {
-      const northwind = await cds.connect.to("northwind");
-      // … this.customers contains the user edits thanks to two-way binding
-      // … run an UPDATE on the service for each row
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="Northwind">` +
+        `<Button text="Load" press="${c.event("LOAD")}"/>` +
+        `<Text text="${c.bind("status")}"/>` +
+        `<Table items="${c.bind("products")}">` +
+        `<columns><Column><Text text="Product"/></Column><Column><Text text="Price"/></Column></columns>` +
+        `<items><ColumnListItem><cells>` +
+        `<Text text="{PRODUCTNAME}"/><ObjectNumber number="{UNITPRICE}"/>` +
+        `</cells></ColumnListItem></items></Table>` +
+        `</Page></Shell></mvc:View>`);
     }
   }
-}
-
-module.exports = read_odata;
-```
-
-## What's new here
-
-### 1. CDS connection inline
-
-```js
-const northwind = await cds.connect.to("northwind");
-this.customers  = await northwind.run(SELECT.from("Customers").limit(50));
-```
-
-The same code you would write in a `srv/z2ui5-service.js` handler. **Anything Node.js allows is allowed inside `main()`** — fetch, OData, file system, Redis, MQ.
-
-### 2. Two-way on a list
-
-```js
-const tab = page.ele(`Table`).a({ n: `items`, v: client._bind_edit(this.customers) });
-
-tab.ele(`items`).ele(`ColumnListItem`).ele(`cells`)
-  .tag(`Input`).a({ n: `value`, v: `{COMPANYNAME}` }).a({ n: `enabled`, b: true });
-```
-
-Because the array is two-way bound via `_bind_edit`, UI5 writes user edits **on every item property** back into the XX delta. On the next roundtrip `this.customers` holds the modified state. The item-relative paths are uppercase (`{COMPANYNAME}`, not `{CompanyName}`): the model is written with uppercase names and mapped back onto your properties case-insensitively.
-
-### 3. Persistence caveat
-
-The entire `this.customers` array is serialized and deserialized between roundtrips. With 50 rows: no problem. With 50,000 rows: noticeable. Rules of thumb:
-
-- **Reload fresh in `check_on_init()`** instead of holding the array as long-lived app state.
-- For **read-heavy** lists with sort/filter/paging: the `set_odata_model` pattern (see [Events](../guide/events#convenience-server-triggered-frontend-actions)) — then the array lives in the frontend driver, not the app instance.
-
-Example with an OData-backed table:
-
-```js
-async main(client) {
-  if (client.check_on_init()) {
-    client.set_odata_model("/odata/v4/admin/NorthwindCustomers");
-
-    const view = z2ui5_cl_ui5_view_builder.factory()
-      .ele({ n: `View`, ns: `mvc` })
-      .a({ n: `xmlns`,     v: `sap.m` })
-      .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` });
-
-    view.ele(`Shell`).ele(`Page`).a({ n: `title`, v: `Customers (OData)` })
-      .ele(`Table`)
-      .a({ n: `items`, v: `{/NorthwindCustomers}` })
-      // ↑ no _bind_edit, but a static OData path binding
-      .ele(`columns`).ele(`Column`).tag(`Text`).a({ n: `text`, v: `Company` });
-
-    client.view_display(view.stringify());
-  }
-}
-```
-
-You then need your own CAP service action `NorthwindCustomers` in `z2ui5-service.js`:
-
-```js
-srv.on("READ", "NorthwindCustomers", async (req) => {
-  const northwind = await cds.connect.to("northwind");
-  return northwind.run(req.query);
 });
 ```
 
-→ Continue with [**Static XML View**](./static-xml-view).
+## Three things a remote call needs that a local one does not
+
+**Catch.** A remote service is down, slow or rate-limited in ways your own
+database is not. An unhandled error answers `roundtrip failed (<id>)` and the
+user sees nothing useful; catching it lets you say what happened.
+
+**Expect a wait.** The call happens inside the roundtrip, so the user waits for
+it. Fetch on an explicit event rather than in the render branch, and `limit`
+generously.
+
+**Watch the field names.** The row fields in the view are the **uppercased**
+names of what the service returns — `{PRODUCTNAME}` for `ProductName`. Declare
+the row with the names as they arrive (`ProductName`), and bind them uppercased.
+
+## Where the data goes
+
+Into a declared field, like any other state — so it is in the draft and survives
+the roundtrip. Which also means you fetch **once** and the table stays filled
+until you refresh it deliberately.
+
+## Next
+
+- [**List & Detail**](./list) — the same shape against your own entities, tested
+- [**Data Binding**](../guide/data-binding) — declaring the row type

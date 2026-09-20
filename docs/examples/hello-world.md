@@ -1,119 +1,95 @@
 # Hello World
 
-The simplest variation of a cap2UI5 app: an input field, a button, a confirmation box.
-
-## Code
-
-This is `core/srv/z2ui5/01/04/z2ui5_cl_ui5_app_hi_world.js`, the app the framework ships and the one `?app_start=z2ui5_cl_ui5_app_hi_world` starts — quoted as it stands:
+The smallest complete cap2UI5 app. This is
+[`examples/bookshop/srv/apps/hello.js`](https://github.com/cap2UI5/cap2UI5/blob/main/examples/bookshop/srv/apps/hello.js)
+verbatim — it is exercised by the wire tests, the cold-restart test and the
+browser test on every CI run.
 
 ```js
-const z2ui5_cl_ui5_view_builder = require("../../02/z2ui5_cl_ui5_view_builder");
-const z2ui5_if_app = require("../../02/z2ui5_if_app");
+// srv/apps/hello.js
+const { defineApp } = require("cap2ui5");
 
-class z2ui5_cl_ui5_app_hi_world extends z2ui5_if_app {
-  name = ``;
+defineApp("ZCL_JS_HELLO", class {
+  name = "";
 
-  async main(client) {
-    if (client.check_on_init()) {
-      const view = z2ui5_cl_ui5_view_builder.factory()
-        .ele({ n: `View`, ns: `mvc` })
-        .a({ n: `xmlns`, v: `sap.m` })
-        .a({ n: `xmlns:mvc`, v: `sap.ui.core.mvc` })
-        .a({ n: `xmlns:core`, v: `sap.ui.core` })
-        // SimpleForm and its content aggregation live in sap.ui.layout.form
-        .a({ n: `xmlns:form`, v: `sap.ui.layout.form` });
+  main(c) {
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="cap2UI5 - JS app">` +
+        `<Input value="${c.bind("name")}"/>` +
+        `<Button text="Go" press="${c.event("GO")}"/>` +
+        `</Page></Shell></mvc:View>`);
+      return;
+    }
+    if (c.eventName === "GO") c.messageBox(`Hello ${this.name}`);
+  }
+});
+```
 
-      const form = view
-        .ele({ n: `Shell` })
-        .ele({ n: `Page` })
-        .a({ n: `title`, v: `abap2UI5 - Hello World` })
-        .ele({ n: `SimpleForm`, ns: `form` })
-        .a({ n: `editable`, b: true })
-        .ele({ n: `content`, ns: `form` });
+Run it:
 
-      form
-        .tag({ n: `Title`, ns: `core` })
-        .a({ n: `text`, v: `Enter a value and send it to the server...` })
-        .tag({ n: `Label` })
-        .a({ n: `text`, v: `Name` })
-        .tag({ n: `Input` })
-        .a({ n: `value`, v: client._bind_edit(this.name) })
-        .tag({ n: `Button` })
-        .a({ n: `text`, v: `Send` })
-        .a({ n: `press`, v: client._event(`BUTTON_POST`) });
+```
+http://localhost:4004/rest/root/z2ui5?app_start=ZCL_JS_HELLO
+```
 
-      client.view_display(view.stringify());
-    } else if (client.check_on_event(`BUTTON_POST`)) {
-      client.message_box_display(`Your name is ${this.name}`);
+## Line by line
+
+| | |
+|---|---|
+| `require("cap2ui5")` | the plugin's only export surface: `defineApp` and `t` |
+| `defineApp("ZCL_JS_HELLO", …)` | the first argument is the name **on the wire** — what `?app_start=` takes. The file name does not matter |
+| `name = ""` | app state. An empty string types it as `string`, and it survives the roundtrip because the instance is written to `cap2ui5.Drafts` |
+| `main(c)` | synchronous — no `async`, no `await` |
+| `c.isDisplay` | the render branch. True on the first roundtrip **and** whenever the app gets the screen back |
+| `c.bind("name")` | the binding path — two-way, so what the user types arrives on `this.name` |
+| `c.event("GO")` | the handler expression; the next roundtrip has `c.eventName === "GO"` |
+| `c.messageBox(…)` | a dialog with an OK button |
+
+## What happens when you click
+
+1. the browser POSTs `{ID, APP, EVENT: "GO", MODEL: {NAME: "Ada"}}`;
+2. the server loads the draft, rebuilds the instance, applies `MODEL` — so
+   `this.name` is `"Ada"` **before** `main` runs;
+3. `main` takes the `GO` branch and queues a message box;
+4. the response carries the action and a **new** draft id.
+
+No controller, no manifest, no model code, no OData service.
+
+## Adding state
+
+```js
+defineApp("ZCL_JS_HELLO", class {
+  name  = "";
+  count = 0;
+
+  main(c) {
+    if (c.isDisplay) {
+      c.view(
+        `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
+        `<Shell><Page title="Hello">` +
+        `<Input value="${c.bind("name")}"/>` +
+        `<Text text="clicks: ${c.bind("count")}"/>` +
+        `<Button text="Go" press="${c.event("GO")}"/>` +
+        `</Page></Shell></mvc:View>`);
+      return;
+    }
+    if (c.eventName === "GO") {
+      this.count++;
+      c.messageToast(`Hello ${this.name}, click ${this.count}`);
     }
   }
-}
-
-module.exports = z2ui5_cl_ui5_app_hi_world;
+});
 ```
 
-::: tip The two import lines are the one thing you write differently
-This file lives *inside* the core package, so it reaches its neighbours by relative path. Your own app sits outside the package and imports through its exports map:
+`count` needs no re-render: changed **bound data** is pushed to the view on its
+own. You call `c.view()` again only when the view's *structure* changes.
 
-```js
-const z2ui5_cl_ui5_view_builder = require("abap2UI5/z2ui5_cl_ui5_view_builder");
-const z2ui5_if_app = require("abap2UI5/z2ui5_if_app");
-```
+The counter also survives a server restart — the state is a row in your
+database, not memory. See [Persistence](../guide/persistence).
 
-Everything below those two lines is identical.
-:::
+## Next
 
-## The view it renders
-
-```xml
-<mvc:View xmlns="sap.m" xmlns:mvc="sap.ui.core.mvc" xmlns:core="sap.ui.core" xmlns:form="sap.ui.layout.form">
-  <Shell>
-    <Page title="abap2UI5 - Hello World">
-      <form:SimpleForm editable="true">
-        <form:content>
-          <core:Title text="Enter a value and send it to the server..."/>
-          <Label text="Name"/>
-          <Input value="{/XX/NAME}"/>
-          <Button text="Send" press="..."/>
-        </form:content>
-      </form:SimpleForm>
-    </Page>
-  </Shell>
-</mvc:View>
-```
-
-Two details of the builder are visible here and are worth taking with you:
-
-- **`.ele()` descends, `.tag()` stays.** `Shell`, `Page`, `SimpleForm` and `content` are containers, so they get `.ele()`. The four controls inside `content` are leaves added to the *same* parent, so they get `.tag()` — and `.a()` after a `.tag()` sets the attribute on that last child, not on `content`.
-- **You name the namespace.** `SimpleForm`, its `content` aggregation and `Title` are not in `sap.m`. An unprefixed `<SimpleForm>` would resolve to `sap/m/SimpleForm.js` and the view would fail to *load*. → [Namespaces are yours to declare](../api/view-builder#namespaces)
-
-## What happens
-
-| Phase | What runs |
-|---|---|
-| **Initial load** | Frontend POSTs an empty body. Server has no `S_FRONT.ID`, falls back to the startup app. User clicks the "Hello World" link. |
-| **App start** | New `app_start=z2ui5_cl_ui5_app_hi_world` starts. `check_on_init() === true`, view is rendered. |
-| **User types** | Two-way binding via `client._bind_edit(this.name)` — value flows into the XX delta. |
-| **User clicks "Send"** | Frontend sends `S_FRONT.EVENT = "BUTTON_POST"` + XX delta with `NAME`. Server applies the delta to `this.name` and calls `main()`. |
-| **`check_on_event("BUTTON_POST")`** | True → `message_box_display(...)` with the current name. |
-
-## Launch
-
-```
-http://localhost:4004/z2ui5/webapp/index.html?app_start=z2ui5_cl_ui5_app_hi_world
-```
-
-Or, without installing anything, in the [browser playground](../guide/playground):
-
-```
-https://cap2ui5.github.io/web-cap2UI5-build/?app_start=z2ui5_cl_ui5_app_hi_world
-```
-
-## What you can take away from this
-
-- **One file = one app.** Class names match file names.
-- **Two phases.** `check_on_init()` for the initial view, `check_on_event(...)` for events.
-- **Reference-equality bindings.** `client._bind_edit(this.name)` finds the path `/XX/NAME` itself.
-- **Pure JavaScript.** No manifest, no component, no OData layer.
-
-→ Continue with [**Selection Screen**](./selection-screen) for a richer form with various control types.
+- [**List & Detail**](./list) — a table filled from your own CDS entity
+- [**App Lifecycle**](../guide/lifecycle) — `isDisplay` vs. `isFirstRun`
+- [**Data Binding**](../guide/data-binding) — the types

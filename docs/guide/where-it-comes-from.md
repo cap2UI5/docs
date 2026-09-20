@@ -1,58 +1,107 @@
 # Where cap2UI5 Comes From
 
-If you're a CAP developer, chances are you've never heard of **abap2UI5** — it lives in the ABAP world. But cap2UI5 is a direct descendant of it, and knowing the family history explains many of its design decisions (and its unusual class names like `z2ui5_cl_ui5_view_builder`). Don't worry: **you never need to read or write a single line of ABAP** to use cap2UI5.
+cap2UI5 is a direct descendant of **abap2UI5**, and today it is more than a
+descendant: it *runs* abap2UI5. Knowing the family history explains the unusual
+names you will meet (`ZCL_…`, `z2ui5_if_client`) and why the design looks the
+way it does. You never need to read or write a line of ABAP to use it.
 
 ## The abap2UI5 story
 
-[abap2UI5](https://github.com/abap2UI5/abap2UI5) is a popular open-source community project from the SAP/ABAP ecosystem. Its promise: **write complete SAPUI5 apps purely in ABAP classes** — no JavaScript, no XML views to deploy, no separate frontend artifacts, no BSP/UI5 repository uploads. One ABAP class = one app.
+[abap2UI5](https://github.com/abap2UI5/abap2UI5) is an open-source project from
+the SAP/ABAP world. Its promise: **write complete SAPUI5 apps purely in ABAP
+classes** — no JavaScript, no XML views to deploy, no separate frontend
+artifacts, no BSP or UI5 repository uploads. One ABAP class, one app.
 
-It works with the [server-driven UI pattern](./what-is-cap2ui5#server-driven-ui), with an ABAP class in place of the JavaScript one: a generic UI5 frontend is served to the browser once, every interaction is one HTTP roundtrip, and the ABAP class builds the view as XML, binds data and handles events.
+It works by the [server-driven UI pattern](./what-is-cap2ui5#server-driven-ui):
+a generic UI5 frontend is served to the browser once, every interaction is one
+HTTP roundtrip, and the class builds the view, binds data and handles events.
 
-The project became successful because it removed an entire deployment and tooling layer for internal tools and utility apps — the same gap that exists on the CAP side. Over the years it grew a large sample collection ([abap2UI5-samples](https://github.com/abap2UI5/samples)), add-ons, and a community, all documented at [abap2UI5.org](https://www.abap2ui5.org). **cap2UI5 is that concept ported to CAP/Node.js**: instead of an ABAP class on NetWeaver, a JavaScript class in your CAP project's `srv/` folder.
+It removed an entire deployment and tooling layer for internal tools — the same
+gap that exists on the CAP side. That is the gap cap2UI5 fills.
 
-## How the port actually works
+## How it used to work: a port
 
-This is the interesting part, and it's more than a one-time copy. cap2UI5 stays **continuously in sync** with abap2UI5 through automated pipelines in two build repositories — [builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) (the framework build) and [builder-cap2UI5](https://github.com/cap2UI5/builder-cap2UI5) (the app build):
+For most of this project's life, cap2UI5 was a **hand-written JavaScript port**
+of abap2UI5, kept in sync by build pipelines:
+
+- a transpiler of our own (`abap2js.js`, 4,286 lines) turned upstream's ABAP
+  into JavaScript;
+- a port of the framework (12,588 lines) filled the gaps it could not;
+- nightly pipelines mirrored upstream, rebuilt the core and published a
+  ready-made CAP app into this repository.
+
+It worked, and it had a structural problem: **two implementations of one
+protocol drift.** A conformance gate built to measure that drift found 17
+differences — including the one that mattered, that this project's *frontend*
+and its *backend* had come to speak different protocols. Upstream had moved to a
+new response envelope; the port still wrote the superseded one; the frontend
+looked for a key the backend no longer produced and rendered its empty result,
+silently.
+
+No test could have caught it, because each half was consistent with itself.
+
+## How it works now: a host
+
+So the strategy changed. cap2UI5 stopped porting abap2UI5 and became a **CAP
+plugin that hosts it**:
 
 ```
-abap2UI5 (ABAP sources + UI5 frontend)          abap2UI5/samples
-        │                                              │
-        ▼                                              ▼
-┌──────────── builder-abap2UI5-js sync pipelines ───────────────────────┐
-│ update_backend   mirror → transpile ABAP → JS with abap2js            │
-│                  (parser: @abaplint) → core/srv/z2ui5                 │
-│ update_frontend  mirror → take the UI5 webapp 1:1, patch two          │
-│                  config values → core/app/z2ui5/webapp                │
-│ update_samples   mirror → transpile the demo apps                     │
-│                  → core/srv/app/samples                               │
-│ build_core       overlay the generated trees on the hand-written      │
-│                  src/ → publish the core package into core/           │
-│                  jest suite gates the commit — only green gets pushed │
-└────────────────────────────────┬───────────────────────────────────────┘
-                                 ▼
-┌──────────── builder-cap2UI5 update_cap ────────────────────────────────┐
-│ mirror the published core → assemble the CAP app (src/ + vendored     │
-│ core) → test → publish 1:1 into the deployable cap2UI5/cap2UI5 repo   │
-└─────────────────────────────────────────────────────────────────────────┘
+abap2UI5 (the real ABAP sources)
+        │  npm run auto_downport      ← to 7.02-compatible ABAP
+        │  npm run auto_transpile     ← @abaplint/transpiler, over open-abap
+        ▼
+@abap2ui5/runtime          the backend AND the UI5 shell, one package, one commit
+        │
+        ▼
+cap2ui5 (this plugin)      mounts the route, implements the draft store over a
+                           CDS entity, turns a JS class into something the
+                           runtime can call — and contains no framework logic
 ```
 
-Three different sync policies keep the pieces healthy:
+The numbers, since they are the argument:
 
-| Piece | Where it lands | Policy |
+| | port | host |
 |---|---|---|
-| **Frontend** (`app/webapp` from abap2UI5) | `core/app/z2ui5/webapp` → mirrored to the app's `app/z2ui5/webapp` | replaced 1:1 — only the UI5 bootstrap URL in `index.html` and the backend endpoint in `manifest.json` are patched |
-| **Framework core** (transpiled ABAP classes) | `core/srv/z2ui5/` | *fill-in only*: the hand-maintained adaptation in builder-abap2UI5-js's `src/` wins; transpiled classes are added but never overwrite the curated files |
-| **Samples** (transpiled demo apps) | `core/srv/app/samples/` | fully machine-owned: overwritten on every sync |
+| framework code maintained here | 16,874 lines | **774**, of which 485 are code |
+| wire drift against abap2UI5 | 17 measured | structurally impossible — same code |
+| frontend/backend pairing | assembled by us | one upstream commit |
 
-The transpiler (**abap2js**, built on the open-source ABAP parser [@abaplint/core](https://github.com/abaplint/abaplint)) converts ABAP classes into plain JavaScript. Anything outside its supported subset is emitted as a visible `// TODO(abap2js): …` comment instead of being silently dropped, and tracked in a transpile report.
+Drift is not *reduced*. It cannot happen: there is only one implementation, and
+both halves ship together.
 
-## What this means for you
+## What upstream had to open
 
-- **The frontend is battle-tested.** You're running the exact UI5 app that thousands of abap2UI5 installations use — every upstream bugfix and new custom control (charts, camera, geolocation, …) flows in automatically.
-- **The wire format is identical.** The frontend cannot tell whether ABAP or Node.js is answering. That's why the whole ecosystem of abap2UI5 knowledge, samples, and patterns applies 1:1.
-- **The naming is inherited.** `z2ui5_cl_ui5_view_builder`, `check_on_init`, `_bind_edit` — these names come from ABAP conventions (`z` = customer namespace, `cl` = class, `if` = interface). They look unusual in JavaScript, but they keep the two worlds mappable line-by-line: any abap2UI5 sample can be ported (or auto-transpiled) to cap2UI5 mechanically.
-- **Not everything upstream ships comes along.** The port carries one pinned framework release and deliberately leaves upstream's frozen legacy package behind — see [cap2UI5 vs. abap2UI5](./vs-abap2ui5) for what that means when you copy an older sample.
-- **Hundreds of ready samples.** The `core/srv/app/samples/` folder ships the transpiled abap2UI5 demo apps (`z2ui5_cl_smp_app_*`) — a huge, browsable cookbook. Try them in the [browser playground](./playground) without installing anything.
-- **You still write normal JavaScript.** The sync pipeline is a maintainer concern. As an app developer you just `require` two classes and write a JS class — see the [Quickstart](./getting-started).
+Hosting the framework outside an SAP system needed four small, additive changes
+in abap2UI5 — none of them CAP-specific, all merged upstream:
 
-→ Next: [**Try it in the browser**](./playground) — zero-install playground, or the [**Quickstart**](./getting-started).
+| | |
+|---|---|
+| `z2ui5_if_ui5_draft_store` | session state behind an interface, so a host can put it in a CDS entity instead of an ABAP table |
+| `z2ui5_if_ui5_serializer` | app-state serialization behind an interface, because `CALL TRANSFORMATION` has no counterpart outside ABAP |
+| a guarded codepage fallback | **a bug fix.** On a runtime with neither codepage class, a failure escaped from inside an exception handler and took the view builder down before any app code ran. It presented as a *hang* |
+| `c_protocol` | the wire carries its own version, and the shell refuses a mismatch loudly instead of rendering an empty result |
+
+The third one is the reason to read that list twice: it was found here, on a
+transpiled Node runtime, and fixed at the source for everybody.
+
+## What is left of the port
+
+The conformance gate that found the drift, and the measurements that made the
+decision, live in
+[builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) together
+with the ADRs. The app-building pipelines are archived: nothing is generated any
+more.
+
+## Why the ABAP names remain
+
+`ZCL_HELLO`, `z2ui5_if_client`, `check_on_init` — the runtime *is* ABAP, so its
+identifiers are ABAP's. The plugin's facade renames the handful an app author
+meets every day (`c.isDisplay`, `c.bind`, `c.event`), and `c.raw` reaches the
+rest under their original names. Every abap2UI5 sample and document therefore
+still maps onto what you are doing.
+
+## Next
+
+- [**What is cap2UI5?**](./what-is-cap2ui5) — the pattern itself
+- [**Architecture**](../reference/architecture) — how host and runtime fit together
+- [**cap2UI5 vs. abap2UI5**](./vs-abap2ui5) — what differs in practice
