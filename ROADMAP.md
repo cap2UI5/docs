@@ -1333,3 +1333,91 @@ In the plugin repo's AGENTS.md, because it outlives the fix: **an authorization
 check compares presence, never truthiness.** `&&` in front of a comparison in
 an access decision turns a missing value into a wildcard. I wrote that line
 three times in the same file and reviewed it twice for whether it worked.
+
+## 21. 2026-09-20 — "it fails on main too" is an attribution, not a diagnosis
+
+Three red checks across two pull requests had the same note against them:
+*fails identically on `main`, therefore not this branch's*. True in all three
+cases, and verified by checking `main` out and running them. But it answers
+only whose they are, and a reviewer reading it still has to do the work of
+finding out **what** they are before deciding anything. So I did that instead.
+
+### `devtoolsConsole › bounds the nodes of a map-shaped object`
+
+`git log` on the two files ends in the same commit for both:
+
+```
+1f2cccb Fix start page second roundtrip and lazy-load OData model (#2771)
+```
+
+which is `main`'s **head**, and which added `MAX_NODES` and this test together.
+The test has therefore never passed — not a flake, not environment-specific,
+the two possibilities I could not rule out before.
+
+The cause is a property a `JSON.stringify` replacer cannot have:
+
+```js
+expect(text).not.toContain(`"k${max * 3 - 1}"`);
+```
+
+A replacer answers a key's **value**; it cannot remove the key. For a
+map-shaped object every one of the 3,000 keys is emitted whatever the node
+budget does — the bounded ones simply carry `"[...]"` in place of their
+object. The sibling test one block up passes because an *array* is bounded by
+the `MAX_ITEMS` slice, which really does drop items.
+
+The implementation does what #2771 claims for it — *"MAX_NODES caps the
+walk"* — and I measured what that is worth:
+
+| | without the cap | with it |
+|---|---|---|
+| 3,000 × `{i}` (the test's own input) | 54,781 chars | 48,779 — **11%** |
+| 3,000 × `{id, name, city, amount}` | 205,930 chars | 99,878 — **52%** |
+
+The patch is three lines and asserts the property the cap has: the last key's
+*value* is the marker, not the object. Verified green (29/29) and verified to
+**discriminate** — disabling the `++nodes > MAX_NODES` branch turns it red
+again. It is proposed on the PR and deliberately not carried on the branch:
+a frontend test fix inside a 27-file ABAP diff is a finding buried, not a
+finding fixed.
+
+Worth separating, and left as a decision rather than a patch: the cap bounds
+the **walk**, not the **output**. 3,000 `"[...]"` markers are about as long as
+the values they replace, which is why the first row above reads 11%.
+
+### `shared-file-gate`
+
+Not a mystery either — **#2771 predicted half of it in its own commit
+message**: *"check:shared stays red until that follow-up lands"*, about the
+`app-template` mirror of `building-apps.md`. The other three of the four
+drifts are `sync-shared.yaml` against the samples repositories, introduced by
+**#2719 on 2026-09-05**, a fortnight before this branch existed; those
+repositories re-sync on a weekly cron.
+
+### And a correction I owed
+
+Re-measuring the `builder-abap2UI5-js` ratchet to check my proposed patch was
+still right, I found I had read one of two arrays and reported the total as if
+it were the one:
+
+| | I wrote | it is |
+|---|---|---|
+| `regressions` | 161 | **104** |
+| `fixedButStillListed` | 0 | **57** |
+
+57 entries on the 131-entry known-failures list now **pass** — the newer
+mirror fixed them and nobody was told, because the suite reports both
+directions in one assertion. That makes the re-baseline recommendation better
+than I described it: it *tightens* the ratchet by 57 as well as recording 104.
+In the same pass, `cs_event` turned out to carry 42 constants on both sides,
+not 42 against 36 — six are renamed, which is what my prose had said and my
+numbers had not.
+
+Both corrections are posted on the PR, where the wrong numbers are.
+
+### The lesson
+
+Establishing that a failure is not yours is the *first* half of the work and
+reads like the whole of it, because the PR goes quiet either way. The second
+half is cheap here — `git log` on the failing file found both causes in
+minutes — and it is the half that lets somebody else act.
