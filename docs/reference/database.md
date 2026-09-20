@@ -73,15 +73,43 @@ draft entity.
 
 ## Retention
 
-`cleanup()` runs once per roundtrip and deletes drafts older than four hours:
+`cleanup()` runs once per roundtrip and deletes drafts older than
+`draft_exp_time_in_hours` — four hours unless your
+[user exit](../guide/user-exit#onroundtrip) says otherwise:
 
 ```sql
-DELETE FROM cap2ui5_Drafts WHERE createdAt < <now - 4h>
+DELETE FROM cap2ui5_Drafts WHERE createdAt < <now - draft_exp_time_in_hours>
 ```
+
+It asks the exit the same way the framework's own store does, so raising the
+expiry keeps the rows as long as the framework will resume them. Hard-coding
+the sweep at four hours made the two disagree: a 20-hour-old draft the
+framework was willing to restore had already been deleted.
 
 It never raises — a failed sweep must not fail a roundtrip. It is not scoped by
 owner, because it is a retention policy rather than an access decision; in a
 multitenant CAP app it is scoped by the tenant like every other `cds.run`.
+
+::: warning SQLite: give it a busy timeout
+Every roundtrip writes a draft, so a cap2UI5 app writes to the database far
+more often than a typical OData service. On a **file-backed SQLite** with more
+than one process — a second worker, a test suite, a second `cds watch` —
+`@cap-js/sqlite` 3 (which uses node's built-in `node:sqlite`) fails the write
+immediately with *database is locked*, because its busy timeout defaults to
+zero. WAL is on, so readers are fine; writers are the ones that collide.
+
+```json
+{ "cds": { "requires": { "db": {
+  "kind": "sqlite",
+  "credentials": { "url": "db.sqlite" },
+  "client": { "timeout": 5000 }
+} } } }
+```
+
+`client` goes straight to the driver. Measured in this project's own example:
+five of six suite runs failed without it, six of six passed with it. On HANA
+or Postgres the question does not arise.
+:::
 
 ## Your own tables
 

@@ -95,7 +95,9 @@ ownerless row everybody's, are in [Database Model](../reference/database).
 ## Retention
 
 Drafts older than four hours are swept on the next roundtrip. A session left
-open over lunch is fine; one left open overnight starts fresh.
+open over lunch is fine; one left open overnight starts fresh. Both the sweep
+and the framework's willingness to resume follow the same number, and your
+[user exit](./user-exit#onroundtrip) sets it.
 
 ## Next
 
