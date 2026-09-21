@@ -1476,3 +1476,117 @@ Twice today the same shape: a page or a job I had "handled" while looking only
 at the part I expected. The handover I rewrote, and then under-scoped by one
 section. The job I diagnosed, and then read one failing step of. Both times the
 thing I missed was adjacent to the thing I fixed.
+
+## 23. 2026-09-20/21 — the merge day §22 predicted, and what writing the docs found
+
+The four pull requests merged, the cutover ran, and the rewrite §22 said to
+wait for happened: **all 36 pages**, plus `verify-refs` rewritten for the
+plugin, in [docs#21](https://github.com/cap2UI5/docs/pull/21). The prediction
+held — 27 pages did describe the port, and none of the rewriting could honestly
+have been done a day earlier.
+
+What §22 did not predict is that the rewrite would find defects in the code.
+
+### The user exit was unreachable, and nothing said so
+
+Writing `guide/user-exit.md` meant answering "how does a project install one?"
+The port's answer (scan the app directories for a JS class implementing
+`z2ui5_if_exit`) died with the port. Upstream's answer is *discovery*: ask the
+class repository which classes implement `Z2UI5_IF_UI5_EXIT`,
+`SEO_INTERFACE_IMPLEM_GET_ALL` on standard ABAP, XCO on cloud.
+
+open-abap has no class repository. Measured, with an exit class sitting in
+`abap.Classes`:
+
+```
+get_user_exit_class -> ""
+get_instance        -> z2ui5_cl_ui5_user_exit      (the shipped default)
+rtti lookup         THREW
+```
+
+The framework's own `CATCH cx_root` turns that raise into "no exit
+configured". So the Content-Security-Policy, the five security headers, the
+UI5 bootstrap URL, the theme, the draft expiry, the CSRF gate and the
+forwarded-host trust were **not configurable from a CAP project at all** —
+with no error anywhere. A project that had to tighten the CSP, or serve UI5
+from its own host instead of the CDN, could not.
+
+`defineExit( )` binds the exit to the same static `exit_instantiate( )` writes
+to. And the first defect uncovered a second: the CDS draft store's `cleanup( )`
+deleted on a hard-coded four hours while the shipped ABAP store asks the exit
+for `draft_exp_time_in_hours` — so a project raising the expiry got drafts the
+framework would have resumed and the cleanup had already deleted.
+
+### Six things the old page asserted that measurement contradicted
+
+Not stale paths — claims:
+
+| the page said | the framework does |
+|---|---|
+| a `favicon` config field | no such field exists |
+| `title` sets the tab title | the field exists and is **no longer read**; the app sets the title |
+| `src` is the locally served runtime, "which keeps the stack working offline" | `src` is the **OpenUI5 CDN**. A server without outbound internet renders nothing |
+| seven security headers | five; the caching ones come from the handler |
+| context: `method`, `session_id`, `tenant`, `body` | `path`, `app_start`, `t_params` |
+| — | two roundtrip fields missing entirely: `check_trust_forwarded_host`, `check_hide_error_details` |
+
+The CDN one propagated: Troubleshooting told readers to reinstall
+`openui5-dist` and check a `/resources` route that 404s.
+
+**The lesson, now a rule in both AGENTS.md files:** the runtime is upstream's
+ABAP on open-abap, and not everything upstream does works here. Boot it and
+measure before porting a claim from abap2UI5's documentation. Writing the
+documentation was the most effective code review this project has had — because
+documenting a mechanism means asking how a reader would *use* it, and that is
+a question the tests were not asking.
+
+### The gate that knew the old repository
+
+`verify-refs` reported ten problems after the cutover, all of them its own:
+paths under `core/ srv/ db/ app/`, classes as files in the cap2UI5 checkout,
+imports through `core/package.json`'s exports map. Disabling it would have
+reintroduced the defect class it exists to catch.
+
+The ground truth had split in two, so it now reads two checkouts — cap2UI5 for
+paths, app ids, the plugin's exports and options and the runtime pin; abap2UI5
+for the framework class names, which are **not in cap2UI5 at all**. Resolving
+those against the assembled runtime would have passed on a laptop, where
+`runtime/output` exists, and checked nothing in CI, where it does not.
+
+Then I made the same mistake one level up: `check.yml` got the second checkout
+and `deploy.yml` did not — and deploy runs the *lenient* `npm run check`, which
+skips what a missing checkout needs and exits 0. The deploy went green while
+checking no `z2ui5_*` class at all, and published once in that state. Same
+failure the file's own comment describes, reached from the other direction: not
+by losing a checkout, but by **adding a requirement to the checker and not to
+the workflow**. §22's lesson, third instance: the thing I missed was adjacent
+to the thing I fixed.
+
+### A green CI run is one sample
+
+Merging meant merging `main`, which had just taken a dependency bump — `@sap/cds`
+9→10, `@cap-js/sqlite` 2→3, `express` 4→5 — with a **green** CI run on it.
+
+Six runs of `npm test` on `main` itself, nothing of my branch in the tree:
+
+```
+run 1  28/28     run 3  27/28     run 5  27/28
+run 2  25/28     run 4  27/28     run 6  27/28
+```
+
+Five of six red, on a suite CI had just called green. The cause, once the test
+server's output was kept: `@cap-js/sqlite` 3 moved to node's built-in
+`node:sqlite`, whose busy timeout defaults to **zero**. WAL keeps readers out
+of the way; writers still serialize, and every cap2UI5 roundtrip writes a
+draft, so the second writer in the same millisecond got `SQLITE_BUSY` instead
+of waiting two milliseconds. better-sqlite3 had waited.
+
+One line of project config (`"client": { "timeout": 5000 }`, passed straight to
+the driver) took `main` to 6/6 green over the same six runs. Not my branch's
+defect — but my branch added eight more server-backed tests, so pushing them
+onto a known race would have made it worse and the next red run would have
+looked like mine.
+
+**The lesson:** a single green run proves a suite *can* pass. When a
+dependency bump lands under a suite that talks to a database over more than
+one process, run it several times before believing it.
