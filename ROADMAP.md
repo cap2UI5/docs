@@ -1590,3 +1590,64 @@ looked like mine.
 **The lesson:** a single green run proves a suite *can* pass. When a
 dependency bump lands under a suite that talks to a database over more than
 one process, run it several times before believing it.
+
+## 24. 2026-09-21 — what "publish it" turned out to mean
+
+The remaining work was one line in a handover: get a token, cut a release,
+point cap2UI5 at the package. Preparing for it found three things that had
+been invisible from inside the repository.
+
+### The version the docs promised did not exist
+
+`reference/deployment` told a reader to pin `"cap2ui5": "^0.1.0"`. The package
+carried `"version": "0.0.0"` — what npm writes when nobody has chosen one —
+and `^0.1.0` does not match `0.0.x`, so the line resolved to nothing. It
+survived a complete rewrite of that page, because nothing compared the two
+artifacts. `verify-refs` compares them now, and the package is `0.1.0`.
+
+### The npm page would have been empty
+
+`npm pack --dry-run` shipped the right files and nothing else — and no
+license, no repository, no homepage, no keywords, no engines, and no README
+inside `plugin/`. An `UNLICENSED` badge on an MIT project, next to one line of
+description. Invisible from the repository, where the root README is right
+there and `npm view` is the only thing that would have said otherwise.
+
+### Nothing here could prove the package works
+
+This is the one worth keeping. Every test in cap2UI5 runs inside the npm
+**workspace**, where `cap2ui5` and `@abap2ui5/runtime` are symlinks. That
+proves the code. It proves nothing about the package — a broken `files`, a
+`main` pointing at nothing, a `cds-plugin.js` CAP only finds because the
+workspace put it somewhere convenient, a model contribution that only resolves
+relatively. None of those can fail in a workspace, and every one of them fails
+on `npm i cap2ui5`.
+
+`scripts/consumer-test.mjs` packs both packages as publish would, installs
+them into a throwaway CAP project that has never heard of this repository, and
+drives a roundtrip: 17 checks, now a CI step. Verified to discriminate —
+dropping `lib` from `files` fails three of them by name.
+
+The first attempt at that verification taught something too: removing
+`README.md` from `files` changes nothing, because npm always ships README,
+LICENSE and package.json. A test that cannot fail is worth finding out about
+before you rely on it, not after.
+
+### And the generator that rewrote 125 files
+
+Mirroring the console change into ABAP with `npm run auto_app2abap` produced
+diffs in 124 files nobody had touched — one extra space before `&&`, over
+11,000 lines. The documented command is `npm run app2abap`, which runs the
+formatter and abaplint's autofix around the generator; it changed exactly the
+two files the change touches. A build step run without its siblings is not the
+build step, and a 125-file diff is the shape of that mistake rather than the
+shape of the change.
+
+### The lesson
+
+Three defects, none of which any test could have caught, all found by asking
+one question the tests do not ask: **what does someone who only has the
+published artifact see?** The documentation rewrite found its defects by
+asking how a reader would use the thing (§23). This found its by asking what
+an installer would get. Both are the same move — leave the repository and look
+back at it.

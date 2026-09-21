@@ -97,12 +97,23 @@ picking another one turns this repository red until the prose follows.
   `plugin/package.json#cds.cap2ui5.requires`. Note what `null` costs: every
   caller is then `anonymous` and therefore shares one draft owner — the
   documented consequence of turning authentication off, not a defect.
-- **Whether `renderArg` should bound the output as well as the walk.**
-  Upstream's cap stops the *walk* at 1,000 nodes; a 3,000-key lookup still
-  produces ~49 KB before the 2,000-character cut, because the markers are about
-  as long as the values they replace. Giving objects the head-plus-marker
-  treatment arrays already get would fix that. It is a behaviour change, so it
-  is yours to want.
+- **Whether `renderArg` should bound the output as well as the walk** —
+  now a pull request to say yes or no to:
+  [abap2UI5/abap2UI5#2774](https://github.com/abap2UI5/abap2UI5/pull/2774).
+  It is a behaviour change, so it stayed yours; what it gains is measured
+  rather than estimated, on that tree:
+
+  | shape | before | after |
+  |---|---|---|
+  | flat object, 3,000 scalar keys | 45,781 chars | **245** |
+  | map-shaped, 3,000 object values | 63,654 chars | **575** |
+  | array, 3,000 items | 129 | 129 |
+  | array of 3,000 objects | 459 | 459 |
+
+  All of it built on every `console.log` of such a value and then thrown away
+  by the 2,000-character cut. The estimate in this file used to say "~49 KB";
+  the map-shaped case is worse than that. It also makes #2771's original
+  assertion true as written, and the test from #2773 says so.
 - **Where the docs live** — `cap2UI5/docs` stays, or becomes a folder in the
   plugin repo. Less urgent than it was: the rewrite is done either way, and
   moving it now is a `git mv` plus the two workflows.
