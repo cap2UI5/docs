@@ -54,8 +54,10 @@
  *      a file that exists. Stale `require("abap2UI5/…")` — the port's package,
  *      which no longer exists — is reported by name.
  *   5. every plugin option named as `cds.cap2ui5.<key>` is a key the plugin
- *      really defines, and every three-part release number (1.x.y) is the
- *      runtime release the checkout pins, or an allowlisted historical number.
+ *      really defines, every three-part release number (1.x.y) is the runtime
+ *      release the checkout pins or an allowlisted historical number, and a
+ *      `"cap2ui5": "^x.y.z"` a page tells a reader to write is a range the
+ *      plugin's own version actually falls in.
  *
  * Check 4 exists because the first three did not see the largest defect this
  * site ever had. Fenced blocks were skipped wholesale as "examples, not
@@ -196,6 +198,22 @@ const PINNED_RELEASE = (() => {
   } catch { return null; }
 })();
 
+/* The PLUGIN's own version, for the same reason one level down. A deployment
+ * page telling a reader to pin `"cap2ui5": "^0.1.0"` is a claim about a
+ * package that has to exist in that range - and it did not: the package
+ * carried the placeholder 0.0.0 for as long as the page said ^0.1.0, so a
+ * reader copying the line would have asked for a version npm could not
+ * resolve (^0.1.0 does not match 0.0.x). Only the MAJOR.MINOR are compared,
+ * because a caret range is exactly a claim about those. */
+const PLUGIN_SOURCE = "plugin/package.json";
+const PLUGIN_VERSION = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(APP, PLUGIN_SOURCE), "utf8")).version ?? null;
+  } catch { return null; }
+})();
+const CAP2UI5_DEP_RE = /"cap2ui5"\s*:\s*"[~^]?(\d+\.\d+)\.[\dx]+"/g;
+const minor = (v) => String(v).split(".").slice(0, 2).join(".");
+
 if (LIST) {
   console.log(`${files.size} paths in ${APP}`);
   console.log(`${classes.size} framework classes/interfaces in ${UPSTREAM}/src`);
@@ -203,6 +221,7 @@ if (LIST) {
   console.log(`cap2ui5 exports: ${PLUGIN_EXPORTS ? [...PLUGIN_EXPORTS].join(", ") : "NOT FOUND"}`);
   console.log(`plugin options: ${PLUGIN_OPTIONS ? [...PLUGIN_OPTIONS].join(", ") : "NOT FOUND"}`);
   console.log(`pinned runtime: ${PINNED_RELEASE ?? "NOT FOUND"}`);
+  console.log(`plugin version: ${PLUGIN_VERSION ?? "NOT FOUND"}`);
   process.exit(0);
 }
 
@@ -272,6 +291,14 @@ for (const file of markdownFiles(DOCS)) {
   lines.forEach((line, i) => {
     if (/^\s*```/.test(line)) { inFence = !inFence; return; }
     const n = i + 1;
+
+    if (PLUGIN_VERSION) {
+      for (const m of line.matchAll(CAP2UI5_DEP_RE)) {
+        if (m[1] === minor(PLUGIN_VERSION) || IGNORE.has(`cap2ui5@${m[1]}`)) continue;
+        add(file, n, `tells a reader to depend on cap2ui5 ${m[1]}.x, but the package `
+          + `is ${PLUGIN_VERSION} (${PLUGIN_SOURCE}) - nothing would resolve in that range`);
+      }
+    }
 
     // release numbers are claims wherever they stand, prose or example
     if (PINNED_RELEASE) {
