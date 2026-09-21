@@ -37,7 +37,7 @@ http://localhost:4004/rest/root/z2ui5?app_start=ZCL_JS_HELLO
 
 | | |
 |---|---|
-| `require("cap2ui5")` | the plugin's only export surface: `defineApp` and `t` |
+| `require("cap2ui5")` | the plugin's whole export surface: `defineApp`, `t`, and `defineExit` for the [user exit](../guide/user-exit) |
 | `defineApp("ZCL_JS_HELLO", …)` | the first argument is the name **on the wire** — what `?app_start=` takes. The file name does not matter |
 | `name = ""` | app state. An empty string types it as `string`, and it survives the roundtrip because the instance is written to `cap2ui5.Drafts` |
 | `main(c)` | synchronous — no `async`, no `await` |

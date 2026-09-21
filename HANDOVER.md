@@ -57,6 +57,7 @@ point of this step is to stop doing that.
 ```bash
 scripts/assemble-runtime.sh --package X.Y.Z   # the real package, not a build
 npm install && npm run lint && npm test && npm run cold-test
+npm run consumer-test                         # and this one, see below
 ```
 
 Then, in one PR:
@@ -73,8 +74,21 @@ Then, in one PR:
   check until the prose follows — that is the gate doing its job, not a
   problem to work around.
 
+`npm run consumer-test` is the step worth not skipping. Everything else in
+that repository runs inside the npm workspace, where `cap2ui5` and
+`@abap2ui5/runtime` are symlinks — so a broken `files`, a `main` pointing at
+nothing or a model contribution that only resolves relatively cannot fail
+there, and every one of them fails on `npm i cap2ui5`. It packs both packages
+as publish would, installs them into a throwaway CAP project and drives a
+roundtrip through them. It also runs in CI.
+
 Publishing `cap2ui5` itself is the same shape and can follow whenever you want
-`npm i cap2ui5` to work; nothing else depends on it.
+`npm i cap2ui5` to work; nothing else depends on it. The package is ready for
+it: license, repository, homepage, keywords, engines and a README written as
+the npm landing page rather than as the repository's. **Its version is
+`0.1.0`, and that number is yours** — the docs check compares what
+`reference/deployment` tells a reader to pin against the package itself, so
+picking another one turns this repository red until the prose follows.
 
 ## Still open — decisions that are yours, not mine
 
