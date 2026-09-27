@@ -17,7 +17,7 @@ The reasoning behind all of it is in [ROADMAP.md](ROADMAP.md) §§8–25 and in
 |---|---|
 | upstream, the four seams + the runtime package job | [abap2UI5/abap2UI5#2772](https://github.com/abap2UI5/abap2UI5/pull/2772) merged |
 | the plugin repository | [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) merged, plus #75 (CI ref), #76 (the user exit), #77 (publishable package, consumer test) and #79 (`@abap2ui5/node-runtime`, startup addresses, trusted publishing) |
-| the conformance gate, the prototype, the ADRs | cap2UI5/builder-abap2UI5-js#29 merged (that repository is being archived; its decision records are copied to `cap2UI5/cap2UI5:docs/adr/`) |
+| the conformance gate, the prototype, the ADRs | cap2UI5/builder-abap2UI5-js#29 merged (that repository is being archived; its decision records are being copied to `cap2UI5/cap2UI5:docs/adr/`) |
 | this site, migrated to the plugin | [cap2UI5/docs#20](https://github.com/cap2UI5/docs/pull/20), [#21](https://github.com/cap2UI5/docs/pull/21), [#22](https://github.com/cap2UI5/docs/pull/22) merged |
 | the cutover (ADR-008 steps 3–5) | `update_cap` and `build web` disabled, `generated-app-final` tagged at `595c76f`, `builder-cap2UI5`, `builder-cap2UI5-web` and `web-cap2UI5-build` archived |
 | publishing | `cap2ui5@0.1.0` and `@abap2ui5/node-runtime@1.145.0` on npm; the site's quickstart runs verbatim against them (`cds init --nodejs`, `npm install cap2ui5`, `cds watch`) |
@@ -70,7 +70,7 @@ page says so.
 - **`builder-abap2UI5-js`** is being archived. Nothing consumes its output:
   `cap2ui5` depends on `@abap2ui5/node-runtime` from npm, which abap2UI5
   builds itself. The decision records that existed only there (ADR-001 to
-  ADR-004, ADR-006 and `transpiler-roadmap.md`) are copied to
+  ADR-004, ADR-006 and `transpiler-roadmap.md`) are being copied to
   `cap2UI5/cap2UI5:docs/adr/`. Its two red suites (`cs_event` constants, the
   `upstream-units` ratchet) had a proposed patch on its PR #29; the archive
   settles them.
