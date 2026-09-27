@@ -10,7 +10,17 @@ owns what saves time when something breaks.
 | [**abap2UI5/abap2UI5**](https://github.com/abap2UI5/abap2UI5) | the framework itself: the ABAP sources and the UI5 shell. Everything cap2UI5 runs comes from here |
 | [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `cap2ui5`; `examples/bookshop` is a CAP project using it; `runtime/` is a stand-in for `@abap2ui5/node-runtime` that the repository's own tests build from upstream |
 | [**cap2UI5/docs**](https://github.com/cap2UI5/docs) | this site |
-| [**cap2UI5/builder-abap2UI5-js**](https://github.com/cap2UI5/builder-abap2UI5-js) | the conformance gate and the ADRs that led to the current design. Historical: the build pipelines it ran are retired |
+
+The decisions that led to the current design are in the plugin repository,
+`docs/adr/` — [ADR-008](https://github.com/cap2UI5/cap2UI5/blob/main/docs/adr/adr-008-host-not-port.md)
+is the one that made cap2UI5 a host rather than a port.
+
+The four repositories of the earlier port — `builder-abap2UI5-js`, which
+transpiled abap2UI5 into JavaScript, and `builder-cap2UI5`,
+`builder-cap2UI5-web` and `web-cap2UI5-build`, which generated an application
+and a playground from it — are archived or being archived. Nothing consumes
+their output: `cap2ui5` depends on `@abap2ui5/node-runtime` from npm, which
+abap2UI5 builds itself.
 
 ## The packages
 

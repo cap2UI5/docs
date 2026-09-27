@@ -131,9 +131,10 @@ gets `403`. That protection is the framework's CSRF gate, so leave
 use this route.
 
 ::: info Pending upstream: abap2UI5/abap2UI5#2802
-That pull request (open, not merged) teaches the frontend the standard
-`X-CSRF-Token` fetch-and-send handshake. Once `cap2ui5` pins a runtime release
-that carries it, the extra route can go and the generated catch-all works as
+That pull request teaches the frontend the standard `X-CSRF-Token`
+fetch-and-send handshake. It was merged on 2026-09-27, after the release
+`cap2ui5` pins, and no abap2UI5 release carries it yet. Once `cap2ui5` pins a
+runtime release that does, the extra route can go and the generated catch-all works as
 it is. Until then, keep the route above.
 :::
 

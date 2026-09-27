@@ -17,7 +17,7 @@ The reasoning behind all of it is in [ROADMAP.md](ROADMAP.md) §§8–25 and in
 |---|---|
 | upstream, the four seams + the runtime package job | [abap2UI5/abap2UI5#2772](https://github.com/abap2UI5/abap2UI5/pull/2772) merged |
 | the plugin repository | [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) merged, plus #75 (CI ref), #76 (the user exit), #77 (publishable package, consumer test) and #79 (`@abap2ui5/node-runtime`, startup addresses, trusted publishing) |
-| the conformance gate, the prototype, the ADRs | [cap2UI5/builder-abap2UI5-js#29](https://github.com/cap2UI5/builder-abap2UI5-js/pull/29) merged |
+| the conformance gate, the prototype, the ADRs | cap2UI5/builder-abap2UI5-js#29 merged (that repository is being archived; its decision records are being copied to `cap2UI5/cap2UI5:docs/adr/`) |
 | this site, migrated to the plugin | [cap2UI5/docs#20](https://github.com/cap2UI5/docs/pull/20), [#21](https://github.com/cap2UI5/docs/pull/21), [#22](https://github.com/cap2UI5/docs/pull/22) merged |
 | the cutover (ADR-008 steps 3–5) | `update_cap` and `build web` disabled, `generated-app-final` tagged at `595c76f`, `builder-cap2UI5`, `builder-cap2UI5-web` and `web-cap2UI5-build` archived |
 | publishing | `cap2ui5@0.1.0` and `@abap2ui5/node-runtime@1.145.0` on npm; the site's quickstart runs verbatim against them (`cds init --nodejs`, `npm install cap2ui5`, `cds watch`) |
@@ -30,10 +30,12 @@ route every roundtrip gets 403. The site documents the working setup — an
 extra route for the roundtrip path with `"csrfProtection": false`, safe
 because abap2UI5 refuses a cross-origin POST itself
 (`docs/reference/deployment.md`).
-[abap2UI5/abap2UI5#2802](https://github.com/abap2UI5/abap2UI5/pull/2802) (open)
-teaches the frontend the token handshake. Once it is in a release and
-`cap2ui5` pins that release, drop the extra route from the deployment page and
-the known limit from `guide/roadmap.md`.
+[abap2UI5/abap2UI5#2802](https://github.com/abap2UI5/abap2UI5/pull/2802)
+teaches the frontend the token handshake. It was merged on 2026-09-27 as
+`5a1bd70`, after the 1.145.0 release, so no abap2UI5 release carries it yet.
+Until `cap2ui5` pins a runtime release that does, the approuter still needs the
+extra route. Then drop it from the deployment page and the known limit from
+`guide/roadmap.md`.
 
 Not exercised at all so far: a real HANA or BTP deployment. The deployment
 page says so.
@@ -65,17 +67,17 @@ page says so.
 - **Where the docs live** — `cap2UI5/docs` stays, or becomes a folder in the
   plugin repo. Less urgent than it was: the rewrite is done either way, and
   moving it now is a `git mv` plus the two workflows.
-- **`builder-abap2UI5-js`**: still active and still running its nightly
-  pipeline (it mirrored and transpiled upstream `ad0a2dd` today, and its oracle
-  classification improved — 1,285 green methods, up from 1,272, because the
-  seams merged). ADR-008 archives it *after* the conformance suite is copied
-  where it should live. Its two red suites (`cs_event` constants, the
-  `upstream-units` ratchet) are `main`'s, both have a proposed patch on
-  [#29](https://github.com/cap2UI5/builder-abap2UI5-js/pull/29), and both are
-  work on a repository that is going away — worth deciding whether to fix them
-  at all, or to let the archive settle it.
-- The four deploy keys (`ACTION_KEY_CAP`, `ACTION_KEY_APP`, `ACTION_KEY_WEB`,
-  `BUILT_DEPLOY_KEY`) can go from the archived repositories' secrets.
+- **`builder-abap2UI5-js`** is being archived. Nothing consumes its output:
+  `cap2ui5` depends on `@abap2ui5/node-runtime` from npm, which abap2UI5
+  builds itself. The decision records that existed only there (ADR-001 to
+  ADR-004, ADR-006 and `transpiler-roadmap.md`) are being copied to
+  `cap2UI5/cap2UI5:docs/adr/`. Its two red suites (`cs_event` constants, the
+  `upstream-units` ratchet) had a proposed patch on its PR #29; the archive
+  settles them.
+- `builder-cap2UI5`, `builder-cap2UI5-web` and `web-cap2UI5-build` are archived
+  and may be deleted — nothing links to them any more. The four deploy keys
+  (`ACTION_KEY_CAP`, `ACTION_KEY_APP`, `ACTION_KEY_WEB`, `BUILT_DEPLOY_KEY`) go
+  with them.
 
 ## What I could not do, and why
 

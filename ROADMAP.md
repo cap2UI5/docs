@@ -535,10 +535,11 @@ recommendation was wrong on the facts and was not executed.
 
 ### Where the work is tracked
 
-[builder-abap2UI5-js `docs/adr-006-conformance.md`](https://github.com/cap2UI5/builder-abap2UI5-js/blob/main/docs/adr-006-conformance.md)
+ADR-006, then in builder-abap2UI5-js and now
+[`cap2UI5/cap2UI5:docs/adr/adr-006-conformance.md`](https://github.com/cap2UI5/cap2UI5/blob/main/docs/adr/adr-006-conformance.md)
 — decision, the five-item worklist, and how to grow the corpus from 2 apps to 11
 using upstream's own `zcl_tst_*` framework exercises.
-[`docs/adr-007-repo-consolidation.md`](https://github.com/cap2UI5/builder-abap2UI5-js/blob/main/docs/adr-007-repo-consolidation.md)
+ADR-007, now [`docs/adr/adr-007-repo-consolidation.md`](https://github.com/cap2UI5/cap2UI5/blob/main/docs/adr/adr-007-repo-consolidation.md)
 — six repos to two, deliberately sequenced *after* the worklist: reorganising
 the delivery of a broken artefact reorganises the delivery of a broken artefact.
 
@@ -871,7 +872,8 @@ by identity (its signature has no name parameter; it matches by value).
 
 It lived only in a scratchpad, which for the most substantial part of this work
 was the wrong place. It is now
-[`builder-abap2UI5-js/docs/prototypes/open-abap-cap/`](https://github.com/cap2UI5/builder-abap2UI5-js/tree/main/docs/prototypes/open-abap-cap)
+`builder-abap2UI5-js/docs/prototypes/open-abap-cap/` (that repository is
+being archived; the prototype became cap2UI5's `plugin/` and `examples/`)
 — the 548 hand-written lines plus a README with reproduction steps. The 19 MB of
 transpiled framework and the webapp are gitignored, because any checkout can
 rebuild them.
