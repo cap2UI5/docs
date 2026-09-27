@@ -7,9 +7,9 @@ rather than sketched.
 
 ```js
 // srv/apps/books.js
-const cds = require("@sap/cds");
+import cds from "@sap/cds";
+import { defineApp, t } from "cap2ui5";
 const { SELECT, INSERT } = cds.ql;
-const { defineApp, t } = require("cap2ui5");
 
 defineApp("ZCL_JS_BOOKS", class {
   search = "";

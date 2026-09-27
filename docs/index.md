@@ -23,8 +23,9 @@ features:
   - title: One dependency, no scaffolding
     icon: 🔌
     details: >-
-      npm i cap2ui5 is the whole installation. The roundtrip route, the UI5
-      shell and the cap2ui5.Drafts entity arrive through cds-plugin.js — your
+      npm i cap2ui5 is the whole installation. The roundtrip route, whose
+      page embeds the UI5 frontend, and the cap2ui5.Drafts entity arrive
+      through cds-plugin.js — your
       own server.js is untouched, and nothing is generated into your repository.
   - title: Apps are plain JavaScript
     icon: 🟨
@@ -36,7 +37,7 @@ features:
     icon: 🔗
     details: >-
       The backend is upstream's own ABAP, downported and transpiled over
-      open-abap and shipped as @abap2ui5/runtime. Backend, frontend and wire
+      open-abap and shipped as @abap2ui5/node-runtime. Backend, frontend and wire
       version come from one commit, so drift is structurally impossible.
   - title: A guest in your CAP project
     icon: 🧩

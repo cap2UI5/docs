@@ -6,6 +6,11 @@ test suites executed, numbers measured rather than quoted). This is a
 maintainer planning document, not a site page — it is deliberately outside
 `docs/` so it is not published or scanned by `verify-refs`.*
 
+> [!NOTE]
+> **`@abap2ui5/runtime` in this file is the package's old name.** It was
+> renamed to `@abap2ui5/node-runtime` before it was ever published; the dated
+> sections below keep the name they were written with. See §25.
+
 > [!IMPORTANT]
 > **Phases 0–4 have since been implemented.** See
 > [§7 What was executed](#7-what-was-executed) for what landed, and — more
@@ -1651,3 +1656,44 @@ published artifact see?** The documentation rewrite found its defects by
 asking how a reader would use the thing (§23). This found its by asking what
 an installer would get. Both are the same move — leave the repository and look
 back at it.
+
+## 25. 2026-09-27 — published, and what a reader actually gets
+
+Both packages are on npm: `cap2ui5@0.1.0` (Node ≥ 20, peer `@sap/cds` ≥ 9,
+`express` ^5) and `@abap2ui5/node-runtime@1.145.0` (Node ≥ 22), pinned exactly
+by the plugin. The runtime package is the one this file calls
+`@abap2ui5/runtime`: renamed before its first publish, so the old name never
+existed on the registry.
+
+Running the site's own quickstart against the published packages, in an empty
+folder with cds-dk 10.1.0 and Node 22, found what §23 and §24 would predict —
+the defects are where the repository ends and the reader's machine begins:
+
+- **`cds init` without `--nodejs` writes no `package.json`** in cds-dk 10, so
+  `npm install cap2ui5` has nothing to install into. The old page started with
+  `npm init -y` and `npx cds init`.
+- **`cds init --nodejs` makes an ES module project**, and every example on the
+  site used `require("cap2ui5")`. In that project a `require` in an app file
+  does not fail on its line — it fails the whole runtime boot (`require is not
+  defined in ES module scope`), and every roundtrip answers 500. The examples
+  now `import`, and `verify-refs` checks `import { … } from "cap2ui5"` the way
+  it checked `require`.
+- **There is no static frontend route.** The GET page embeds the whole UI5
+  component; `/z2ui5/webapp/index.html` answers 404 and the plugin defines no
+  `webapp` option. Eight pages still named both.
+- **CAP's index page at `/` does not list the route.** The plugin's startup
+  lines (`[cap2ui5] HELLO  http://localhost:4004/sap/bc/z2ui5?app_start=HELLO`)
+  are the entry point.
+- **Behind the approuter `cds add approuter` generates, every roundtrip is
+  403**: its catch-all route has `"csrfProtection": true`, and the frontend up
+  to 1.145.0 sends no token. The documented setup is an extra route with
+  `"csrfProtection": false` for the roundtrip path, safe because abap2UI5
+  compares Origin/Referer against the (forwarded) host itself — measured
+  against approuter 23.0.0 locally. abap2UI5/abap2UI5#2802, open, teaches the
+  frontend the token handshake; once `cap2ui5` pins a release carrying it, the
+  extra route goes.
+
+`cds add hana` + `cds build --production` was checked too: the drafts table
+lands in `gen/db`, the apps in `gen/srv/srv/apps`, and the built service boots
+from `csn.json` (SQLite standing in for HANA). A real HANA/BTP deployment is
+still unexercised, and the deployment page says so.

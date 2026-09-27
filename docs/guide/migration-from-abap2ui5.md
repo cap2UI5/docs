@@ -33,7 +33,7 @@ ENDMETHOD.
 
 ```js
 // cap2UI5
-const { defineApp } = require("cap2ui5");
+import { defineApp } from "cap2ui5";
 
 defineApp("ZCL_MY_APP", class {
   name = "";

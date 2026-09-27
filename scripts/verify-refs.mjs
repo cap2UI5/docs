@@ -30,7 +30,8 @@
  *     for which runtime release is pinned;
  *   - the FRAMEWORK CLASSES the docs name (z2ui5_cl_…, z2ui5_if_…) are not
  *     in cap2UI5 at all. They are abap2UI5's ABAP, transpiled into
- *     @abap2ui5/runtime — whose content is assembled, gitignored, and absent
+ *     @abap2ui5/node-runtime — whose content, in the cap2UI5 checkout, is an
+ *     assembled stand-in: gitignored, and absent
  *     from a fresh checkout. So the class inventory is read from the abap2UI5
  *     source tree, which is where those names are actually defined.
  *
@@ -49,10 +50,11 @@
  *      documentation page (a page that teaches an app may name it).
  *   3. every z2ui5 class named in backticks exists in the abap2UI5 source
  *      the hosted runtime is built from.
- *   4. every `require("cap2ui5")` in a FENCED CODE BLOCK destructures names
- *      the package actually exports, and `require("cap2ui5/<sub>")` lands on
- *      a file that exists. Stale `require("abap2UI5/…")` — the port's package,
- *      which no longer exists — is reported by name.
+ *   4. every `require("cap2ui5")` or `import { … } from "cap2ui5"` in a
+ *      FENCED CODE BLOCK names only what the package actually exports, and
+ *      a "cap2ui5/<sub>" specifier lands on a file that exists. Stale
+ *      "abap2UI5/…" — the port's package, which no longer exists — is
+ *      reported by name, in either form.
  *   5. every plugin option named as `cds.cap2ui5.<key>` is a key the plugin
  *      really defines, every three-part release number (1.x.y) is the runtime
  *      release the checkout pins or an allowlisted historical number, and a
@@ -120,7 +122,7 @@ function inventory(dir, base = dir, out = new Set()) {
     if (SKIP.has(e.name)) continue;
     const p = path.join(dir, e.name);
     const rel = path.relative(base, p).split(path.sep).join("/");
-    if (/^runtime\/(output|setup|webapp)$/.test(rel)) continue;   // assembled, gitignored
+    if (/^runtime\/(output|setup)$/.test(rel)) continue;   // assembled, gitignored
     out.add(rel);
     if (e.isDirectory()) inventory(p, base, out);
   }
@@ -165,7 +167,7 @@ const PLUGIN_OPTIONS = (() => {
 })();
 
 // ---- inventory of the framework's classes ---------------------------------
-// From abap2UI5's ABAP, which is what @abap2ui5/runtime is transpiled from.
+// From abap2UI5's ABAP, which is what @abap2ui5/node-runtime is transpiled from.
 // Both z2ui5_cl_* and z2ui5_if_* land here; upstream's frozen src/99 is
 // included because the hosted runtime carries it (measured: the assembled
 // output has z2ui5_cl_xml_view.clas.mjs). A name being present is not a
@@ -184,7 +186,7 @@ if (haveUpstream) {
 }
 
 // ---- the pinned runtime release -------------------------------------------
-/* The site names the runtime release in prose ("@abap2ui5/runtime 1.144.0"),
+/* The site names the runtime release in prose ("@abap2ui5/node-runtime 1.145.0"),
  * and the day the pin moves, every mention goes stale at once — the exact
  * defect class the path and class checks exist for, one level up. The ground
  * truth is the package the plugin hosts. Numbers that are NOT that pin live in
@@ -258,7 +260,14 @@ const CLASS_RE = /`(z2ui5_(?:cl|if|cx)_[a-z0-9_]+)(?![a-z0-9_])/gi;
 const REQUIRE_RE = /require\(\s*["'`](cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]\s*\)/gi;
 // `const { defineApp, t } = require("cap2ui5")` — the names, not just the path
 const DESTRUCTURE_RE = /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*require\(\s*["'`]cap2ui5["'`]\s*\)/g;
-// `cds.cap2ui5.apps`, `cap2ui5.webapp` in prose or a config block. Case
+// The same two claims in ES module form. `cds init --nodejs` makes an ES
+// module project, where a require() in an app file fails the whole runtime
+// boot — so the examples import, and an import line is the claim a reader
+// copies. `import { a, b as c } from "cap2ui5"` names what must be exported;
+// `import x from "cap2ui5/<sub>"` (any form) must land on a file.
+const IMPORT_RE = /\bimport\s+(?:[^"'`;]*?\s+from\s+)?["'`](cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]/gi;
+const IMPORT_NAMES_RE = /\bimport\s*\{([^}]*)\}\s*from\s*["'`]cap2ui5["'`]/g;
+// `cds.cap2ui5.apps`, `cap2ui5.routes` in prose or a config block. Case
 // matters and the flag is deliberately absent: `cap2ui5.Drafts` is the CDS
 // ENTITY, which the docs name constantly and which is not an option at all.
 const OPTION_RE = /`(?:cds\.)?cap2ui5\.([a-z][a-z_]*)`/g;
@@ -319,29 +328,34 @@ for (const file of markdownFiles(DOCS)) {
     }
 
     if (inFence) {
-      for (const m of line.matchAll(REQUIRE_RE)) {
+      for (const m of [...line.matchAll(REQUIRE_RE), ...line.matchAll(IMPORT_RE)]) {
+        const how = m[0].startsWith("import") ? "import" : "require";
         const pkg = m[1];
         const sub = m[2] || ``;
         const spec = `${pkg}${sub ? `/${sub}` : ``}`;
         if (/[*…]/.test(sub)) continue;                  // a shape, not an import
         if (IGNORE.has(spec.toLowerCase())) continue;
         if (pkg.toLowerCase() === "abap2ui5") {
-          add(file, n, `require("${spec}") is the RETIRED port package - the plugin is `
-            + `require("cap2ui5"), and the framework's own classes are not importable`);
+          add(file, n, `${how} "${spec}" is the RETIRED port package - the plugin is `
+            + `"cap2ui5", and the framework's own classes are not importable`);
           continue;
         }
         if (!haveApp || !sub) continue;                  // bare require checked below
         const target = path.join("plugin", sub.endsWith(".js") ? sub : `${sub}.js`);
         if (!files.has(target.split(path.sep).join("/"))) {
-          add(file, n, `require("${spec}") resolves to ${target}, which does not exist`);
+          add(file, n, `${how} "${spec}" resolves to ${target}, which does not exist`);
         }
       }
-      for (const m of line.matchAll(DESTRUCTURE_RE)) {
+      const named = [
+        ...[...line.matchAll(DESTRUCTURE_RE)].map((m) => ["require", m[1], ":"]),
+        ...[...line.matchAll(IMPORT_NAMES_RE)].map((m) => ["import", m[1], /\s+as\s+/]),
+      ];
+      for (const [how, list, alias] of named) {
         if (!PLUGIN_EXPORTS) continue;
-        for (const raw of m[1].split(",")) {
-          const name = raw.split(":")[0].trim();
+        for (const raw of list.split(",")) {
+          const name = raw.split(alias)[0].trim();
           if (!name || PLUGIN_EXPORTS.has(name) || IGNORE.has(name.toLowerCase())) continue;
-          add(file, n, `require("cap2ui5") does not export ${name} `
+          add(file, n, `${how} from "cap2ui5" names ${name}, which the package does not export `
             + `(it exports ${[...PLUGIN_EXPORTS].join(", ")})`);
         }
       }

@@ -8,7 +8,7 @@ by where your data is.
 
 Not "compatible" — identical, because it is the same code:
 
-- **the same frontend.** The UI5 shell ships inside `@abap2ui5/runtime`,
+- **the same frontend.** The UI5 frontend ships inside `@abap2ui5/node-runtime`,
   straight from upstream's repository. Same bundle, same custom controls, same
   frontend actions, same boot;
 - **the same backend.** Upstream's ABAP, downported and transpiled over

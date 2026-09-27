@@ -30,6 +30,22 @@ Apps are registered by **`defineApp`**, not found by file name:
 `c.navTo()` on an unknown name is refused where you called it, listing what is
 registered — rather than failing later as `NAV_APP_TARGET_NOT_BOUND`.
 
+## Every roundtrip answers 500 "roundtrip failed"
+
+For every app, from the first click — look at the server log above the
+startup lines:
+
+```
+[cap2ui5] runtime failed to boot: ReferenceError: require is not defined in ES module scope, you can use import instead
+```
+
+The project is an **ES module project** (`"type": "module"` in
+`package.json`, which is what `cds init --nodejs` creates), and an app file in
+it uses `require("cap2ui5")`. The plugin imports the apps as part of booting
+the runtime, so one such file fails the boot, and the route has nothing to
+answer with. Write `import { defineApp } from "cap2ui5"` instead — or rename
+the file to `.cjs`, where `require` stays valid.
+
 ## The draft cannot be restored
 
 Symptom: `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND`, or the app restarts from
@@ -57,8 +73,8 @@ The bootstrap HTML arrived but UI5 never started.
 
 - **Open the browser console first** — a CSP violation or a failed load of
   `sap-ui-core.js` shows there immediately.
-- **The server has no outbound internet access.** The plugin serves the
-  abap2UI5 shell, not UI5 itself: the page bootstraps from
+- **The server has no outbound internet access.** The page embeds the
+  abap2UI5 frontend, not UI5 itself: it bootstraps from
   `https://sdk.openui5.org/…/sap-ui-core.js`, and there is no `/resources`
   route to fall back to. In an air-gapped or egress-restricted deployment,
   host a UI5 distribution yourself and point `cfg.src` at it in your
@@ -103,6 +119,15 @@ The decision happens **before** the body is read, so an unauthenticated POST is
 refused without the payload being buffered. To open the route deliberately, set
 `requires` to `null` — and read what that costs in
 [Configuration](../reference/configuration).
+
+## 403 on the roundtrip behind the approuter
+
+The page loads, the first click fails with `403`, and the response carries
+`x-csrf-token: Required`. That is the approuter, not the plugin: the route
+`cds add approuter` generates has `"csrfProtection": true`, and the abap2UI5
+frontend in the pinned runtime sends no CSRF token. Give the roundtrip path a
+route of its own with `"csrfProtection": false` — the exact route, and why it
+is safe, are in [Deployment](../reference/deployment#the-approuter-needs-one-extra-route-today).
 
 ## Two users see each other's state
 

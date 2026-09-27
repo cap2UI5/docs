@@ -1,7 +1,7 @@
 # Project Structure
 
 There is no cap2UI5 project layout. cap2UI5 is a **CAP plugin**, so the project
-is *your* CAP project, and the plugin adds three things to it without putting a
+is *your* CAP project, and the plugin adds two things to it without putting a
 single file in your repository.
 
 ## What your project looks like
@@ -32,8 +32,7 @@ that gives you:
 
 | | where it comes from |
 |---|---|
-| `/sap/bc/z2ui5`, `/rest/root/z2ui5` | the roundtrip route, mounted behind CAP's own middleware chain |
-| `/z2ui5/webapp/` | the UI5 shell, served **out of the runtime package** — not copied, not generated, not yours to maintain |
+| `/sap/bc/z2ui5`, `/rest/root/z2ui5` | the roundtrip route, mounted behind CAP's own middleware chain. A GET on it answers with a page that embeds the whole UI5 frontend, so there are no frontend files to serve, copy or maintain |
 | `cap2ui5.Drafts` | a CDS entity contributed through `package.json#cds.requires`, so `cds deploy` creates it next to your own tables |
 
 None of this appears in your working tree. There is nothing to regenerate, no
@@ -47,7 +46,7 @@ more than once.
 
 ```js
 // srv/apps/pick.js — two apps in one file is fine
-const { defineApp } = require("cap2ui5");
+import { defineApp } from "cap2ui5";
 
 defineApp("ZCL_PICK",     class { /* … */ });
 defineApp("ZCL_PICK_ONE", class { /* … */ });
@@ -70,8 +69,8 @@ In `node_modules`, in two packages, and you own neither:
 
 | | |
 |---|---|
-| `cap2ui5` | the plugin — ~770 lines, of which 485 are code. `cds-plugin.js`, `index.cds`, `lib/` |
-| `@abap2ui5/runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, plus the UI5 shell. 1,244 transpiled files |
+| `cap2ui5` | the plugin — about 1,050 lines in 0.1.0, of which about 640 are code. `cds-plugin.js`, `index.cds`, `index.js`, `lib/` |
+| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. `cap2ui5` pins one exact release |
 
 That split is the whole design. The plugin is a **host**: it mounts a route,
 implements the draft store over a CDS entity, and turns a JavaScript class into
@@ -80,9 +79,10 @@ cannot drift from abap2UI5 — see [Architecture](../reference/architecture).
 
 ::: info The repository is not the product
 [`cap2UI5/cap2UI5`](https://github.com/cap2UI5/cap2UI5) holds `plugin/` (the
-package), `examples/bookshop` (a project that uses it) and `runtime/` (where
-`@abap2ui5/runtime` is assembled until it is on npm). You consume the package;
-you do not clone the repository — unless you are working on cap2UI5 itself.
+package), `examples/bookshop` (a project that uses it) and `runtime/` (a
+stand-in for `@abap2ui5/node-runtime` that the repository's own tests build
+from upstream). You consume the packages from npm; you do not clone the
+repository — unless you are working on cap2UI5 itself.
 :::
 
 ## Next

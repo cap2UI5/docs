@@ -50,7 +50,7 @@ abap2UI5 (the real ABAP sources)
         │  npm run auto_downport      ← to 7.02-compatible ABAP
         │  npm run auto_transpile     ← @abaplint/transpiler, over open-abap
         ▼
-@abap2ui5/runtime          the backend AND the UI5 shell, one package, one commit
+@abap2ui5/node-runtime     the backend AND the UI5 frontend, one package, one commit
         │
         ▼
 cap2ui5 (this plugin)      mounts the route, implements the draft store over a
@@ -62,7 +62,7 @@ The numbers, since they are the argument:
 
 | | port | host |
 |---|---|---|
-| framework code maintained here | 16,874 lines | **774**, of which 485 are code |
+| framework code maintained here | 16,874 lines | **about 1,050** (0.1.0), of which about 640 are code |
 | wire drift against abap2UI5 | 17 measured | structurally impossible — same code |
 | frontend/backend pairing | assembled by us | one upstream commit |
 

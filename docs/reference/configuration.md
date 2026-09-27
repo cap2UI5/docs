@@ -14,8 +14,7 @@ These ship in the plugin's own `package.json` and apply until you override one:
     "cap2ui5": {
       "apps": "srv/apps",
       "requires": "authenticated-user",
-      "routes": ["/sap/bc/z2ui5", "/rest/root/z2ui5"],
-      "webapp": "/z2ui5/webapp"
+      "routes": ["/sap/bc/z2ui5", "/rest/root/z2ui5"]
     }
   }
 }
@@ -25,8 +24,7 @@ These ship in the plugin's own `package.json` and apply until you override one:
 |---|---|
 | `apps` | the directory scanned for app modules, relative to `cds.root`. Every `.js`/`.mjs`/`.cjs` in it is imported once the runtime is up. A project without the directory simply has no JavaScript apps |
 | `requires` | the role the route demands. `null` lets anonymous callers in — read the box below first |
-| `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works |
-| `webapp` | where the UI5 shell is mounted, served straight from the runtime package |
+| `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works. A GET on a route answers with the page that embeds the whole UI5 frontend — there is no separate static route to configure |
 
 ## Overriding
 
@@ -83,18 +81,19 @@ run behind it under `xsuaa` and `ias` and not only under `mocked`.
 
 ## The runtime
 
-`@abap2ui5/runtime` is resolved from **your project** (`cds.root`), not from
-the plugin's own `node_modules`. The version you install is the version that
-runs; the plugin only declares the range.
+`cap2ui5` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.145.0`
+for `cap2ui5` 0.1.0 — so `npm install cap2ui5` already gives you one known
+runtime release. There is nothing to add to your own `package.json`.
 
-Pin it in production:
+The plugin resolves the runtime from **your project** (`cds.root`) first and
+only then from its own location, and logs what it found at startup:
 
-```json
-{ "dependencies": { "@abap2ui5/runtime": "1.144.0" } }
+```
+[cap2ui5] @abap2ui5/node-runtime 1.145.0 from …/node_modules/@abap2ui5/node-runtime
 ```
 
-Backend, UI5 shell and wire protocol version come from that one package, which
-is what makes a frontend/backend mismatch impossible. See
+Backend, UI5 frontend and wire protocol version come from that one package,
+which is what makes a frontend/backend mismatch impossible. See
 [HTTP Protocol](./protocol).
 
 ## What the plugin does not configure
@@ -106,7 +105,7 @@ exit, registered with `defineExit`:
 
 ```js
 // srv/apps/exit.js
-const { defineExit } = require("cap2ui5");
+import { defineExit } from "cap2ui5";
 
 defineExit({
   onPage(cfg, ctx) { cfg.theme = "sap_horizon_dark"; },

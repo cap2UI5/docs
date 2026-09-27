@@ -1,7 +1,7 @@
 # API: `defineApp` and `t`
 
 ```js
-const { defineApp, defineExit, t } = require("cap2ui5");
+import { defineApp, defineExit, t } from "cap2ui5";
 ```
 
 `defineApp` registers a class as an app; `t` declares the field types that

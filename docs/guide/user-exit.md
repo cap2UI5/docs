@@ -9,7 +9,7 @@ A project has **one**, registered with `defineExit`:
 
 ```js
 // srv/apps/exit.js
-const { defineExit } = require("cap2ui5");
+import { defineExit } from "cap2ui5";
 
 defineExit({
   onPage(cfg, ctx) {                 // the bootstrap page, once per page load
@@ -98,8 +98,8 @@ load, not once per roundtrip.
 | `title` | `""` | **no longer read.** The page carries a constant `<title>`; an app sets the tab title itself, with `cs_event-set_title`. The field stays because it is part of the published contract — assigning it compiles, runs, and does nothing |
 
 ::: warning UI5 comes from the CDN
-The plugin serves the abap2UI5 shell (`/z2ui5/webapp`), not UI5 itself —
-there is no `/resources` route, and `src` points at `sdk.openui5.org` out of
+The page the roundtrip route answers a GET with embeds the abap2UI5 frontend,
+not UI5 itself — the plugin serves no static files and has no `/resources` route, and `src` points at `sdk.openui5.org` out of
 the box. **A server without outbound internet access renders nothing.** If
 that is your deployment, host a UI5 distribution yourself and point `src` at
 it; the CSP has to allow that origin too.
