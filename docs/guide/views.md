@@ -93,6 +93,51 @@ A normal `z2ui5_if_app` class that uses `z2ui5_cl_ui5_view_builder`, transpiled
 against the runtime the plugin hosts. The steps are the ones in the
 `@abap2ui5/node-runtime` README, with three additions for a CAP project.
 
+`abap/zcl_my_app.clas.abap` — an input and a button, built with the builder:
+
+```abap
+CLASS zcl_my_app DEFINITION PUBLIC FINAL CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    INTERFACES z2ui5_if_app.
+    DATA name TYPE string.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+
+CLASS zcl_my_app IMPLEMENTATION.
+
+  METHOD z2ui5_if_app~main.
+    DATA view TYPE REF TO z2ui5_cl_ui5_view_builder.
+
+    IF client->check_on_init( ) IS NOT INITIAL.
+
+      view = z2ui5_cl_ui5_view_builder=>factory(
+          )->ele( n = `View` ns = `mvc`
+              )->a( n = `xmlns`         v = `sap.m`
+              )->a( n = `xmlns:mvc`     v = `sap.ui.core.mvc`
+              )->a( n = `displayBlock`  v = `true`
+              )->ele( `Page`
+                  )->a( n = `title`  v = `My ABAP app`
+                  )->tag( `Input`
+                      )->a( n = `value`  v = client->_bind_edit( name )
+                  )->tag( `Button`
+                      )->a( n = `text`   v = `Post`
+                      )->a( n = `press`  v = client->_event( `POST` ) ).
+
+      client->view_display( view->stringify( ) ).
+
+    ELSEIF client->check_on_event( `POST` ) IS NOT INITIAL.
+      client->message_toast_display( |Hello { name }| ).
+    ENDIF.
+
+  ENDMETHOD.
+
+ENDCLASS.
+```
+
 Install the transpiler at exactly the version the runtime was built with:
 
 ```bash
