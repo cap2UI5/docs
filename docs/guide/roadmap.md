@@ -25,7 +25,8 @@ The frontend in runtime `1.145.0` sends no `X-CSRF-Token`, and the route
 is refused with `403` until the roundtrip path gets a route of its own with
 `"csrfProtection": false`. The route, and why it is safe, are on
 [Deployment](../reference/deployment#the-approuter-needs-one-extra-route-today).
-abap2UI5/abap2UI5#2802 (open) teaches the frontend the token handshake.
+abap2UI5/abap2UI5#2802 teaches the frontend the token handshake; it is merged,
+but no abap2UI5 release carries it yet.
 
 ### The facade does not cover everything
 
@@ -77,8 +78,9 @@ than by completing a table.
 ## What is deliberately not planned
 
 **A cap2UI5 view builder.** Views are UI5 XML strings; a template literal is
-shorter and clearer than a fluent chain in JavaScript. abap2UI5's builder is in
-the runtime and reachable through `c.raw` if you want it.
+shorter and clearer than a fluent chain in JavaScript. abap2UI5's builder runs
+in the runtime, and an app written in ABAP can use it — see
+[The ABAP view builder](./views#the-abap-view-builder).
 
 **A second implementation of anything upstream owns.** The whole point of the
 current design is that there is one implementation of the framework. A feature

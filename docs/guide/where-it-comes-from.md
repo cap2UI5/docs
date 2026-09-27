@@ -86,11 +86,12 @@ transpiled Node runtime, and fixed at the source for everybody.
 
 ## What is left of the port
 
-The conformance gate that found the drift, and the measurements that made the
-decision, live in
-[builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) together
-with the ADRs. The app-building pipelines are archived: nothing is generated any
-more.
+The decisions, and the measurements behind them, are recorded in the plugin
+repository's [`docs/adr/`](https://github.com/cap2UI5/cap2UI5/tree/main/docs/adr).
+The port's repositories — the transpiler with its conformance gate, and the
+three that generated the application and the playground — are archived or being
+archived. Nothing consumes their output any more: `cap2ui5` depends on
+`@abap2ui5/node-runtime` from npm, which abap2UI5 builds itself.
 
 ## Why the ABAP names remain
 

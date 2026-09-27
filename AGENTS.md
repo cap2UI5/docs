@@ -55,18 +55,22 @@ against the repos, don't guess):
 
 | Repo | Role |
 |---|---|
-| [cap2UI5/cap2UI5](https://github.com/cap2UI5/cap2UI5) | the npm package `cap2ui5`: a CAP plugin that hosts upstream's transpiled runtime |
+| [cap2UI5/cap2UI5](https://github.com/cap2UI5/cap2UI5) | the npm package `cap2ui5`: a CAP plugin that hosts upstream's transpiled runtime. Also the home of the decision records (`docs/adr/`) |
+| [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
+| [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
 Both packages are on npm since 2026-09-27: `cap2ui5@0.1.0` (Node ≥ 20, peer
 `@sap/cds` ≥ 9) and `@abap2ui5/node-runtime@1.145.0` (Node ≥ 22), which
 `cap2ui5` pins **exactly**. The runtime package was renamed from
 `@abap2ui5/runtime` before its first publish — the old name never existed on
 npm, and on the site it appears only in prose that says it is the old name.
-| [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
-| [cap2UI5/builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) | the ABAP→JS transpiler pipelines |
 
-The three builder repos that generated the old CAP application
-(`builder-cap2UI5`, `builder-cap2UI5-web`, `web-cap2UI5-build`) are archived.
+The port's four repositories — `builder-abap2UI5-js` (the ABAP→JS transpiler
+and its conformance gate), `builder-cap2UI5`, `builder-cap2UI5-web` and
+`web-cap2UI5-build` (which generated the old CAP application and the
+playground) — are archived or being archived, and nothing consumes their
+output. Do not link them: an archived repository may be deleted. Their decision
+records live in cap2UI5's `docs/adr/`.
 There is no generated app, no vendored `core/`, no mirrored `app/z2ui5/webapp`.
 
 There is **no static frontend route** and no `webapp` option either. The page
@@ -102,9 +106,12 @@ against the cap2UI5 repository.
 ## Rules
 
 - Recommend `srv/apps/` as the place for apps — it is the plugin's default.
-- The framework's own classes are **not importable**. An app imports
+- The framework's own classes are **not a supported import**. Importing
+  `@abap2ui5/node-runtime/output/…` technically works — the package exports
+  `./output/*` — but it couples an app to transpiler output. A JS app imports
   `cap2ui5` and nothing else; `c.raw` is the escape hatch to the transpiled
-  `z2ui5_if_client`.
+  `z2ui5_if_client`. An app that wants the framework's ABAP API (the view
+  builder, for one) is written in ABAP and transpiled — see the views guide.
 - Measure before documenting a framework behaviour. The runtime is upstream's
   ABAP running on open-abap, and not everything upstream does works here —
   the user exit is discovered by a class-repository lookup in ABAP and had to
