@@ -8,7 +8,7 @@ owns what saves time when something breaks.
 | | |
 |---|---|
 | [**abap2UI5/abap2UI5**](https://github.com/abap2UI5/abap2UI5) | the framework itself: the ABAP sources and the UI5 shell. Everything cap2UI5 runs comes from here |
-| [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `cap2ui5`; `examples/bookshop` is a CAP project using it; `runtime/` is where `@abap2ui5/runtime` is assembled until it is published |
+| [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `cap2ui5`; `examples/bookshop` is a CAP project using it; `runtime/` is a stand-in for `@abap2ui5/node-runtime` that the repository's own tests build from upstream |
 | [**cap2UI5/docs**](https://github.com/cap2UI5/docs) | this site |
 | [**cap2UI5/builder-abap2UI5-js**](https://github.com/cap2UI5/builder-abap2UI5-js) | the conformance gate and the ADRs that led to the current design. Historical: the build pipelines it ran are retired |
 
@@ -16,11 +16,12 @@ owns what saves time when something breaks.
 
 | | |
 |---|---|
-| `cap2ui5` | the plugin — ~485 lines of code. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call |
-| `@abap2ui5/runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, plus the UI5 shell — backend and frontend from one commit |
+| `cap2ui5` | the plugin — about 640 lines of code. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call |
+| `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
 
-Neither is on npm yet; both are published from a release that has not been cut.
-See the box in the [Quickstart](./getting-started).
+Both are on npm: `cap2ui5` 0.1.0 (Node ≥ 20, `@sap/cds` ≥ 9 as a peer) and
+`@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which `cap2ui5` pins exactly.
+`npm install cap2ui5` installs both — see the [Quickstart](./getting-started).
 
 ## What the plugin does and does not own
 

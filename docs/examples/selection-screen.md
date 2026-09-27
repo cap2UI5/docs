@@ -12,9 +12,9 @@ closest to is [`books.js`](./list).
 
 ```js
 // srv/apps/orders.js
-const cds = require("@sap/cds");
+import cds from "@sap/cds";
+import { defineApp, t } from "cap2ui5";
 const { SELECT } = cds.ql;
-const { defineApp, t } = require("cap2ui5");
 
 defineApp("ZCL_ORDERS", class {
   customer = "";

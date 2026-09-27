@@ -46,8 +46,8 @@ my-cap-project/
 ```
 
 Nothing else. No service definition to extend, no `server.js` to touch, no
-frontend folder: the route, the UI5 shell and the draft entity arrive with the
-plugin, and `cds deploy` creates the table next to your own.
+frontend folder: the route — whose page embeds the UI5 frontend — and the
+draft entity arrive with the plugin, and `cds deploy` creates the table next to your own.
 
 A new UI = **a new JS file in `srv/apps/`**. Available immediately via `?app_start=ZCL_MY_APP` — the name you gave `defineApp`.
 
@@ -58,9 +58,9 @@ A new UI = **a new JS file in `srv/apps/`**. Available immediately via `?app_sta
 You spend the entire time in **JavaScript** (or TypeScript, if you prefer). No XML editor, no UI5 CLI, no second `npm install`. Your existing `cds watch` workflow is enough.
 
 ```bash
-npx cds watch
-# → CAP server runs on :4004
-# → open /z2ui5/webapp/index.html?app_start=my_app → done
+cds watch
+# → CAP server runs on :4004, and the plugin prints each app's address:
+# → [cap2ui5] ZCL_MY_APP  http://localhost:4004/sap/bc/z2ui5?app_start=ZCL_MY_APP → open it, done
 ```
 
 ### 2. Server state = app state

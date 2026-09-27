@@ -1,6 +1,6 @@
 # Developer Tools
 
-The webapp ships a full inspector — it is part of every cap2UI5 app, in
+The abap2UI5 frontend ships a full inspector — it is part of every cap2UI5 app, in
 development and in production, and nothing needs to be installed or enabled.
 
 **Open it with `Ctrl+F12`.** You can also deep-link straight to a tab with
@@ -59,7 +59,7 @@ has it.
 ## Turning it off
 
 There is no switch. The tools are part of abap2UI5's own UI5 shell, which
-cap2UI5 serves straight out of `@abap2ui5/runtime` — patching it locally would
+cap2UI5 serves straight out of `@abap2ui5/node-runtime` — patching it locally would
 be undone by the next `npm update`. If you need them gone, that is a request
 for [abap2UI5](https://github.com/abap2UI5/abap2UI5/issues) rather than for
 this project (see [Ecosystem](./ecosystem#where-to-report)).

@@ -18,14 +18,14 @@ measurements are in [Where cap2UI5 Comes From](./where-it-comes-from).
 
 ## Known limits today
 
-### The two packages are not on npm yet
+### Behind an approuter, the roundtrip path needs its own route
 
-`npm i cap2ui5` answers **404**, and so does `@abap2ui5/runtime`. Both are
-published from a release that has not been cut. Until then the route is the
-repository — see the box in the [Quickstart](./getting-started).
-
-This is the single biggest gap, and the only work item between here and a
-`npm i` that just works.
+The frontend in runtime `1.145.0` sends no `X-CSRF-Token`, and the route
+`cds add approuter` generates demands one on every POST — so every roundtrip
+is refused with `403` until the roundtrip path gets a route of its own with
+`"csrfProtection": false`. The route, and why it is safe, are on
+[Deployment](../reference/deployment#the-approuter-needs-one-extra-route-today).
+abap2UI5/abap2UI5#2802 (open) teaches the frontend the token handshake.
 
 ### The facade does not cover everything
 
@@ -44,7 +44,7 @@ unwritten.
 
 ### UI5 comes from the CDN, and only from the CDN
 
-The plugin serves the abap2UI5 shell, not UI5 itself: the page bootstraps from
+The page embeds the abap2UI5 frontend, not UI5 itself: it bootstraps from
 `sdk.openui5.org`, and there is no local `/resources` route to fall back to. A
 server without outbound internet access renders nothing until you host a UI5
 distribution yourself and point `cfg.src` at it in a
@@ -64,11 +64,9 @@ background pages may still carry the port's mechanics; if a page contradicts
 
 ## What's next
 
-**Publish the packages.** `@abap2ui5/runtime` from upstream's release build,
-then `cap2ui5`. Everything else is downstream of this.
-
-**Pin the runtime by default.** Once it is on npm, `^X.Y.Z` instead of `*`, so
-a project gets a known framework rather than the newest one.
+**Drop the approuter exception.** Once abap2UI5/abap2UI5#2802 is in an
+upstream release, pin `cap2ui5` to it, and the route CAP generates works
+unchanged.
 
 **Grow the facade where use shows it is needed** — driven by real apps rather
 than by completing a table.

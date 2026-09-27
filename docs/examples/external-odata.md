@@ -44,9 +44,9 @@ plain CAP.
 
 ```js
 // srv/apps/northwind.js
-const cds = require("@sap/cds");
+import cds from "@sap/cds";
+import { defineApp, t } from "cap2ui5";
 const { SELECT } = cds.ql;
-const { defineApp, t } = require("cap2ui5");
 
 defineApp("ZCL_NORTHWIND", class {
   country  = "";

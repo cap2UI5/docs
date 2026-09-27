@@ -1,94 +1,42 @@
 # Handover — what is left
 
-Everything that could be done without an npm token or organisation rights is
-done, merged and green. **Two things remain, and they are in order**: publish
-the runtime package, then point cap2UI5 at it.
+Both packages are **on npm** since 2026-09-27: `cap2ui5@0.1.0` and
+`@abap2ui5/node-runtime@1.145.0`, which `cap2ui5` pins exactly. The two steps
+this file used to list — publish the runtime package, then point cap2UI5 at
+it — are done. What remains is below.
 
-The reasoning behind all of it is in [ROADMAP.md](ROADMAP.md) §§8–22 and in
+The runtime package was renamed from `@abap2ui5/runtime` before it was ever
+published; older text in [ROADMAP.md](ROADMAP.md) uses the old name.
+
+The reasoning behind all of it is in [ROADMAP.md](ROADMAP.md) §§8–25 and in
 `cap2UI5/cap2UI5:docs/adr/adr-008-host-not-port.md`.
 
-## Done — verified 2026-09-21
+## Done — verified 2026-09-27
 
 | | |
 |---|---|
 | upstream, the four seams + the runtime package job | [abap2UI5/abap2UI5#2772](https://github.com/abap2UI5/abap2UI5/pull/2772) merged |
-| the plugin repository | [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) merged, plus #75 (CI ref) and #76 (the user exit) |
+| the plugin repository | [cap2UI5/cap2UI5#72](https://github.com/cap2UI5/cap2UI5/pull/72) merged, plus #75 (CI ref), #76 (the user exit), #77 (publishable package, consumer test) and #79 (`@abap2ui5/node-runtime`, startup addresses, trusted publishing) |
 | the conformance gate, the prototype, the ADRs | [cap2UI5/builder-abap2UI5-js#29](https://github.com/cap2UI5/builder-abap2UI5-js/pull/29) merged |
 | this site, migrated to the plugin | [cap2UI5/docs#20](https://github.com/cap2UI5/docs/pull/20), [#21](https://github.com/cap2UI5/docs/pull/21), [#22](https://github.com/cap2UI5/docs/pull/22) merged |
 | the cutover (ADR-008 steps 3–5) | `update_cap` and `build web` disabled, `generated-app-final` tagged at `595c76f`, `builder-cap2UI5`, `builder-cap2UI5-web` and `web-cap2UI5-build` archived |
-| the documentation rewrite | all 36 pages; `verify-refs` rewritten for the plugin and reading two checkouts |
+| publishing | `cap2ui5@0.1.0` and `@abap2ui5/node-runtime@1.145.0` on npm; the site's quickstart runs verbatim against them (`cds init --nodejs`, `npm install cap2ui5`, `cds watch`) |
 
-`cap2UI5/cap2UI5` `main` is green end to end — runtime built from upstream
-`main`, lint, 36 tests, cold test, bench, browser.
+## Open — the approuter and CSRF
 
-## Step 1 — the npm token, then a release
+`cds add approuter` generates a catch-all route with `"csrfProtection": true`,
+and the frontend in runtime 1.145.0 sends no `X-CSRF-Token`, so behind that
+route every roundtrip gets 403. The site documents the working setup — an
+extra route for the roundtrip path with `"csrfProtection": false`, safe
+because abap2UI5 refuses a cross-origin POST itself
+(`docs/reference/deployment.md`).
+[abap2UI5/abap2UI5#2802](https://github.com/abap2UI5/abap2UI5/pull/2802) (open)
+teaches the frontend the token handshake. Once it is in a release and
+`cap2ui5` pins that release, drop the extra route from the deployment page and
+the known limit from `guide/roadmap.md`.
 
-**Nothing is published yet.** `npm view @abap2ui5/runtime` and
-`npm view cap2ui5` both answer 404 today, and the newest abap2UI5 release is
-`1.144.0` from 2026-08-31 — before the seams merged. So the pack-and-publish
-steps have never run.
-
-The `@abap2ui5` scope on npm **already exists** and carries
-`@abap2ui5/linter`, `@abap2ui5/render-runtime` and `@abap2ui5/mcp-server`, so
-there is nothing to create — and nobody outside the org can take the
-`@abap2ui5/runtime` name.
-
-1. npmjs.com → the `abap2ui5` organisation → Access Tokens → **Granular**,
-   packages & scopes `@abap2ui5/*`, read & write.
-2. GitHub → `abap2UI5/abap2UI5` → Settings → Secrets and variables → Actions →
-   `NPM_TOKEN`.
-3. Cut a release as usual. `backend-prebuilt.yaml` runs on `release: published`
-   and already downports, transpiles and proves the tree for the release
-   tarball; the pack and publish are two steps at the end of that same job, so
-   the package costs no extra build. The version comes from `package.json`, so
-   the npm version is the release version.
-
-Without the token the job packs the `.tgz`, uploads it as a workflow artefact
-and emits a `::warning::` — it stays green, and the release is created before
-it runs, so neither a missing token nor a registry failure can touch the
-release.
-
-## Step 2 — cap2UI5: switch to the published package
-
-In `cap2UI5/cap2UI5`, after step 1. Today the repository runs on a **stand-in**
-`runtime/` that `scripts/assemble-runtime.sh` fills from a source build; the
-point of this step is to stop doing that.
-
-```bash
-scripts/assemble-runtime.sh --package X.Y.Z   # the real package, not a build
-npm install && npm run lint && npm test && npm run cold-test
-npm run consumer-test                         # and this one, see below
-```
-
-Then, in one PR:
-
-- `plugin/package.json`: pin `"@abap2ui5/runtime": "^X.Y.Z"` instead of `"*"`.
-- `.github/workflows/ci.yml`: set the `runtime_version` input's default to
-  `X.Y.Z`. `upstream_ref` already defaults to `main`, so the job builds from
-  source until you do. **Keep the `permissions: contents: read` block** — it is
-  what bounds a job that runs another repository's build scripts.
-- `runtime/README.md` and `runtime/package.json`: drop the "stand-in" wording.
-- The docs say `1.144.0` in two places
-  (`reference/configuration`, `reference/deployment`). `verify-refs` reads
-  the pin out of `runtime/package.json`, so a bump fails this repository's
-  check until the prose follows — that is the gate doing its job, not a
-  problem to work around.
-
-`npm run consumer-test` is the step worth not skipping. Everything else in
-that repository runs inside the npm workspace, where `cap2ui5` and
-`@abap2ui5/runtime` are symlinks — so a broken `files`, a `main` pointing at
-nothing or a model contribution that only resolves relatively cannot fail
-there, and every one of them fails on `npm i cap2ui5`. It packs both packages
-as publish would, installs them into a throwaway CAP project and drives a
-roundtrip through them. It also runs in CI.
-
-Publishing `cap2ui5` itself is the same shape and can follow whenever you want
-`npm i cap2ui5` to work; nothing else depends on it. The package is ready for
-it: license, repository, homepage, keywords, engines and a README written as
-the npm landing page rather than as the repository's. **Its version is
-`0.1.0`, and that number is yours** — the docs check compares what
-`reference/deployment` tells a reader to pin against the package itself, so
-picking another one turns this repository red until the prose follows.
+Not exercised at all so far: a real HANA or BTP deployment. The deployment
+page says so.
 
 ## Still open — decisions that are yours, not mine
 
@@ -133,8 +81,8 @@ picking another one turns this repository red until the prose follows.
 
 - Merge anything, or approve my own pull requests. (The merges above were
   yours.)
-- Anything on npmjs.com or in repository settings — no rights, which is what
-  step 1 is.
+- Anything on npmjs.com or in repository settings — no rights. Publishing was
+  done by the maintainers.
 - Reach `app-template`, `samples`, `samples-controls` or `samples-stack` — they
   are outside this session's repository access.
 - Render against the **current** UI5 release: this sandbox reaches npm but no

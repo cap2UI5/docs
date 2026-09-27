@@ -8,7 +8,7 @@ independently, because the backend answering it *is* abap2UI5.
 It used to say that the page described what cap2UI5 emitted and not what
 abap2UI5 emitted — the two had drifted apart, and a hand-maintained port was
 still writing a superseded envelope. That cannot happen now: the backend and
-the shell come from one upstream commit. The measurements below are from a
+the frontend come from one upstream commit. The measurements below are from a
 running server rather than from a specification.
 :::
 
@@ -18,10 +18,11 @@ running server rather than from a specification.
 |---|---|
 | `POST /rest/root/z2ui5` | a roundtrip |
 | `POST /sap/bc/z2ui5` | the same door, under its ABAP-side name |
-| `GET  /rest/root/z2ui5?app_start=<APP>` | the composed HTML page that boots UI5 and starts an app |
-| `GET  /z2ui5/webapp/**` | the shell's assets, straight from the runtime package |
+| `GET  /rest/root/z2ui5?app_start=<APP>` | the HTML page that embeds the whole UI5 component — every module, view and stylesheet — boots UI5 and starts an app |
 
-Both POST paths are configurable — see [Configuration](./configuration).
+There is no static frontend route: the browser needs no files from the server
+other than that page (UI5 itself comes from the CDN). Both paths are
+configurable — see [Configuration](./configuration).
 
 ## Request
 
@@ -94,7 +95,7 @@ A response *without* the field is let through: a backend older than the field
 cannot be told apart from one that is merely older.
 
 For a cap2UI5 project the check is belt and braces — both halves come from one
-`@abap2ui5/runtime` — but it protects anyone pairing them by hand.
+`@abap2ui5/node-runtime` — but it protects anyone pairing them by hand.
 
 ## Errors
 

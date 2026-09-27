@@ -16,8 +16,9 @@ VitePress build. It is also what CI runs, on every pull request
 - every `?app_start=` names an app something registers with `defineApp`,
 - every `z2ui5_*` class or interface exists in the abap2UI5 source the hosted
   runtime is transpiled from,
-- every `require("cap2ui5")` **inside a code fence** destructures names the
-  package really exports (and the port's `require("abap2UI5/…")` is reported),
+- every `require("cap2ui5")` or `import { … } from "cap2ui5"` **inside a code
+  fence** names only what the package really exports (and the port's
+  `abap2UI5/…` package is reported, in either form),
 - every `cds.cap2ui5.<option>` is an option the plugin defines,
 - every `1.x.y` release number is the pinned runtime release,
 - every internal anchor exists.
@@ -31,9 +32,10 @@ both out — so CI runs `npm run check:ci`, the same two steps with
 rather than a silent pass.
 
 Why two: cap2UI5 is a plugin, and the framework classes the docs name are not
-in it. They are abap2UI5's ABAP, transpiled into `@abap2ui5/runtime`, whose
-content is assembled by `scripts/assemble-runtime.sh` and gitignored — a fresh
-cap2UI5 checkout has none of those names. Resolving classes against an
+in it. They are abap2UI5's ABAP, transpiled into `@abap2ui5/node-runtime`. In
+the cap2UI5 checkout that package is a stand-in whose content is assembled by
+`scripts/assemble-runtime.sh` and gitignored — a fresh checkout has none of
+those names. Resolving classes against an
 assembled runtime would pass on a laptop and check nothing in CI.
 
 Exceptions — placeholder class names, paths in other repos — go in
@@ -54,36 +56,53 @@ against the repos, don't guess):
 | Repo | Role |
 |---|---|
 | [cap2UI5/cap2UI5](https://github.com/cap2UI5/cap2UI5) | the npm package `cap2ui5`: a CAP plugin that hosts upstream's transpiled runtime |
-| [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/runtime` |
+
+Both packages are on npm since 2026-09-27: `cap2ui5@0.1.0` (Node ≥ 20, peer
+`@sap/cds` ≥ 9) and `@abap2ui5/node-runtime@1.145.0` (Node ≥ 22), which
+`cap2ui5` pins **exactly**. The runtime package was renamed from
+`@abap2ui5/runtime` before its first publish — the old name never existed on
+npm, and on the site it appears only in prose that says it is the old name.
+| [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/builder-abap2UI5-js](https://github.com/cap2UI5/builder-abap2UI5-js) | the ABAP→JS transpiler pipelines |
 
 The three builder repos that generated the old CAP application
 (`builder-cap2UI5`, `builder-cap2UI5-web`, `web-cap2UI5-build`) are archived.
 There is no generated app, no vendored `core/`, no mirrored `app/z2ui5/webapp`.
 
+There is **no static frontend route** and no `webapp` option either. The page
+the roundtrip route answers a GET with embeds the whole UI5 component, so the
+plugin serves no frontend files (`/z2ui5/webapp/index.html` answers 404, and
+cap2UI5's `scripts/consumer-test.mjs` asserts it). `plugin/package.json`
+defines `apps`, `requires` and `routes` under `cds.cap2ui5`, nothing else.
+
 Path conventions inside cap2UI5:
 
-- `plugin/` — the package: `cds-plugin.js` (the route, the static shell, the
-  auth guard), `index.cds` (the `cap2ui5.Drafts` entity), `index.js` (what
-  `require("cap2ui5")` returns) and `lib/` (`define-app.js`, `define-exit.js`,
-  `draft-store.js`, `runtime.js`)
+- `plugin/` — the package: `cds-plugin.js` (the route, the auth guard, the
+  startup lines naming each app's address), `index.cds` (the `cap2ui5.Drafts`
+  entity), `index.js` (what `import`/`require` of `cap2ui5` returns) and `lib/`
+  (`define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
+  `runtime.js`)
 - `examples/bookshop/` — a CAP project using it, with the test suite. Its apps
   are in `examples/bookshop/srv/apps/`
-- `runtime/` — `@abap2ui5/runtime`. Only `package.json` and `README.md` are
-  committed; `output/`, `setup/` and `webapp/` are **assembled** and gitignored
+- `runtime/` — a stand-in for `@abap2ui5/node-runtime`. Only `package.json`
+  and `README.md` are committed; `output/` and `setup/` are **assembled** and
+  gitignored. There is no `webapp/`
 - `docs/adr/` — the decisions, ADR-008 being the cutover
 
 What a READER's project looks like is a different thing and must not be
 confused with the above: they install `cap2ui5`, write apps in `srv/apps/`
-(configurable via `cds.cap2ui5.apps`), and get the route, the UI5 shell and
-the draft entity from the plugin. `srv/`, `db/` and `app/` in the prose are
+(configurable via `cds.cap2ui5.apps`), and get the route (whose GET page
+embeds the UI5 frontend) and the draft entity from the plugin. A project from
+`cds init --nodejs` is an ES module project, so the site's examples `import`
+from `cap2ui5`; a `require` in a `.js` file there fails the whole runtime
+boot. `srv/`, `db/` and `app/` in the prose are
 therefore **their** paths, which is why verify-refs does not check them
 against the cap2UI5 repository.
 
 ## Rules
 
 - Recommend `srv/apps/` as the place for apps — it is the plugin's default.
-- The framework's own classes are **not importable**. An app requires
+- The framework's own classes are **not importable**. An app imports
   `cap2ui5` and nothing else; `c.raw` is the escape hatch to the transpiled
   `z2ui5_if_client`.
 - Measure before documenting a framework behaviour. The runtime is upstream's

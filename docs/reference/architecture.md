@@ -12,16 +12,19 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
   ├── srv/apps/*.js          your apps          ← you write this
   ├── db/, srv/*.cds         your model          ← you write this
   └── node_modules/
-      ├── cap2ui5            the plugin          ← ~485 lines of code
-      │   ├── cds-plugin.js    mounts the route, serves the shell
+      ├── cap2ui5            the plugin          ← about 640 lines of code
+      │   ├── cds-plugin.js    mounts the route behind CAP's middlewares
       │   ├── index.cds        cap2ui5.Drafts
+      │   ├── index.js         defineApp, defineExit, t
       │   └── lib/
       │       ├── define-app.js    a JS class → something the runtime can call
       │       ├── draft-store.js   the draft store, over a CDS entity
       │       └── runtime.js       locate and boot the runtime
-      └── @abap2ui5/runtime  abap2UI5 itself     ← 1,244 transpiled files
-          ├── output/            upstream's ABAP, downported + transpiled
-          └── webapp/            the UI5 shell, from the same commit
+      └── @abap2ui5/node-runtime  abap2UI5 itself, one exact release
+          ├── output/            upstream's ABAP, downported + transpiled —
+          │                      the GET page embeds the UI5 frontend, from
+          │                      the same commit
+          └── setup/             the one hook output/ imports
 ```
 
 The plugin contains **no framework logic**. No view builder, no wire format, no

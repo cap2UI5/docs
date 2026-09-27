@@ -39,12 +39,11 @@ Two kinds of placeholder are in there, and the difference matters:
 ## The app
 
 ```js
-const fs   = require("node:fs");
-const path = require("node:path");
-const { defineApp, t } = require("cap2ui5");
+import fs from "node:fs";
+import { defineApp, t } from "cap2ui5";
 
-// read once at load, not per roundtrip
-const XML = fs.readFileSync(path.join(__dirname, "views", "orders.xml"), "utf8");
+// read once at load, not per roundtrip; the path is relative to this file
+const XML = fs.readFileSync(new URL("./views/orders.xml", import.meta.url), "utf8");
 
 defineApp("ZCL_ORDERS_FILE", class {
   customer = "";
