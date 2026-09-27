@@ -4,6 +4,52 @@ Before anything else: press **`Ctrl+F12`**. The [developer tools](./devtools)
 answer most of what follows in one look — which app is serving, what the last
 roundtrip sent and received, and whether something threw.
 
+## Setup problems
+
+### The `cds` command is not found
+
+`npm i -g @sap/cds-dk` succeeded, but the shell answers that `cds` is not
+recognized. A terminal that was open during the install does not see the new
+command yet — open a new one. `cds version` must then list
+`@sap/cds-dk (global)` with a `10.x` version.
+
+On Windows PowerShell the error can instead say that *running scripts is
+disabled on this system*: PowerShell refuses the `cds.ps1` shim npm installed.
+Allow locally installed scripts for your user once:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+### `EACCES` on `npm i -g`
+
+On macOS and Linux, a Node.js installed system-wide keeps its global packages
+in a directory your user cannot write. Do not work around it with `sudo`:
+install Node.js with [nvm](https://github.com/nvm-sh/nvm), which keeps
+everything in your home directory, and run `npm i -g @sap/cds-dk` again.
+
+### `port 4004 is already in use`
+
+```
+[EADDRINUSE] - port 4004 is already in use by another server process.
+```
+
+Another `cds watch` still runs, usually in a different terminal. Stop it with
+`Ctrl+C` there, or start this one on another port with
+`cds watch --port 4005` — the `[cap2ui5]` lines then print the new address.
+
+### The browser asks for a login
+
+That is expected: the route requires a user, and `cds watch` uses CAP's
+mocked authentication. Log in as **`alice` with an empty password** — the
+startup line names it: `[cap2ui5] development login: alice (empty password)`.
+Only cancelling the dialog is refused, with a `401`, and the next attempt asks
+again.
+
+Mocked authentication lets other names in as well, but a draft belongs to the
+user who created it — log in as someone else and a running session starts
+over. The details are under *401 on the roundtrip* below.
+
 ## "App with name X not found"
 
 Apps are registered by **`defineApp`**, not found by file name:
@@ -51,6 +97,11 @@ the file to `.cjs`, where `require` stays valid.
 Symptom: `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND`, or the app restarts from
 scratch on every interaction.
 
+- **The server restarted.** The most common case in development: you saved a
+  file, `cds watch` restarted with a fresh in-memory database, and the tab
+  still holds the id of a draft that no longer exists. Reload the tab. To keep
+  drafts across restarts, use a SQLite file — see
+  [Persistence](./persistence#keep-the-data-across-restarts).
 - **A different user is asking.** Draft rows are bound to their owner and are
   not readable by anyone else — by design (see [Database](../reference/database)).
   A draft id from someone else's session, or from before you logged in as

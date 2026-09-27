@@ -6,12 +6,20 @@ already have, or to a brand new one. There is no cap2UI5 project to clone.
 
 ## Prerequisites
 
-- **Node.js ≥ 22** — `@abap2ui5/node-runtime`, which the plugin depends on,
-  requires it (`cap2ui5` itself says ≥ 20)
+- **Node.js 22 or later** — `@abap2ui5/node-runtime`, which the plugin depends
+  on, requires it (`cap2ui5` itself says ≥ 20)
 - **`@sap/cds-dk`** installed globally, for the `cds` command
-- Internet access — the page loads SAPUI5 from the SAP CDN
+- Internet access — the page loads UI5 from the SAP CDN
 
 No database setup: CAP starts SQLite for you.
+
+Check Node before anything else:
+
+```bash
+node -v
+```
+
+It must print `v22` or higher.
 
 ## 1. A CAP project and the plugin
 
@@ -20,11 +28,31 @@ line in it.
 
 ```bash
 npm i -g @sap/cds-dk
+cds version
+```
+
+`cds version` must list `@sap/cds-dk (global)` with a `10.x` version. If the
+shell answers that `cds` is not found, open a new terminal — see
+[Troubleshooting](./troubleshooting#the-cds-command-is-not-found) if that does
+not help. Then create the project and add the plugin:
+
+```bash
 cds init my-cap2ui5-app --nodejs --add tiny-sample
 cd my-cap2ui5-app
 npm install
 npm install cap2ui5
 ```
+
+`--add tiny-sample` gives the project something to read later: a service
+`CatalogService` with one entity `Books` in `srv/cat-service.cds`, and five
+books in `db/data/CatalogService.Books.csv`.
+
+::: details Optional: check the CAP project before adding the plugin
+Run `cds watch` after the first `npm install` and before `npm install cap2ui5`,
+and open <http://localhost:4004>. CAP's index page lists the service endpoint
+`/odata/v4/catalog` with `Books`; the link answers the five books as JSON.
+That is a plain CAP project working. Stop the server with `Ctrl+C` and go on.
+:::
 
 Two things about `cds init` that cost time when missed. Without `--nodejs`,
 `cds init` (cds-dk 10) writes no `package.json` at all, and there is nothing
@@ -45,7 +73,15 @@ into your repository, and there are no frontend files to serve.
 
 ## 2. Your first app
 
-One file in `srv/apps/` — the directory the plugin scans:
+One file in `srv/apps/` — the directory the plugin scans. It does not exist
+yet in a new project:
+
+::: details Creating `srv/apps/hello.js`
+- **VS Code:** right-click the `srv` folder → **New File…** → type
+  `apps/hello.js`. The slash creates the `apps` folder along with the file.
+- **Terminal:** `mkdir srv/apps` (macOS, Linux, PowerShell) or `mkdir srv\apps`
+  (Windows cmd.exe), then create `hello.js` in it with your editor.
+:::
 
 ```js
 // srv/apps/hello.js
@@ -122,6 +158,21 @@ Open that address. Those lines are the entry point: CAP's index page at
 `http://localhost:4004/` lists the HTML files under `app/` and your CDS
 services, not this route.
 
+::: details Tip: a link to the app on CAP's index page
+The index page lists every `index.html` under `app/`, so a one-line redirect
+puts the app there. Create `app/hello/index.html`:
+
+```html
+<!DOCTYPE html>
+<meta http-equiv="refresh" content="0; url=/sap/bc/z2ui5?app_start=HELLO">
+```
+
+Then **stop `cds watch` and start it again.** A new folder under `app/` does
+not restart the server, and the index page is built once per start: until the
+restart, `/hello/` answers 404 and "Web Applications" still says "none". After
+it, `/hello` is listed there and opens the app.
+:::
+
 The address is the **roundtrip route**, not a static page: the framework
 answers a GET on it with a page that embeds the whole UI5 component — every
 module, view and stylesheet — and starts the app named in `app_start`.
@@ -151,32 +202,101 @@ A **stateful UI5 app** in one file that
 
 ## Reading your own data
 
-The point of running inside CAP. `main` may be `async` when the app does I/O,
-and `cds.ql` works exactly as it does in a handler:
+The point of running inside CAP: an app reads your entities with `cds.ql`,
+exactly as a handler does. This is a complete app for the project from
+step 1 — save it as `srv/apps/books.js`, next to `hello.js`:
 
 ```js
+// srv/apps/books.js
 import cds from "@sap/cds";
 import { defineApp, t } from "cap2ui5";
+
 const { SELECT } = cds.ql;
 
-defineApp("ZCL_BOOKS", class {
+defineApp("BOOKS", class {
   search = "";
-  books  = t.table({ ID: 0, title: "", price: t.packed(9, 2) });
+  books  = t.table({ ID: 0, title: "", author: "" });
 
   async main(c) {
-    if (c.isDisplay) { c.view(/* … a Table bound to c.bind("books") … */); return; }
-
+    if (c.isFirstRun) {
+      this.books = await SELECT.from("CatalogService.Books");
+    }
+    if (c.isDisplay) {
+      c.view(`
+        <mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">
+          <Shell>
+            <Page title="Books">
+              <SearchField value="${c.bind("search")}" search="${c.event("SEARCH")}"/>
+              <Table items="${c.bind("books")}">
+                <columns>
+                  <Column><Text text="Title"/></Column>
+                  <Column><Text text="Author"/></Column>
+                </columns>
+                <items>
+                  <ColumnListItem>
+                    <cells>
+                      <Text text="{TITLE}"/>
+                      <Text text="{AUTHOR}"/>
+                    </cells>
+                  </ColumnListItem>
+                </items>
+              </Table>
+            </Page>
+          </Shell>
+        </mvc:View>`);
+      return;
+    }
     if (c.eventName === "SEARCH") {
-      const { Books } = cds.entities("my.bookshop");
-      this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
+      this.books = await SELECT.from("CatalogService.Books")
+        .where`title like ${"%" + this.search + "%"}`;
+      c.messageToast(`${this.books.length} found`);
     }
   }
 });
 ```
 
-`t.table({…})` declares the row type; `t.packed(9, 2)` a decimal. The whole
-tree — structures, tables, nested ones — goes through the draft and comes back
-as plain values.
+`cds watch` restarts by itself when you save, and the startup lines gain one:
+
+```
+[cap2ui5] BOOKS  http://localhost:4004/sap/bc/z2ui5?app_start=BOOKS
+```
+
+Open it: five books. Search for `Raven` and one row is left, with a toast
+"1 found". Three things the example shows:
+
+- **`main` is `async`** because the app does I/O — and `isFirstRun` seeds the
+  table once, before the first render.
+- **`t.table({…})` describes one row**, not the table: the field starts empty,
+  and the object only fixes the columns and their types.
+- **Column names are UPPERCASE in the view** — `{TITLE}`, not `{title}`. The
+  model carries field names uppercase; see [Data Binding](./data-binding#tables).
+
+## What is in the database
+
+`cds watch` runs on an **in-memory SQLite** and deploys every table at each
+start — the log says `connect to db > sqlite { url: ':memory:' }`. The tables
+come from every `.cds` file CAP loads, your `srv/cat-service.cds` and the
+plugin's model, which brings `cap2ui5.Drafts`. The books are loaded from the
+CSV file; the drafts are written by the plugin, one row per roundtrip.
+
+That is also why a restart forgets everything. How to list the tables, look
+inside them while the app runs, and keep the data across restarts with a
+SQLite file is in
+[Persistence: the database in development](./persistence#the-database-in-development).
+
+## When something goes wrong
+
+| You see | It is |
+|---|---|
+| `require is not defined in ES module scope` | an app file uses `require` — write `import`, or name the file `.cjs` |
+| `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND` after a code change | the restart emptied the database — reload the tab |
+| the browser asks for a login | log in as `alice` and leave the password empty |
+| `port 4004 is already in use` | another `cds watch` still runs — stop it, or start with `cds watch --port 4005` |
+| a white page | UI5 did not load from the SAP CDN (`sdk.openui5.org`) — check internet or proxy, and open the browser console with `F12` |
+| `cds` is not found | open a new terminal; on Windows see [Troubleshooting](./troubleshooting#the-cds-command-is-not-found) |
+| `EACCES` on `npm i -g` (macOS, Linux) | install Node with nvm instead of using `sudo` |
+
+The details for each are in [Troubleshooting](./troubleshooting).
 
 ## Next steps
 
@@ -185,3 +305,4 @@ as plain values.
 - [**Data Binding**](./data-binding) — `c.bind`, tables, structures
 - [**Persistence**](./persistence) — `cap2ui5.Drafts` and the owner binding
 - [**Configuration**](../reference/configuration) — routes, the auth default, the apps directory
+- [**Deployment**](../reference/deployment) — to BTP: `cap2ui5.Drafts` becomes an HDI table in the HANA build, and the approuter needs one extra route

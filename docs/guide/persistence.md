@@ -99,6 +99,93 @@ open over lunch is fine; one left open overnight starts fresh. Both the sweep
 and the framework's willingness to resume follow the same number, and your
 [user exit](./user-exit#onroundtrip) sets it.
 
+## The database in development
+
+Everything here was measured with `cds watch` on CAP 10.1 in a project from
+`cds init --nodejs --add tiny-sample`, as the [Quickstart](./getting-started)
+creates it.
+
+### Where the tables come from
+
+`cds watch` connects to an **in-memory SQLite** and deploys every table at each
+start:
+
+```
+[cds] - loaded model from 2 file(s):
+  srv/cat-service.cds
+  node_modules/cap2ui5/index.cds
+[cds] - connect to db > sqlite { url: ':memory:' }
+```
+
+The tables come from every `.cds` file CAP loads — a `db/` folder with a
+schema is not required. `CatalogService.Books` is defined in
+`srv/cat-service.cds`; `cap2ui5.Drafts` comes from the plugin's model.
+
+### Where the rows come from
+
+- **Your data** comes from CSV files in `db/data/`, matched to an entity by
+  file name: `db/data/CatalogService.Books.csv` fills `CatalogService.Books`,
+  and the log says `> init from db/data/CatalogService.Books.csv`.
+- **Drafts** are written by the plugin: one row per roundtrip — the app start
+  and every click — with the owner (`alice`) and the serialized app instance.
+  The `data` column holds your fields as XML, `<COUNT>1</COUNT>` for the
+  quickstart's counter. Rows older than four hours are deleted on each
+  roundtrip ([Retention](#retention)).
+
+### See the tables
+
+```bash
+cds compile "*" --to sql
+```
+
+prints the `CREATE TABLE` statements: `CatalogService_Books`,
+`cap2ui5_Drafts`, and `cds_outbox_Messages`, which is CAP's own. The double
+quotes work in bash, PowerShell and cmd.exe alike.
+
+### Look inside while the app runs
+
+```bash
+cds repl --run .
+```
+
+starts the server in a REPL, on a **random port** — take the address from the
+`[cap2ui5]` lines it prints. Use the app, then query:
+
+```js
+await SELECT.from("cap2ui5.Drafts").columns("id","owner","createdAt")
+```
+
+After the start of an app and one click, that answers two rows, both owned by
+`alice`. `.exit` leaves the REPL and stops the server.
+
+### Keep the data across restarts
+
+Point the database at a file in `package.json`:
+
+```json
+{
+  "cds": {
+    "requires": {
+      "db": { "kind": "sqlite", "credentials": { "url": "db.sqlite" } }
+    }
+  }
+}
+```
+
+and run `cds deploy` once, which creates `db.sqlite` with the tables and the
+CSV data. From then on `cds watch` says `connect to db > sqlite { url:
+'db.sqlite' }`, and drafts and data survive a restart — a tab that was open
+before the restart keeps working, where the in-memory database answers
+`NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND`.
+
+- **Running `cds deploy` again rebuilds the tables** and deletes everything the
+  apps wrote, drafts included. Open tabs then need a reload.
+- **`cds init` already lists `*.sqlite` in `.gitignore`**, so the file stays
+  out of the repository.
+- **Give SQLite a busy timeout** as soon as a second process writes to the
+  same file — the SQLite warning in
+  [Database Model](../reference/database#retention) has the setting.
+
 ## Next
 
 - [**Database Model**](../reference/database) — the entity and the owner binding
