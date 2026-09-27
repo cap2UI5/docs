@@ -198,11 +198,12 @@ Reaching the transpiled class through the runtime's global,
 async, every result is dereferenced with `.get()`, and the app is coupled to
 transpiler output.
 
-::: warning `c.event()` does not survive the builder
-In cap2ui5 0.1.0, the placeholder `c.event()` returns does not survive the
-builder's XML escaping: the response then carries a raw NUL and is not valid
-JSON. With the builder, the event string has to come from `c.raw`
-(`z2ui5_if_client$_event`). A fix in cap2UI5 is under way.
+::: warning `c.event()` does not survive the builder in cap2ui5 0.1.0
+In the released cap2ui5 0.1.0, the placeholder `c.event()` returns does not
+survive the builder's XML escaping: the response then carries a raw NUL and is
+not valid JSON. With the builder, the event string has to come from `c.raw`
+(`z2ui5_if_client$_event`). cap2UI5/cap2UI5#81 fixes it on `main`; no release
+carries the fix yet.
 :::
 
 Keep template literals with `c.bind` and `c.event` in a JavaScript app.
