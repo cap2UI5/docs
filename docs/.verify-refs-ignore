@@ -15,7 +15,7 @@ app/customer-list       # a hypothetical Fiori elements app, used for contrast
 z2ui5_cl_app_xyz        # stands for "your app class" in the interface description
 my_first_app            # the class the getting-started walkthrough has you write
 my_app_name             # stands for "your class" in the ?app_start= URL on the navigation page
-zcl_my_app              # stands for "the name you gave defineApp" in the why-cap2UI5 pitch
+zcl_my_app              # stands for "your app class": the name you gave defineApp in the why-cap2UI5 pitch, and the ABAP class on the views page — an ABAP app is registered by its transpiled class, not by defineApp
 ClassName               # literal placeholder in the URL-parameter description
 
 # Upstream's frozen src/99 needs no entries any more: the plugin hosts

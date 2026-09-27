@@ -79,9 +79,88 @@ There is no `modelUpdate()`. It existed, called a framework method documented as
 ## The ABAP view builder
 
 abap2UI5 ships `z2ui5_cl_ui5_view_builder`, a fluent builder for the same XML.
-It is in the runtime and ABAP apps use it — but the plugin's facade does not
-expose it, because in JavaScript a template literal is shorter and clearer than
-a builder chain. If you want it, it is reachable through `c.raw`.
+It runs in the hosted runtime — the shipped `Z2UI5_CL_UI5_APP_HI_WORLD` is
+built with it and works under cap2UI5. The facade does not expose it, and
+`c.raw` does not reach it either: `z2ui5_if_client` has no reference to the
+builder. In JavaScript a template literal is shorter and clearer than a builder
+chain, so a JS app keeps `c.view` with `c.bind` and `c.event`.
+
+If you want the builder, write the app in ABAP.
+
+### An app in ABAP
+
+A normal `z2ui5_if_app` class that uses `z2ui5_cl_ui5_view_builder`, transpiled
+against the runtime the plugin hosts. The steps are the ones in the
+`@abap2ui5/node-runtime` README, with three additions for a CAP project.
+
+Install the transpiler at exactly the version the runtime was built with:
+
+```bash
+npm install --save-dev --save-exact @abaplint/transpiler-cli@$(node -p "require('@abap2ui5/node-runtime/package.json').abap2ui5.transpiler")
+```
+
+Without `--save-exact`, npm saves a caret range, and a later install can drift
+away from the runtime.
+
+`abap_transpile.json`, with your classes in `abap/`:
+
+```json
+{
+  "input_folder": "abap",
+  "output_folder": "output",
+  "libs": [
+    { "folder": "/node_modules/@abap2ui5/node-runtime/downport", "files": "/**/*.*" },
+    { "url": "https://github.com/open-abap/open-abap-core", "folder": "/deps/open-abap-core" }
+  ],
+  "write_unit_tests": false,
+  "options": { "ignoreSyntaxCheck": false, "addFilenames": true, "unknownTypes": "runtimeError" }
+}
+```
+
+```bash
+git clone --depth 1 https://github.com/open-abap/open-abap-core deps/open-abap-core
+npx abap_transpile abap_transpile.json
+mkdir -p srv/abap && cp output/zcl_my_app.clas.mjs srv/abap/
+```
+
+- **Clone open-abap-core once.** The transpiler uses `deps/open-abap-core`
+  when the folder exists; otherwise it clones into a temporary folder on every
+  run.
+- **Copy only your own class.** `output/` also receives a full second copy of
+  the framework and of open-abap-core. Your class file has no imports: it
+  resolves everything through the runtime that is already running.
+- **Put it under `srv/`.** `cds build --production` copies `srv/`, not a
+  top-level `output/`. Never point `output_folder` at `srv/apps`.
+
+Then load it with one app module, `srv/apps/abap-apps.mjs`. The plugin imports
+app modules after the runtime has booted, which is when a transpiled class can
+register itself:
+
+```js
+await import("../abap/zcl_my_app.clas.mjs");
+```
+
+`?app_start=ZCL_MY_APP` starts it (lowercase works too), and its state survives
+roundtrips like any app's. The transpile type-checks against the framework, so
+a misspelled builder method fails there rather than at runtime. The startup
+lines list only the apps registered with `defineApp`, not ABAP apps.
+
+### From a JavaScript app
+
+Reaching the transpiled class through the runtime's global,
+`abap.Classes["Z2UI5_CL_UI5_VIEW_BUILDER"]`, or through the package's
+`./output/*` export works, but it is awkward and unsupported: every call is
+async, every result is dereferenced with `.get()`, and the app is coupled to
+transpiler output.
+
+::: warning `c.event()` does not survive the builder
+In cap2ui5 0.1.0, the placeholder `c.event()` returns does not survive the
+builder's XML escaping: the response then carries a raw NUL and is not valid
+JSON. With the builder, the event string has to come from `c.raw`
+(`z2ui5_if_client$_event`). A fix in cap2UI5 is under way.
+:::
+
+Keep template literals with `c.bind` and `c.event` in a JavaScript app.
 
 ## Next
 
