@@ -81,8 +81,8 @@ npm rm cap2ui5 && npm add @cap2ui5/cds-plugin
 
 and its app modules import `@cap2ui5/cds-plugin` instead of `cap2ui5`.
 Everything else keeps its name: the configuration `cds.requires.cap2ui5`,
-`cds add cap2ui5`, `npx cap2ui5 abap2js`, the entity `cap2ui5.Drafts` and the
-log `[cap2ui5]`.
+`cds add cap2ui5`, `npx --no-install cap2ui5 abap2js`, the entity
+`cap2ui5.Drafts` and the log `[cap2ui5]`.
 :::
 
 ## 2. Your first app

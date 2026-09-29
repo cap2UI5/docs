@@ -24,7 +24,7 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
       │       ├── view-builder.js  records a view builder chain for upstream's class
       │       ├── draft-store.js   the draft store, over a CDS entity
       │       ├── runtime.js       locate and boot the runtime
-      │       └── abap2js.js       npx cap2ui5 abap2js
+      │       └── abap2js.js       npx --no-install cap2ui5 abap2js
       └── @abap2ui5/node-runtime  abap2UI5 itself, one exact release
           ├── output/            upstream's ABAP, downported + transpiled —
           │                      the GET page embeds the UI5 frontend, from

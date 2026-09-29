@@ -68,8 +68,9 @@ On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.1` (Node ≥ 22, peer
 (on npm since 2026-09-27) **exactly**. Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`; it is withdrawn from npm (0.2.0 never reached it), so the
 site names it only as the old name. What did NOT change name: the
-configuration `cds.requires.cap2ui5`, `cds add cap2ui5`, the bin
-`npx cap2ui5 abap2js`, the entity `cap2ui5.Drafts` and the logger `cap2ui5`. The runtime package was renamed from
+configuration `cds.requires.cap2ui5`, `cds add cap2ui5`, the bin `cap2ui5`
+(`npx --no-install cap2ui5 abap2js`), the entity `cap2ui5.Drafts` and the
+logger `cap2ui5`. The runtime package was renamed from
 `@abap2ui5/runtime` before its first publish — the old name never existed on
 npm, and on the site it appears only in prose that says it is the old name.
 
@@ -97,8 +98,8 @@ Path conventions inside cap2UI5:
   startup lines naming each app's address), `index.cds` (the `cap2ui5.Drafts`
   entity), `index.js` (what `import`/`require` of `@cap2ui5/cds-plugin`
   returns), `index.d.ts` (its TypeScript declarations), `bin/cap2ui5.js`
-  (`npx cap2ui5 abap2js`) and `lib/` (`abap2js.js`, `add.js`, `config.js`,
-  `define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
+  (`npx --no-install cap2ui5 abap2js`) and `lib/` (`abap2js.js`, `add.js`,
+  `config.js`, `define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
   `runtime.js`, `view-builder.js`)
 - `examples/bookshop/` — a CAP project using it, with the test suite. Its apps
   are in `examples/bookshop/srv/apps/`
@@ -138,5 +139,13 @@ against the cap2UI5 repository.
   the user exit is discovered by a class-repository lookup in ABAP and had to
   be given a host-side registration (`defineExit`) instead. Boot the runtime
   and check rather than porting a claim from abap2UI5's documentation.
+- Write the translator as `npx --no-install cap2ui5 abap2js`, never a bare
+  `npx cap2ui5`. The unscoped npm name `cap2ui5` was withdrawn and is
+  anybody's now; a bare `npx cap2ui5` where the plugin is not installed
+  downloads and runs whatever npm has under it. `--no-install` runs the
+  project's own `@cap2ui5/cds-plugin` bin or fails. A page that shows the
+  command says it needs the plugin installed. Left as they are: `cds add
+  cap2ui5`, a bare `cap2ui5 abap2js …` in a `package.json` script, and
+  `npx -p @cap2ui5/cds-plugin cap2ui5 …`.
 - Run `npm run check` before committing — verify-refs catches stale
   references, the VitePress build catches dead links.

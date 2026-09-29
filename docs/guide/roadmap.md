@@ -19,8 +19,8 @@ measurements are in [Where cap2UI5 Comes From](./where-it-comes-from).
 Since then the JavaScript side closed its own gaps. 0.2.0 made the client an
 app receives abap2UI5's `z2ui5_if_client`, every method under its ABAP name,
 exported `z2ui5_cl_ui5_view_builder` and shipped TypeScript declarations;
-0.3.0 added `npx cap2ui5 abap2js`, which translates an abap2UI5 app class
-into a cap2UI5 app line for line, and apps that come from a package —
+0.3.0 added `npx --no-install cap2ui5 abap2js`, which translates an abap2UI5
+app class into a cap2UI5 app line for line, and apps that come from a package —
 [`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
 samples that way. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
@@ -49,9 +49,9 @@ unannotated app.
 
 ### `abap2js` translates part of ABAP
 
-`npx cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written in and
-refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file, row
-and column. What it refuses you translate by hand. Of abap2UI5's 129
+`npx --no-install cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written
+in and refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file,
+row and column. What it refuses you translate by hand. Of abap2UI5's 129
 samples, it translates 69 today.
 
 ### UI5 comes from the CDN, and only from the CDN

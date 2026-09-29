@@ -101,8 +101,8 @@ identifiers are ABAP's. The plugin keeps them: the client an app's
 `client->check_on_navigated( )` is `client.check_on_navigated()` — and the
 view builder is `z2ui5_cl_ui5_view_builder`. Every abap2UI5 sample and
 document therefore maps onto what you are doing, and an ABAP app ports line
-by line; `npx cap2ui5 abap2js` does the porting (see
-[Migrating from abap2UI5](./migration-from-abap2ui5#translate-it-npx-cap2ui5-abap2js)).
+by line; `npx --no-install cap2ui5 abap2js` does the porting (see
+[Migrating from abap2UI5](./migration-from-abap2ui5#translate-it-cap2ui5-abap2js)).
 
 ## Next
 
