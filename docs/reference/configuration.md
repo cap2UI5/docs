@@ -22,7 +22,7 @@ These ship in the plugin's own `package.json` and apply until you override one:
 
 | key | what it does |
 |---|---|
-| `apps` | the directory scanned for app modules, relative to `cds.root`. Every `.js`/`.mjs`/`.cjs` in it is imported once the runtime is up. A project without the directory simply has no JavaScript apps |
+| `apps` | the directory scanned for app modules, relative to `cds.root`. Every `.js`/`.mjs`/`.cjs` in it is imported once the runtime is up. A project without the directory simply has no JavaScript apps of its own. Apps a dependency brings come on top — see [Apps from a package](../guide/project-structure#apps-from-a-package) |
 | `requires` | the role the route demands. `null` lets anonymous callers in — read the box below first |
 | `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works. A GET on a route answers with the page that embeds the whole UI5 frontend — there is no separate static route to configure |
 
@@ -81,8 +81,8 @@ run behind it under `xsuaa` and `ias` and not only under `mocked`.
 
 ## The runtime
 
-`cap2ui5` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.145.0`
-for `cap2ui5` 0.1.0 — so `npm install cap2ui5` already gives you one known
+`@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.145.0`
+for 0.3.0 — so `npm add @cap2ui5/cds-plugin` already gives you one known
 runtime release. There is nothing to add to your own `package.json`.
 
 The plugin resolves the runtime from **your project** (`cds.root`) first and
@@ -105,7 +105,7 @@ exit, registered with `defineExit`:
 
 ```js
 // srv/apps/exit.js
-import { defineExit } from "cap2ui5";
+import { defineExit } from "@cap2ui5/cds-plugin";
 
 defineExit({
   onPage(cfg, ctx) { cfg.theme = "sap_horizon_dark"; },

@@ -90,7 +90,7 @@ The decisions, and the measurements behind them, are recorded in the plugin
 repository's [`docs/adr/`](https://github.com/cap2UI5/cap2UI5/tree/main/docs/adr).
 The port's repositories — the transpiler with its conformance gate, and the
 three that generated the application and the playground — are archived or being
-archived. Nothing consumes their output any more: `cap2ui5` depends on
+archived. Nothing consumes their output any more: `@cap2ui5/cds-plugin` depends on
 `@abap2ui5/node-runtime` from npm, which abap2UI5 builds itself.
 
 ## Why the ABAP names remain

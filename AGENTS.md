@@ -16,9 +16,10 @@ VitePress build. It is also what CI runs, on every pull request
 - every `?app_start=` names an app something registers with `defineApp`,
 - every `z2ui5_*` class or interface exists in the abap2UI5 source the hosted
   runtime is transpiled from,
-- every `require("cap2ui5")` or `import { … } from "cap2ui5"` **inside a code
-  fence** names only what the package really exports (and the port's
-  `abap2UI5/…` package is reported, in either form),
+- every `require("@cap2ui5/cds-plugin")` or `import { … } from
+  "@cap2ui5/cds-plugin"` **inside a code fence** names only what the package
+  really exports (and two dead packages are reported, in either form: the
+  port's `abap2UI5/…` and the plugin's withdrawn old name `cap2ui5`),
 - every `cds.cap2ui5.<option>` is an option the plugin defines,
 - every `1.x.y` release number is the pinned runtime release,
 - every internal anchor exists.
@@ -55,13 +56,19 @@ against the repos, don't guess):
 
 | Repo | Role |
 |---|---|
-| [cap2UI5/cap2UI5](https://github.com/cap2UI5/cap2UI5) | the npm package `cap2ui5`: a CAP plugin that hosts upstream's transpiled runtime. Also the home of the decision records (`docs/adr/`) |
+| [cap2UI5/cap2UI5](https://github.com/cap2UI5/cap2UI5) | the npm package `@cap2ui5/cds-plugin`: a CAP plugin that hosts upstream's transpiled runtime. Also the home of the decision records (`docs/adr/`) |
+| [cap2UI5/samples](https://github.com/cap2UI5/samples) | the npm package `@cap2ui5/samples`: abap2UI5's samples as cap2UI5 apps, which a project adds as a (dev) dependency |
 | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
-Both packages are on npm since 2026-09-27: `cap2ui5@0.1.0` (Node ≥ 20, peer
-`@sap/cds` ≥ 9) and `@abap2ui5/node-runtime@1.145.0` (Node ≥ 22), which
-`cap2ui5` pins **exactly**. The runtime package was renamed from
+On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.0` (Node ≥ 22, peer
+`@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
+`@cap2ui5/samples@0.1.0`. The plugin pins `@abap2ui5/node-runtime@1.145.0`
+(on npm since 2026-09-27) **exactly**. Up to 0.2.0 the plugin was the unscoped
+package `cap2ui5`; it is withdrawn from npm (0.2.0 never reached it), so the
+site names it only as the old name. What did NOT change name: the
+configuration `cds.requires.cap2ui5`, `cds add cap2ui5`, the bin
+`npx cap2ui5 abap2js`, the entity `cap2ui5.Drafts` and the logger `cap2ui5`. The runtime package was renamed from
 `@abap2ui5/runtime` before its first publish — the old name never existed on
 npm, and on the site it appears only in prose that says it is the old name.
 
@@ -83,7 +90,8 @@ Path conventions inside cap2UI5:
 
 - `plugin/` — the package: `cds-plugin.js` (the route, the auth guard, the
   startup lines naming each app's address), `index.cds` (the `cap2ui5.Drafts`
-  entity), `index.js` (what `import`/`require` of `cap2ui5` returns) and `lib/`
+  entity), `index.js` (what `import`/`require` of `@cap2ui5/cds-plugin`
+  returns) and `lib/`
   (`define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
   `runtime.js`)
 - `examples/bookshop/` — a CAP project using it, with the test suite. Its apps
@@ -94,11 +102,12 @@ Path conventions inside cap2UI5:
 - `docs/adr/` — the decisions, ADR-008 being the cutover
 
 What a READER's project looks like is a different thing and must not be
-confused with the above: they install `cap2ui5`, write apps in `srv/apps/`
-(configurable via `cds.cap2ui5.apps`), and get the route (whose GET page
+confused with the above: they install `@cap2ui5/cds-plugin`, write apps in
+`srv/apps/` (configurable via `cds.cap2ui5.apps`), may add packages that bring
+apps (`@cap2ui5/samples` for one), and get the route (whose GET page
 embeds the UI5 frontend) and the draft entity from the plugin. A project from
 `cds init --nodejs` is an ES module project, so the site's examples `import`
-from `cap2ui5`; a `require` in a `.js` file there fails the whole runtime
+from `@cap2ui5/cds-plugin`; a `require` in a `.js` file there fails the whole runtime
 boot. `srv/`, `db/` and `app/` in the prose are
 therefore **their** paths, which is why verify-refs does not check them
 against the cap2UI5 repository.
@@ -109,7 +118,7 @@ against the cap2UI5 repository.
 - The framework's own classes are **not a supported import**. Importing
   `@abap2ui5/node-runtime/output/…` technically works — the package exports
   `./output/*` — but it couples an app to transpiler output. A JS app imports
-  `cap2ui5` and nothing else; `c.raw` is the escape hatch to the transpiled
+  `@cap2ui5/cds-plugin` and nothing else; `c.raw` is the escape hatch to the transpiled
   `z2ui5_if_client`. An app that wants the framework's ABAP API (the view
   builder, for one) is written in ABAP and transpiled — see the views guide.
 - Measure before documenting a framework behaviour. The runtime is upstream's

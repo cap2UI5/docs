@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The documented targets. verify-refs checks every path, class, app id,
-      # plugin option and `require("cap2ui5")` on this site against real
+      # plugin option and `require("@cap2ui5/cds-plugin")` on this site against real
       # checkouts, so without them the run proves only that the site builds —
       # it skips those checks when a checkout is missing, which is exactly the
       # silent pass this job exists to prevent. Hence `check:ci` below, which

@@ -19,7 +19,7 @@ my-project/
 │   │   ├── hello.js
 │   │   └── books.js
 │   └── server.js           # optional, and NOT touched by the plugin
-└── package.json            # "cap2ui5": "^x.y.z"
+└── package.json            # "@cap2ui5/cds-plugin": "^x.y.z"
 ```
 
 `examples/bookshop` in the [cap2UI5 repository](https://github.com/cap2UI5/cap2UI5)
@@ -36,7 +36,7 @@ that gives you:
 | `cap2ui5.Drafts` | a CDS entity contributed through `package.json#cds.requires`, so `cds deploy` creates it next to your own tables |
 
 None of this appears in your working tree. There is nothing to regenerate, no
-vendored folder, no sync pipeline. Upgrading is `npm update cap2ui5`.
+vendored folder, no sync pipeline. Upgrading is `npm update @cap2ui5/cds-plugin`.
 
 ## `srv/apps/` — the one directory that is yours
 
@@ -46,7 +46,7 @@ more than once.
 
 ```js
 // srv/apps/pick.js — two apps in one file is fine
-import { defineApp } from "cap2ui5";
+import { defineApp } from "@cap2ui5/cds-plugin";
 
 defineApp("ZCL_PICK",     class { /* … */ });
 defineApp("ZCL_PICK_ONE", class { /* … */ });
@@ -63,14 +63,42 @@ To put apps somewhere else, point the plugin at it:
 
 See [Configuration](../reference/configuration) for the rest of the knobs.
 
+## Apps from a package
+
+A dependency can bring apps of its own, and they run beside the project's —
+the way abap2UI5's samples run in the system they are pulled into.
+`@cap2ui5/samples` is one such package:
+
+```bash
+npm add -D @cap2ui5/samples
+```
+
+A package says where its app modules are in its `package.json`, and names the
+plugin as a peer dependency, so that its apps and the project's run on the
+same one:
+
+```json
+{
+  "cap2ui5": { "apps": "srv/apps" },
+  "peerDependencies": { "@cap2ui5/cds-plugin": "^0.3.0" }
+}
+```
+
+The plugin finds such packages the way CAP finds its plugins: among the
+project's `dependencies`, and outside production among its `devDependencies`
+too — so `npm add -D` brings a package's apps to development only. They load
+after the project's own apps, and the log names every package it loaded apps
+from. An app whose name the project already uses stays the project's, with a
+warning.
+
 ## Where the framework actually lives
 
 In `node_modules`, in two packages, and you own neither:
 
 | | |
 |---|---|
-| `cap2ui5` | the plugin — about 1,050 lines in 0.1.0, of which about 640 are code. `cds-plugin.js`, `index.cds`, `index.js`, `lib/` |
-| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. `cap2ui5` pins one exact release |
+| `@cap2ui5/cds-plugin` | the plugin — about 1,050 lines in 0.1.0, of which about 640 are code. `cds-plugin.js`, `index.cds`, `index.js`, `lib/` |
+| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. the plugin pins one exact release |
 
 That split is the whole design. The plugin is a **host**: it mounts a route,
 implements the draft store over a CDS entity, and turns a JavaScript class into

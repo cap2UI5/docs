@@ -2,7 +2,7 @@
 
 VitePress documentation for [**cap2UI5**](https://github.com/cap2UI5/cap2UI5) — the CAP / Node.js port of the [abap2UI5](https://github.com/abap2UI5/abap2UI5) concept. Published at **[cap2ui5.github.io/docs](https://cap2ui5.github.io/docs/)**.
 
-To try it, follow the [Quickstart](https://cap2ui5.github.io/docs/guide/getting-started): a CAP project, `npm install cap2ui5`, `cds watch`.
+To try it, follow the [Quickstart](https://cap2ui5.github.io/docs/guide/getting-started): a CAP project, `npm add @cap2ui5/cds-plugin`, `cds watch`.
 
 ## Develop locally
 

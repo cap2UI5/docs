@@ -8,7 +8,8 @@ owns what saves time when something breaks.
 | | |
 |---|---|
 | [**abap2UI5/abap2UI5**](https://github.com/abap2UI5/abap2UI5) | the framework itself: the ABAP sources and the UI5 shell. Everything cap2UI5 runs comes from here |
-| [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `cap2ui5`; `examples/bookshop` is a CAP project using it; `runtime/` is a stand-in for `@abap2ui5/node-runtime` that the repository's own tests build from upstream |
+| [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `@cap2ui5/cds-plugin`; `examples/bookshop` is a CAP project using it; `runtime/` is a stand-in for `@abap2ui5/node-runtime` that the repository's own tests build from upstream |
+| [**cap2UI5/samples**](https://github.com/cap2UI5/samples) | abap2UI5's samples as cap2UI5 apps, each translated from its ABAP original by `npx cap2ui5 abap2js` — the npm package `@cap2ui5/samples` |
 | [**cap2UI5/docs**](https://github.com/cap2UI5/docs) | this site |
 
 The decisions that led to the current design are in the plugin repository,
@@ -19,19 +20,22 @@ The four repositories of the earlier port — `builder-abap2UI5-js`, which
 transpiled abap2UI5 into JavaScript, and `builder-cap2UI5`,
 `builder-cap2UI5-web` and `web-cap2UI5-build`, which generated an application
 and a playground from it — are archived or being archived. Nothing consumes
-their output: `cap2ui5` depends on `@abap2ui5/node-runtime` from npm, which
+their output: `@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` from npm, which
 abap2UI5 builds itself.
 
 ## The packages
 
 | | |
 |---|---|
-| `cap2ui5` | the plugin — about 640 lines of code. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call |
+| `@cap2ui5/cds-plugin` | the plugin — about 640 lines of code. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call |
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
+| `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-Both are on npm: `cap2ui5` 0.1.0 (Node ≥ 20, `@sap/cds` ≥ 9 as a peer) and
-`@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which `cap2ui5` pins exactly.
-`npm install cap2ui5` installs both — see the [Quickstart](./getting-started).
+All three are on npm: `@cap2ui5/cds-plugin` 0.3.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+`@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which the plugin pins exactly,
+and `@cap2ui5/samples` 0.1.0. `npm add @cap2ui5/cds-plugin` installs the first two — see the
+[Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
+package `cap2ui5`, which is withdrawn from npm.
 
 ## What the plugin does and does not own
 

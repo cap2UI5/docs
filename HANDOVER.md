@@ -1,5 +1,10 @@
 # Handover — what is left
 
+> **2026-09-29:** the plugin is published as `@cap2ui5/cds-plugin` 0.3.0 now,
+> next to `@cap2ui5/samples` 0.1.0; the unscoped `cap2ui5` is withdrawn from
+> npm. The site uses the new name. Below, `cap2ui5` is the name at the time
+> each line was written.
+
 Both packages are **on npm** since 2026-09-27: `cap2ui5@0.1.0` and
 `@abap2ui5/node-runtime@1.145.0`, which `cap2ui5` pins exactly. The two steps
 this file used to list — publish the runtime package, then point cap2UI5 at

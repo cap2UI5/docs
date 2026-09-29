@@ -6,8 +6,8 @@ already have, or to a brand new one. There is no cap2UI5 project to clone.
 
 ## Prerequisites
 
-- **Node.js 22 or later** — `@abap2ui5/node-runtime`, which the plugin depends
-  on, requires it (`cap2ui5` itself says ≥ 20)
+- **Node.js 22 or later** — the plugin, `@cap2ui5/cds-plugin`, and
+  `@abap2ui5/node-runtime`, which it depends on, both require it
 - **`@sap/cds-dk`** installed globally, for the `cds` command
 - Internet access — the page loads UI5 from the SAP CDN
 
@@ -23,8 +23,8 @@ It must print `v22` or higher.
 
 ## 1. A CAP project and the plugin
 
-Skip `cds init` if you already have a CAP project and run the `npm install cap2ui5`
-line in it.
+Skip `cds init` if you already have a CAP project and run the
+`npm add @cap2ui5/cds-plugin` line in it.
 
 ```bash
 npm i -g @sap/cds-dk
@@ -40,7 +40,7 @@ not help. Then create the project and add the plugin:
 cds init my-cap2ui5-app --nodejs --add tiny-sample
 cd my-cap2ui5-app
 npm install
-npm install cap2ui5
+npm add @cap2ui5/cds-plugin
 ```
 
 `--add tiny-sample` gives the project something to read later: a service
@@ -48,8 +48,8 @@ npm install cap2ui5
 books in `db/data/CatalogService.Books.csv`.
 
 ::: details Optional: check the CAP project before adding the plugin
-Run `cds watch` after the first `npm install` and before `npm install cap2ui5`,
-and open <http://localhost:4004>. CAP's index page lists the service endpoint
+Run `cds watch` after the first `npm install` and before
+`npm add @cap2ui5/cds-plugin`, and open <http://localhost:4004>. CAP's index page lists the service endpoint
 `/odata/v4/catalog` with `Books`; the link answers the five books as JSON.
 That is a plain CAP project working. Stop the server with `Ctrl+C` and go on.
 :::
@@ -59,9 +59,9 @@ Two things about `cds init` that cost time when missed. Without `--nodejs`,
 to install the plugin into. And it fails in a folder whose name contains a
 space.
 
-`npm install cap2ui5` is the whole installation. It brings two packages from
-npm — `cap2ui5` and the `@abap2ui5/node-runtime` release it pins — and on the
-next `cds watch` these exist that did not before:
+`npm add @cap2ui5/cds-plugin` is the whole installation. It brings two
+packages from npm — `@cap2ui5/cds-plugin` and the `@abap2ui5/node-runtime`
+release it pins — and on the next `cds watch` these exist that did not before:
 
 | | |
 |---|---|
@@ -70,6 +70,20 @@ next `cds watch` these exist that did not before:
 
 Your own `server.js`, if you have one, is not touched. Nothing is generated
 into your repository, and there are no frontend files to serve.
+
+::: info Coming from the package `cap2ui5`
+Up to 0.2.0 the plugin was the unscoped package `cap2ui5`, which is withdrawn
+from npm. A project that has it swaps it:
+
+```bash
+npm rm cap2ui5 && npm add @cap2ui5/cds-plugin
+```
+
+and its app modules import `@cap2ui5/cds-plugin` instead of `cap2ui5`.
+Everything else keeps its name: the configuration `cds.requires.cap2ui5`,
+`cds add cap2ui5`, `npx cap2ui5 abap2js`, the entity `cap2ui5.Drafts` and the
+log `[cap2ui5]`.
+:::
 
 ## 2. Your first app
 
@@ -85,7 +99,7 @@ yet in a new project:
 
 ```js
 // srv/apps/hello.js
-import { defineApp } from "cap2ui5";
+import { defineApp } from "@cap2ui5/cds-plugin";
 
 defineApp("HELLO", class {
   name  = "";
@@ -113,14 +127,14 @@ defineApp("HELLO", class {
 
 ::: warning `import`, not `require` — in this project
 `cds init --nodejs` creates an **ES module** project (`"type": "module"` in
-`package.json`), so a `.js` file there must `import`. A `require("cap2ui5")`
+`package.json`), so a `.js` file there must `import`. A `require("@cap2ui5/cds-plugin")`
 in it does not fail on its own line: it fails the **whole runtime boot** —
 the log says `[cap2ui5] runtime failed to boot: ReferenceError: require is not
 defined in ES module scope`, and every roundtrip, for every app, answers 500
 "roundtrip failed".
 
 In a CommonJS project (no `"type": "module"`), or in a file ending in `.cjs`,
-`const { defineApp } = require("cap2ui5")` is correct and works the same way.
+`const { defineApp } = require("@cap2ui5/cds-plugin")` is correct and works the same way.
 The examples on this site use `import`, because that is what `cds init` gives
 you.
 :::
@@ -209,7 +223,7 @@ step 1 — save it as `srv/apps/books.js`, next to `hello.js`:
 ```js
 // srv/apps/books.js
 import cds from "@sap/cds";
-import { defineApp, t } from "cap2ui5";
+import { defineApp, t } from "@cap2ui5/cds-plugin";
 
 const { SELECT } = cds.ql;
 
@@ -270,6 +284,24 @@ Open it: five books. Search for `Raven` and one row is left, with a toast
   and the object only fixes the columns and their types.
 - **Column names are UPPERCASE in the view** — `{TITLE}`, not `{title}`. The
   model carries field names uppercase; see [Data Binding](./data-binding#tables).
+
+## The samples
+
+abap2UI5's samples are a package too, `@cap2ui5/samples` — every sample a
+cap2UI5 app, translated from its ABAP original line for line. Add it to the
+project as a devDependency:
+
+```bash
+npm add -D @cap2ui5/samples
+cds watch
+```
+
+The startup lines now list every sample beside `HELLO` and `BOOKS`, each under
+its ABAP class name. As a devDependency the samples are there in development
+only; a production start leaves them out. How a package brings apps is in
+[Project Structure](./project-structure#apps-from-a-package), the list of
+samples in the [cap2UI5/samples](https://github.com/cap2UI5/samples)
+repository.
 
 ## What is in the database
 

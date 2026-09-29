@@ -1,6 +1,6 @@
 # What is cap2UI5?
 
-**cap2UI5** lets you build complete SAPUI5 applications **inside your CAP backend (Node.js)** — as plain JavaScript classes. No separate frontend project, no `manifest.json`, no second build pipeline. One file in `srv/apps/` is one app, and `npm i cap2ui5` is the whole installation.
+**cap2UI5** lets you build complete SAPUI5 applications **inside your CAP backend (Node.js)** — as plain JavaScript classes. No separate frontend project, no `manifest.json`, no second build pipeline. One file in `srv/apps/` is one app, and `npm add @cap2ui5/cds-plugin` is the whole installation.
 
 It is the CAP/Node.js twin of [abap2UI5](https://github.com/abap2UI5/abap2UI5), a popular open-source framework from the ABAP world. Never heard of abap2UI5? That's expected — it lives on the other side of the SAP fence. The short version: it lets ABAP developers write UI5 apps purely in ABAP, and it's been very successful at that. cap2UI5 brings the exact same concept to CAP. The full story, including how the two stay in sync, is on [Where cap2UI5 comes from](./where-it-comes-from).
 
@@ -62,7 +62,7 @@ A cap2UI5 app is **a single JavaScript class**, registered with `defineApp`:
 
 ```js
 // srv/apps/hello.js
-import { defineApp } from "cap2ui5";
+import { defineApp } from "@cap2ui5/cds-plugin";
 
 defineApp("ZCL_HELLO", class {
 

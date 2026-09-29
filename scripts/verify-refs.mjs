@@ -26,7 +26,7 @@
  * the ground truth moved and split in two:
  *
  *   - the cap2UI5 checkout still answers for repository paths, for the app
- *     ids `?app_start=` may name, for what `require("cap2ui5")` exports and
+ *     ids `?app_start=` may name, for what `require("@cap2ui5/cds-plugin")` exports and
  *     for which runtime release is pinned;
  *   - the FRAMEWORK CLASSES the docs name (z2ui5_cl_…, z2ui5_if_…) are not
  *     in cap2UI5 at all. They are abap2UI5's ABAP, transpiled into
@@ -50,16 +50,18 @@
  *      documentation page (a page that teaches an app may name it).
  *   3. every z2ui5 class named in backticks exists in the abap2UI5 source
  *      the hosted runtime is built from.
- *   4. every `require("cap2ui5")` or `import { … } from "cap2ui5"` in a
- *      FENCED CODE BLOCK names only what the package actually exports, and
- *      a "cap2ui5/<sub>" specifier lands on a file that exists. Stale
- *      "abap2UI5/…" — the port's package, which no longer exists — is
- *      reported by name, in either form.
+ *   4. every `require("@cap2ui5/cds-plugin")` or `import { … } from
+ *      "@cap2ui5/cds-plugin"` in a FENCED CODE BLOCK names only what the
+ *      package actually exports, and a "@cap2ui5/cds-plugin/<sub>" specifier
+ *      lands on a file that exists. Two dead packages are reported by name,
+ *      in either form: "abap2UI5/…", the port's package, and "cap2ui5", the
+ *      plugin's name up to 0.2.0, withdrawn from npm.
  *   5. every plugin option named as `cds.cap2ui5.<key>` is a key the plugin
  *      really defines, every three-part release number (1.x.y) is the runtime
  *      release the checkout pins or an allowlisted historical number, and a
- *      `"cap2ui5": "^x.y.z"` a page tells a reader to write is a range the
- *      plugin's own version actually falls in.
+ *      `"@cap2ui5/cds-plugin": "^x.y.z"` a page tells a reader to write is a
+ *      range the plugin's own version actually falls in (and a dependency on
+ *      the withdrawn `"cap2ui5"` is reported whatever its range).
  *
  * Check 4 exists because the first three did not see the largest defect this
  * site ever had. Fenced blocks were skipped wholesale as "examples, not
@@ -141,7 +143,7 @@ if (haveApp) {
   }
 }
 
-/** what `require("cap2ui5")` hands back — read from the package, not guessed */
+/** what `require("@cap2ui5/cds-plugin")` hands back — read from the package, not guessed */
 const PLUGIN_EXPORTS = (() => {
   if (!haveApp) return null;
   const idx = path.join(APP, "plugin", "index.js");
@@ -201,7 +203,7 @@ const PINNED_RELEASE = (() => {
 })();
 
 /* The PLUGIN's own version, for the same reason one level down. A deployment
- * page telling a reader to pin `"cap2ui5": "^0.1.0"` is a claim about a
+ * page telling a reader to pin `"cap2ui5": "^0.1.0"` (the name then) is a claim about a
  * package that has to exist in that range - and it did not: the package
  * carried the placeholder 0.0.0 for as long as the page said ^0.1.0, so a
  * reader copying the line would have asked for a version npm could not
@@ -213,14 +215,17 @@ const PLUGIN_VERSION = (() => {
     return JSON.parse(fs.readFileSync(path.join(APP, PLUGIN_SOURCE), "utf8")).version ?? null;
   } catch { return null; }
 })();
-const CAP2UI5_DEP_RE = /"cap2ui5"\s*:\s*"[~^]?(\d+\.\d+)\.[\dx]+"/g;
+const CAP2UI5_DEP_RE = /"@cap2ui5\/cds-plugin"\s*:\s*"[~^]?(\d+\.\d+)\.[\dx]+"/g;
+// The unscoped package `cap2ui5` was withdrawn from npm with 0.3.0 - a
+// dependency on it is a line a reader cannot install, whatever its range.
+const WITHDRAWN_DEP_RE = /"cap2ui5"\s*:\s*"[~^]?\d/g;
 const minor = (v) => String(v).split(".").slice(0, 2).join(".");
 
 if (LIST) {
   console.log(`${files.size} paths in ${APP}`);
   console.log(`${classes.size} framework classes/interfaces in ${UPSTREAM}/src`);
   console.log(`app ids (${appIds.size}): ${[...appIds].sort().join(", ")}`);
-  console.log(`cap2ui5 exports: ${PLUGIN_EXPORTS ? [...PLUGIN_EXPORTS].join(", ") : "NOT FOUND"}`);
+  console.log(`@cap2ui5/cds-plugin exports: ${PLUGIN_EXPORTS ? [...PLUGIN_EXPORTS].join(", ") : "NOT FOUND"}`);
   console.log(`plugin options: ${PLUGIN_OPTIONS ? [...PLUGIN_OPTIONS].join(", ") : "NOT FOUND"}`);
   console.log(`pinned runtime: ${PINNED_RELEASE ?? "NOT FOUND"}`);
   console.log(`plugin version: ${PLUGIN_VERSION ?? "NOT FOUND"}`);
@@ -256,17 +261,21 @@ const RELEASE_RE = /\b1\.\d{2,3}\.\d+\b/g;
 // `z2ui5_cl_xml_view=>factory( )`, and demanding a bare identifier meant every
 // one of those mentions was invisible to this checker.
 const CLASS_RE = /`(z2ui5_(?:cl|if|cx)_[a-z0-9_]+)(?![a-z0-9_])/gi;
-// require("cap2ui5"), require("cap2ui5/lib/…"), and the port's dead package.
-const REQUIRE_RE = /require\(\s*["'`](cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]\s*\)/gi;
-// `const { defineApp, t } = require("cap2ui5")` — the names, not just the path
-const DESTRUCTURE_RE = /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*require\(\s*["'`]cap2ui5["'`]\s*\)/g;
+// require("@cap2ui5/cds-plugin"), require("@cap2ui5/cds-plugin/lib/…"), and two
+// dead packages: the port's `abap2UI5` and the plugin's own old name `cap2ui5`,
+// withdrawn from npm with 0.3.0.
+const PKG = "@cap2ui5/cds-plugin";
+const REQUIRE_RE = /require\(\s*["'`](@cap2ui5\/cds-plugin|cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]\s*\)/gi;
+// `const { defineApp, t } = require("@cap2ui5/cds-plugin")` — the names, not just the path
+const DESTRUCTURE_RE = /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*require\(\s*["'`]@cap2ui5\/cds-plugin["'`]\s*\)/g;
 // The same two claims in ES module form. `cds init --nodejs` makes an ES
 // module project, where a require() in an app file fails the whole runtime
 // boot — so the examples import, and an import line is the claim a reader
-// copies. `import { a, b as c } from "cap2ui5"` names what must be exported;
-// `import x from "cap2ui5/<sub>"` (any form) must land on a file.
-const IMPORT_RE = /\bimport\s+(?:[^"'`;]*?\s+from\s+)?["'`](cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]/gi;
-const IMPORT_NAMES_RE = /\bimport\s*\{([^}]*)\}\s*from\s*["'`]cap2ui5["'`]/g;
+// copies. `import { a, b as c } from "@cap2ui5/cds-plugin"` names what must be
+// exported; `import x from "@cap2ui5/cds-plugin/<sub>"` (any form) must land on
+// a file.
+const IMPORT_RE = /\bimport\s+(?:[^"'`;]*?\s+from\s+)?["'`](@cap2ui5\/cds-plugin|cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]/gi;
+const IMPORT_NAMES_RE = /\bimport\s*\{([^}]*)\}\s*from\s*["'`]@cap2ui5\/cds-plugin["'`]/g;
 // `cds.cap2ui5.apps`, `cap2ui5.routes` in prose or a config block. Case
 // matters and the flag is deliberately absent: `cap2ui5.Drafts` is the CDS
 // ENTITY, which the docs name constantly and which is not an option at all.
@@ -304,9 +313,14 @@ for (const file of markdownFiles(DOCS)) {
     if (PLUGIN_VERSION) {
       for (const m of line.matchAll(CAP2UI5_DEP_RE)) {
         if (m[1] === minor(PLUGIN_VERSION) || IGNORE.has(`cap2ui5@${m[1]}`)) continue;
-        add(file, n, `tells a reader to depend on cap2ui5 ${m[1]}.x, but the package `
+        add(file, n, `tells a reader to depend on ${PKG} ${m[1]}.x, but the package `
           + `is ${PLUGIN_VERSION} (${PLUGIN_SOURCE}) - nothing would resolve in that range`);
       }
+    }
+
+    for (const m of line.matchAll(WITHDRAWN_DEP_RE)) {
+      add(file, n, `tells a reader to depend on "cap2ui5", which was withdrawn from npm `
+        + `- the package is "${PKG}"`);
     }
 
     // release numbers are claims wherever they stand, prose or example
@@ -337,7 +351,12 @@ for (const file of markdownFiles(DOCS)) {
         if (IGNORE.has(spec.toLowerCase())) continue;
         if (pkg.toLowerCase() === "abap2ui5") {
           add(file, n, `${how} "${spec}" is the RETIRED port package - the plugin is `
-            + `"cap2ui5", and the framework's own classes are not importable`);
+            + `"${PKG}", and the framework's own classes are not importable`);
+          continue;
+        }
+        if (pkg.toLowerCase() === "cap2ui5") {
+          add(file, n, `${how} "${spec}" is the plugin's OLD name, withdrawn from npm - `
+            + `the package is "${PKG}"`);
           continue;
         }
         if (!haveApp || !sub) continue;                  // bare require checked below
@@ -355,7 +374,7 @@ for (const file of markdownFiles(DOCS)) {
         for (const raw of list.split(",")) {
           const name = raw.split(alias)[0].trim();
           if (!name || PLUGIN_EXPORTS.has(name) || IGNORE.has(name.toLowerCase())) continue;
-          add(file, n, `${how} from "cap2ui5" names ${name}, which the package does not export `
+          add(file, n, `${how} from "${PKG}" names ${name}, which the package does not export `
             + `(it exports ${[...PLUGIN_EXPORTS].join(", ")})`);
         }
       }

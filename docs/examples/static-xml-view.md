@@ -40,7 +40,7 @@ Two kinds of placeholder are in there, and the difference matters:
 
 ```js
 import fs from "node:fs";
-import { defineApp, t } from "cap2ui5";
+import { defineApp, t } from "@cap2ui5/cds-plugin";
 
 // read once at load, not per roundtrip; the path is relative to this file
 const XML = fs.readFileSync(new URL("./views/orders.xml", import.meta.url), "utf8");
