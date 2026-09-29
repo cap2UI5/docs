@@ -18,6 +18,12 @@ my_app_name             # stands for "your class" in the ?app_start= URL on the 
 zcl_my_app              # stands for "your app class": the name you gave defineApp in the why-cap2UI5 pitch, and the ABAP class on the views page — an ABAP app is registered by its transpiled class, not by defineApp
 ClassName               # literal placeholder in the URL-parameter description
 
+# --- apps of other repositories -------------------------------------------
+# Registered with defineApp in their own repository, not in cap2UI5 - and apps,
+# not framework classes, whatever their z2ui5_ prefix says to the class check.
+z2ui5_cl_caps_app_001   # cap2UI5/samples-stack's OData sample, linked from examples/external-odata
+z2ui5_cl_caps_app_002   # cap2UI5/samples-stack's RFC sample, linked from examples/external-odata
+
 # Upstream's frozen src/99 needs no entries any more: the plugin hosts
 # upstream's whole transpiled runtime, so z2ui5_cl_xml_view and its siblings
 # ARE in it (measured in the assembled output) and resolve like any other
