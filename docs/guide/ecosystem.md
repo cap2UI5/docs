@@ -35,7 +35,8 @@ All three are on npm: `@cap2ui5/cds-plugin` 0.3.1 (Node ≥ 22, `@sap/cds` ≥ 9
 `@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which the plugin pins exactly,
 and `@cap2ui5/samples` 0.1.0. `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
-package `cap2ui5`, which is withdrawn from npm.
+package `cap2ui5`. On npm that name is now a deprecated notice (0.1.1) and
+nothing else: requiring it throws an error that names `@cap2ui5/cds-plugin`.
 
 ## What the plugin does and does not own
 
