@@ -68,43 +68,47 @@ defineApp("ZCL_HELLO", class {
 
   name = "";                      // ← app state, persisted automatically
 
-  main(c) {                       // ← synchronous: no async, no await
-    if (c.isDisplay) {
-      c.view(
+  main(client) {                  // ← synchronous: no async, no await
+    if (client.check_on_navigated()) {
+      client.view_display(
         `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
         `<Shell><Page title="Hello World">` +
-        `<Input value="${c.bind("name")}"/>` +
-        `<Button text="Send" press="${c.event("GO")}"/>` +
+        `<Input value="${client._bind("name")}"/>` +
+        `<Button text="Send" press="${client._event("GO")}"/>` +
         `</Page></Shell></mvc:View>`);
       return;
     }
 
-    if (c.eventName === "GO") {
+    if (client.check_on_event("GO")) {
       // the button was clicked; this.name already holds what the user typed
-      c.messageBox(`Hello, ${this.name}!`);
+      client.message_box_display(`Hello, ${this.name}!`);
     }
   }
 });
 ```
 
 That is the whole app. No `manifest.json`, no `Component.js`, no controller
-file, no i18n setup. The class fields are your state, `main(c)` is your logic,
-and the view is UI5 XML with two holes in it: `c.bind()` for a field and
-`c.event()` for a handler.
+file, no i18n setup. The class fields are your state, `main(client)` is your
+logic, and the view is UI5 XML with two holes in it: `client._bind()` for a
+field and `client._event()` for a handler. abap2UI5's view builder,
+`z2ui5_cl_ui5_view_builder`, is there too, for a view built as an ABAP app
+builds one — see [Views](./views).
 
-::: tip Render on `isDisplay`
-`c.isDisplay` is true on the first roundtrip **and** whenever the app gets the
-screen back — from a called app, a value help, a restored bookmark. Rendering
-only on `c.isFirstRun` produces an app that silently shows its previous screen
-after a navigation. See [App Lifecycle](./lifecycle).
+::: tip Render on `check_on_navigated()`
+`client.check_on_navigated()` is true on the first roundtrip **and** whenever
+the app gets the screen back — from a called app, a value help, a restored
+bookmark. Rendering only on `client.check_on_init()` produces an app that
+silently shows its previous screen after a navigation. See
+[App Lifecycle](./lifecycle).
 :::
 
 ::: tip About the names
-`ZCL_HELLO`, and `z2ui5_if_client` behind `c.raw` — the framework running under
-the plugin *is* ABAP, so its identifiers are ABAP's. The facade renames the
-handful you meet daily (`c.isDisplay`, `c.bind`, `c.event`); everything else
-keeps its original name, which is what lets every abap2UI5 sample and document
-still map onto what you are doing.
+`ZCL_HELLO`, `check_on_navigated`, `_bind` — the framework running under the
+plugin *is* ABAP, and `client` is its `z2ui5_if_client`, under the interface's
+own method names: `client->check_on_navigated( )` in ABAP is
+`client.check_on_navigated()` here. That is what lets every abap2UI5 sample
+and document map onto what you are doing — an ABAP app ports line by line.
+The full list is the [Client API](../api/client).
 :::
 
 ## The gap this closes {#the-gap}

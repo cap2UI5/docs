@@ -105,33 +105,39 @@ defineApp("HELLO", class {
   name  = "";
   count = 0;
 
-  main(c) {
-    if (c.isDisplay) {
-      c.view(
+  main(client) {
+    if (client.check_on_navigated()) {
+      client.view_display(
         `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
         `<Shell><Page title="My first cap2UI5 app">` +
-        `<Input value="${c.bind("name")}"/>` +
-        `<Text text="clicks: ${c.bind("count")}"/>` +
-        `<Button text="Say hello" press="${c.event("GO")}" type="Emphasized"/>` +
+        `<Input value="${client._bind("name")}"/>` +
+        `<Text text="clicks: ${client._bind("count")}"/>` +
+        `<Button text="Say hello" press="${client._event("GO")}" type="Emphasized"/>` +
         `</Page></Shell></mvc:View>`);
       return;
     }
 
-    if (c.eventName === "GO") {
+    if (client.check_on_event("GO")) {
       this.count++;
-      c.messageToast(`Hi, ${this.name}! You clicked ${this.count}x.`);
+      client.message_toast_display(`Hi, ${this.name}! You clicked ${this.count}x.`);
     }
   }
 });
 ```
 
+`client` is abap2UI5's `z2ui5_if_client`, under its ABAP method names:
+`client->check_on_navigated( )` in an ABAP app is
+`client.check_on_navigated()` here. The [Client API](../api/client) lists
+every method.
+
 ::: warning `import`, not `require` — in this project
 `cds init --nodejs` creates an **ES module** project (`"type": "module"` in
 `package.json`), so a `.js` file there must `import`. A `require("@cap2ui5/cds-plugin")`
-in it does not fail on its own line: it fails the **whole runtime boot** —
-the log says `[cap2ui5] runtime failed to boot: ReferenceError: require is not
-defined in ES module scope`, and every roundtrip, for every app, answers 500
-"roundtrip failed".
+in it fails the **start**: the plugin loads the app modules before the server
+listens, and a module that fails to load stops it, as a broken service
+implementation does. `cds watch` then never prints the app addresses, and the
+log names the file with `ReferenceError: require is not defined in ES module
+scope`. See [Troubleshooting](./troubleshooting#the-server-does-not-start-require-is-not-defined-in-es-module-scope).
 
 In a CommonJS project (no `"type": "module"`), or in a file ending in `.cjs`,
 `const { defineApp } = require("@cap2ui5/cds-plugin")` is correct and works the same way.
@@ -139,18 +145,31 @@ The examples on this site use `import`, because that is what `cds init` gives
 you.
 :::
 
+::: details Or let `cds add cap2ui5` write a first app
+`cds add cap2ui5` creates `srv/apps/hello.js` in a project that has no apps
+yet: abap2UI5's hello world, `HELLO`, with its view built by
+`z2ui5_cl_ui5_view_builder` (see [Views](./views)). Plugin 0.3.0 writes that
+file with `require`, so in a project from `cds init --nodejs` rename it to
+`hello.cjs`, or change its `require` line to
+`import { defineApp, z2ui5_cl_ui5_view_builder } from "@cap2ui5/cds-plugin";`.
+It takes the app name `HELLO`, so use it instead of the file above, not beside it.
+:::
+
 Four things worth knowing, and each of them is a rule rather than a style:
 
-- **`main` is synchronous.** No `async`, no `await`. Make it `async` only when
-  *your app* does I/O — reading your own entities with `await SELECT.from(Books)`.
-- **`c.isDisplay` is the render branch, not `c.isFirstRun`.** `isDisplay` is
-  also true every time the app gets the screen back from a navigation or a
-  value help. An app that renders only on `isFirstRun` works perfectly until
-  something navigates back into it, and then leaves the previous screen
-  standing with no error anywhere. `isFirstRun` is for seeding state once.
+- **`main` is synchronous.** No `async`, no `await` — the client's methods
+  need none. Make it `async` only when *your app* does I/O — reading your own
+  entities with `await SELECT.from(Books)`.
+- **`client.check_on_navigated()` is the render branch, not
+  `client.check_on_init()`.** `check_on_navigated()` is also true every time
+  the app gets the screen back from a navigation or a value help. An app that
+  renders only on `check_on_init()` works perfectly until something navigates
+  back into it, and then leaves the previous screen standing with no error
+  anywhere. `check_on_init()` is for seeding state once.
 - **State is ordinary fields.** `name = ""` and `count = 0` are the app's
-  model; `c.bind("name")` binds one into the view. They survive the roundtrip
-  because the plugin stores the instance in `cap2ui5.Drafts`.
+  model; `client._bind("name")` binds one into the view — by its **name**, as
+  a string. They survive the roundtrip because the plugin stores the instance
+  in `cap2ui5.Drafts`.
 - **The first argument of `defineApp` is the app's name on the wire** — it is
   what `?app_start=` takes. The file name does not matter.
 
@@ -164,28 +183,14 @@ Once the server listens, the plugin prints every app with the address that
 starts it, and the user to log in as:
 
 ```
-[cap2ui5] HELLO  http://localhost:4004/sap/bc/z2ui5?app_start=HELLO
-[cap2ui5] development login: alice (empty password)
+[cap2ui5] - HELLO  http://localhost:4004/sap/bc/z2ui5?app_start=HELLO
+[cap2ui5] - development login: alice (empty password)
 ```
 
-Open that address. Those lines are the entry point: CAP's index page at
-`http://localhost:4004/` lists the HTML files under `app/` and your CDS
-services, not this route.
-
-::: details Tip: a link to the app on CAP's index page
-The index page lists every `index.html` under `app/`, so a one-line redirect
-puts the app there. Create `app/hello/index.html`:
-
-```html
-<!DOCTYPE html>
-<meta http-equiv="refresh" content="0; url=/sap/bc/z2ui5?app_start=HELLO">
-```
-
-Then **stop `cds watch` and start it again.** A new folder under `app/` does
-not restart the server, and the index page is built once per start: until the
-restart, `/hello/` answers 404 and "Web Applications" still says "none". After
-it, `/hello` is listed there and opens the app.
-:::
+Open that address. In development, CAP's start page at
+`http://localhost:4004/` lists the same addresses under "Web Applications",
+next to your CDS services — so the app is one click away from there too.
+Neither the lines nor the list appear in production.
 
 The address is the **roundtrip route**, not a static page: the framework
 answers a GET on it with a page that embeds the whole UI5 component — every
@@ -231,17 +236,17 @@ defineApp("BOOKS", class {
   search = "";
   books  = t.table({ ID: 0, title: "", author: "" });
 
-  async main(c) {
-    if (c.isFirstRun) {
+  async main(client) {
+    if (client.check_on_init()) {
       this.books = await SELECT.from("CatalogService.Books");
     }
-    if (c.isDisplay) {
-      c.view(`
+    if (client.check_on_navigated()) {
+      client.view_display(`
         <mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">
           <Shell>
             <Page title="Books">
-              <SearchField value="${c.bind("search")}" search="${c.event("SEARCH")}"/>
-              <Table items="${c.bind("books")}">
+              <SearchField value="${client._bind("search")}" search="${client._event("SEARCH")}"/>
+              <Table items="${client._bind("books")}">
                 <columns>
                   <Column><Text text="Title"/></Column>
                   <Column><Text text="Author"/></Column>
@@ -260,10 +265,10 @@ defineApp("BOOKS", class {
         </mvc:View>`);
       return;
     }
-    if (c.eventName === "SEARCH") {
+    if (client.check_on_event("SEARCH")) {
       this.books = await SELECT.from("CatalogService.Books")
         .where`title like ${"%" + this.search + "%"}`;
-      c.messageToast(`${this.books.length} found`);
+      client.message_toast_display(`${this.books.length} found`);
     }
   }
 });
@@ -272,14 +277,14 @@ defineApp("BOOKS", class {
 `cds watch` restarts by itself when you save, and the startup lines gain one:
 
 ```
-[cap2ui5] BOOKS  http://localhost:4004/sap/bc/z2ui5?app_start=BOOKS
+[cap2ui5] - BOOKS  http://localhost:4004/sap/bc/z2ui5?app_start=BOOKS
 ```
 
 Open it: five books. Search for `Raven` and one row is left, with a toast
 "1 found". Three things the example shows:
 
-- **`main` is `async`** because the app does I/O — and `isFirstRun` seeds the
-  table once, before the first render.
+- **`main` is `async`** because the app does I/O — and `check_on_init()`
+  seeds the table once, before the first render.
 - **`t.table({…})` describes one row**, not the table: the field starts empty,
   and the object only fixes the columns and their types.
 - **Column names are UPPERCASE in the view** — `{TITLE}`, not `{title}`. The
@@ -320,7 +325,7 @@ SQLite file is in
 
 | You see | It is |
 |---|---|
-| `require is not defined in ES module scope` | an app file uses `require` — write `import`, or name the file `.cjs` |
+| the server does not start: `require is not defined in ES module scope` | an app file uses `require` — write `import`, or name the file `.cjs` |
 | `NO_DRAFT_ENTRY_OF_PREVIOUS_REQUEST_FOUND` after a code change | the restart emptied the database — reload the tab |
 | the browser asks for a login | log in as `alice` and leave the password empty |
 | `port 4004 is already in use` | another `cds watch` still runs — stop it, or start with `cds watch --port 4005` |
@@ -333,8 +338,9 @@ The details for each are in [Troubleshooting](./troubleshooting).
 ## Next steps
 
 - [**Project Structure**](./project-structure) — what the plugin adds, and what stays yours
-- [**App Lifecycle**](./lifecycle) — `isFirstRun` vs. `isDisplay`, events, navigation
-- [**Data Binding**](./data-binding) — `c.bind`, tables, structures
+- [**App Lifecycle**](./lifecycle) — `check_on_init()` vs. `check_on_navigated()`, events, navigation
+- [**Data Binding**](./data-binding) — `client._bind()`, tables, structures
+- [**Client API**](../api/client) — every method of `z2ui5_if_client`
 - [**Persistence**](./persistence) — `cap2ui5.Drafts` and the owner binding
 - [**Configuration**](../reference/configuration) — routes, the auth default, the apps directory
 - [**Deployment**](../reference/deployment) — to BTP: `cap2ui5.Drafts` becomes an HDI table in the HANA build, and the approuter needs one extra route

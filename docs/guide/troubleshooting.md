@@ -42,13 +42,13 @@ Another `cds watch` still runs, usually in a different terminal. Stop it with
 
 That is expected: the route requires a user, and `cds watch` uses CAP's
 mocked authentication. Log in as **`alice` with an empty password** — the
-startup line names it: `[cap2ui5] development login: alice (empty password)`.
+startup line names it: `[cap2ui5] - development login: alice (empty password)`.
 Only cancelling the dialog is refused, with a `401`, and the next attempt asks
 again.
 
 Mocked authentication lets other names in as well, but a draft belongs to the
 user who created it — log in as someone else and a running session starts
-over. The details are under *401 on the roundtrip* below.
+over. The details are under *401 or 403 on the roundtrip* below.
 
 ## "App with name X not found"
 
@@ -58,12 +58,12 @@ Apps are registered by **`defineApp`**, not found by file name:
    `defineApp("ZCL_HELLO", …)` is started with `?app_start=ZCL_HELLO`. The file
    name is irrelevant, and one file may register several apps.
 2. **The file must be in the scanned directory** — `srv/apps` by default, or
-   whatever `cds.cap2ui5.apps` points at. Every `.js`, `.mjs` and `.cjs` in it
+   whatever `cds.requires.cap2ui5.apps` points at. Every `.js`, `.mjs` and `.cjs` in it
    is imported once the runtime is up.
 3. **The plugin says how many it loaded.** On startup:
 
    ```
-   [cap2ui5] 5 app module(s) loaded from srv/apps
+   [cap2ui5] - 5 app module(s) loaded from srv/apps
    ```
 
    A count of `0`, or no line at all, is a path problem rather than a code
@@ -73,24 +73,27 @@ Apps are registered by **`defineApp`**, not found by file name:
    `main( client )` method throws at registration, and the message names the
    app.
 
-`c.navTo()` on an unknown name is refused where you called it, listing what is
-registered — rather than failing later as `NAV_APP_TARGET_NOT_BOUND`.
+`client.nav_app_call()` with a name no app is registered under is refused
+where you called it — rather than failing later as `NAV_APP_TARGET_NOT_BOUND`.
 
-## Every roundtrip answers 500 "roundtrip failed"
+## The server does not start: `require is not defined in ES module scope`
 
-For every app, from the first click — look at the server log above the
-startup lines:
+`cds watch` stops before it listens, and the error names an app file:
 
 ```
-[cap2ui5] runtime failed to boot: ReferenceError: require is not defined in ES module scope, you can use import instead
+ReferenceError: require is not defined in ES module scope, you can use import instead
 ```
 
 The project is an **ES module project** (`"type": "module"` in
 `package.json`, which is what `cds init --nodejs` creates), and an app file in
-it uses `require("@cap2ui5/cds-plugin")`. The plugin imports the apps as part of booting
-the runtime, so one such file fails the boot, and the route has nothing to
-answer with. Write `import { defineApp } from "@cap2ui5/cds-plugin"` instead — or rename
-the file to `.cjs`, where `require` stays valid.
+it uses `require("@cap2ui5/cds-plugin")`. The plugin loads the apps before the
+server listens, and an app module that fails to load fails the start — as a
+service implementation does. Write
+`import { defineApp } from "@cap2ui5/cds-plugin"` instead, or rename the file
+to `.cjs`, where `require` stays valid.
+
+The same holds for any other error an app module throws while it loads: the
+start fails and the log names the module.
 
 ## The draft cannot be restored
 
@@ -159,16 +162,21 @@ absent in 1.71 and UI5 renders nothing rather than complaining.
   exactly like nothing happening. **Roundtrips → Response** shows whether a
   view came back.
 
-## 401 on the roundtrip
+## 401 or 403 on the roundtrip
 
-The route requires an authenticated user by default — `cds.cap2ui5.requires` is
-`"authenticated-user"`. In development CAP's mocked auth applies, so any
+**401** means the caller is not logged in. The route requires an authenticated
+user by default — `cds.requires.cap2ui5.roles` is `["authenticated-user"]`. In development CAP's mocked auth applies, so any
 configured user works (`alice` with an empty password in a stock project). In
 BTP the approuter must forward the token (`HTML5.ForwardAuthToken`).
 
+**403** from the plugin means the user is logged in but has none of the roles
+in `cds.requires.cap2ui5.roles`; the error names the roles. (A 403 that carries
+`x-csrf-token: Required` comes from the approuter instead — see the next
+section.)
+
 The decision happens **before** the body is read, so an unauthenticated POST is
 refused without the payload being buffered. To open the route deliberately, set
-`requires` to `null` — and read what that costs in
+`roles` to `any` — and read what that costs in
 [Configuration](../reference/configuration).
 
 ## 403 on the roundtrip behind the approuter
@@ -182,14 +190,14 @@ is safe, are in [Deployment](../reference/deployment#the-approuter-needs-one-ext
 
 ## Two users see each other's state
 
-Almost always one cause: **`cds.cap2ui5.requires` is `null`.** Every caller is
+Almost always one cause: **`cds.requires.cap2ui5.roles` is `any` or `null`.** Every caller is
 then CAP's anonymous user, and the draft store binds a session to
 `cds.context.user.id` — so all anonymous visitors share one owner and therefore
 each other's sessions. That is the documented consequence of turning
 authentication off, not a defect.
 
 With authentication on, a draft answers to its creator and to nobody else. If
-you see otherwise with `requires` set, that is a bug worth reporting — check
+you see otherwise with `roles` set, that is a bug worth reporting — check
 the `owner` column of `cap2ui5.Drafts` first:
 
 ```sql

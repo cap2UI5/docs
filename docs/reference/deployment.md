@@ -117,7 +117,7 @@ catch-all, with the approuter's token check off:
 ```
 
 Add the same route for `rest/root/z2ui5` if your frontend or bookmarks use that
-path, and adjust both if you changed `cds.cap2ui5.routes`.
+path, and adjust both if you changed `cds.requires.cap2ui5.routes`.
 
 This is not an open door. Authentication still applies — the route sets no
 `authenticationType`, so the approuter's default applies, and the plugin's own

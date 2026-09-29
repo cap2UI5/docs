@@ -2,8 +2,9 @@
 
 A table filled from your own CDS entity, and a row that can be written back.
 This is [`examples/bookshop/srv/apps/books.js`](https://github.com/cap2UI5/cap2UI5/blob/main/examples/bookshop/srv/apps/books.js)
-— the app the coexistence test drives, so both directions below are measured
-rather than sketched.
+in ES-module form (the bookshop itself is CommonJS and `require`s) — the app the
+coexistence test drives, so both directions below are measured rather than
+sketched.
 
 ```js
 // srv/apps/books.js
@@ -16,37 +17,38 @@ defineApp("ZCL_JS_BOOKS", class {
   hits   = 0;
   books  = t.table({ ID: 0, title: "", author: "", price: t.packed(9, 2) });
 
-  async main(c) {
-    if (c.isDisplay) {
-      c.view(
+  async main(client) {
+    if (client.check_on_navigated()) {
+      client.view_display(
         `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
         `<Shell><Page title="cap2UI5 - Books">` +
-        `<SearchField value="${c.bind("search")}" search="${c.event("SEARCH")}"/>` +
-        `<Table items="${c.bind("books")}">` +
+        `<SearchField value="${client._bind("search")}" search="${client._event("SEARCH")}"/>` +
+        `<Table items="${client._bind("books")}">` +
         `<columns><Column><Text text="Title"/></Column><Column><Text text="Author"/></Column>` +
         `<Column><Text text="Price"/></Column></columns>` +
         `<items><ColumnListItem><cells><Text text="{TITLE}"/><Text text="{AUTHOR}"/>` +
         `<ObjectNumber number="{PRICE}"/></cells></ColumnListItem></items></Table>` +
-        `<Text text="${c.bind("hits")} hits"/>` +
-        `<Button text="Add" press="${c.event("ADD")}"/>` +
+        `<Text text="${client._bind("hits")} hits"/>` +
+        `<Button text="Add" press="${client._event("ADD")}"/>` +
         `</Page></Shell></mvc:View>`);
       return;
     }
 
-    if (c.eventName === "SEARCH") {
-      const { Books } = cds.entities("my.bookshop");
-      this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
-      this.hits  = this.books.length;
-      c.messageToast(`${this.hits} found`);
-    }
-
-    if (c.eventName === "ADD") {
+    if (client.check_on_event("ADD")) {
       const { Books } = cds.entities("my.bookshop");
       const max = await SELECT.one.from(Books).columns("max(ID) as m");
       await INSERT.into(Books).entries({
         ID: (max?.m ?? 0) + 1, title: this.search, author: "the app", stock: 1, price: 1.0,
       });
-      c.messageToast(`added ${this.search}`);
+      client.message_toast_display(`added ${this.search}`);
+      return;
+    }
+
+    if (client.check_on_event("SEARCH")) {
+      const { Books } = cds.entities("my.bookshop");
+      this.books = await SELECT.from(Books).where`title like ${"%" + this.search + "%"}`;
+      this.hits  = this.books.length;
+      client.message_toast_display(`${this.hits} found`);
     }
   }
 });
@@ -55,20 +57,22 @@ defineApp("ZCL_JS_BOOKS", class {
 ## The three things worth copying
 
 **`main` is `async` here** — because the *app* does I/O. The framework calls
-still need no `await`; `SELECT` does.
+(`client._bind()`, `client.message_toast_display()`, …) still need no
+`await`; `SELECT` does.
 
 **The table is declared, not inferred.** `t.table({…})` names the row, and
 `t.packed(9, 2)` makes `price` a decimal. An empty array carries no type, so a
 bare `books = []` would be left out of the model and named in a warning.
 
 **Assign the whole array.** `this.books = await SELECT…` replaces the table and
-the plugin rebuilds the rows. Mutating the array you read back does not write
+the plugin rebuilds the rows — and pushes them to the view without a
+re-render. Mutating the array you read back does not write
 through.
 
 ## Row fields are uppercase
 
 Inside the table's template the cells bind `{TITLE}`, `{AUTHOR}`, `{PRICE}` —
-uppercase, and relative to the row, so they take no `c.bind`. Component names
+uppercase, and relative to the row, so they take no `client._bind()`. Component names
 are stored lowercase, as the transpiler does, and appear uppercase in the model.
 
 ## `cds.ql` is the whole data layer
@@ -99,8 +103,9 @@ somebody's OData service would be the worst kind of surprise.
 ## A detail screen
 
 For a second screen with its own state, call another app rather than growing
-this one — see [Navigation](../guide/navigation). The callee's result comes back
-through `c.prevApp`.
+this one — see [Navigation](../guide/navigation). When the callee leaves, the caller
+reads it through `client.get_app_prev()`, or the typed `client.get().r_event_data`
+if it left with `nav_app_leave({ event, r_data })`.
 
 ## Next
 

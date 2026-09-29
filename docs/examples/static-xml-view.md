@@ -5,7 +5,7 @@ the middle of your logic. For a large screen, keep the XML in its own file and
 read it once.
 
 ::: info Illustrative
-`c.view()` taking any string is the tested part. Loading it from disk is
+`client.view_display()` taking any string is the tested part. Loading it from disk is
 ordinary Node — shown here because it is the question that comes up as soon as a
 view passes a screenful.
 :::
@@ -34,7 +34,7 @@ Two kinds of placeholder are in there, and the difference matters:
   relative to the row, needs nothing from you, and must survive to the browser
   untouched.
 - `{CUSTOMER_PATH}` and `{GO_HANDLER}` are **yours** — they stand where
-  `c.bind()` and `c.event()` go.
+  `client._bind()` and `client._event()` go.
 
 ## The app
 
@@ -49,14 +49,14 @@ defineApp("ZCL_ORDERS_FILE", class {
   customer = "";
   rows     = t.table({ customer: "" });
 
-  main(c) {
-    if (c.isDisplay) {
-      c.view(XML
-        .replace("{CUSTOMER_PATH}", c.bind("customer"))
-        .replace("{GO_HANDLER}",    c.event("GO")));
+  main(client) {
+    if (client.check_on_navigated()) {
+      client.view_display(XML
+        .replace("{CUSTOMER_PATH}", client._bind("customer"))
+        .replace("{GO_HANDLER}",    client._event("GO")));
       return;
     }
-    if (c.eventName === "GO") { /* … */ }
+    if (client.check_on_event("GO")) { /* … */ }
   }
 });
 ```
@@ -65,6 +65,10 @@ defineApp("ZCL_ORDERS_FILE", class {
 is what you want for a placeholder that appears once. For one that repeats, use
 `replaceAll` — and pick placeholder names that cannot collide with a UI5 binding
 (`{GO_HANDLER}`, not `{GO}`).
+
+What `client._event("GO")` returns is a placeholder that becomes the event's
+wire after `main()` returns. Putting it into the string unchanged, as here, is
+what it is for; parsing or comparing it is not.
 
 ## Why read it at load
 
@@ -82,9 +86,9 @@ inside `main` until you are done.
 |---|---|
 | a screenful of XML | keep it inline. The template literal is easier to follow |
 | a large form, or a view a designer edits | a file, with your editor's XML support |
-| a view assembled from repeated pieces | neither — build it with functions, see [Views](../guide/views) |
+| a view assembled from repeated pieces | neither — build it with `z2ui5_cl_ui5_view_builder`, or with functions, see [Views](../guide/views) |
 
 ## Next
 
-- [**Views**](../guide/views) — composing XML in JavaScript
+- [**Views**](../guide/views) — composing XML in JavaScript, and the view builder
 - [**Selection Screen**](./selection-screen) — a form inline

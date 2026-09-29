@@ -53,7 +53,7 @@ abap2UI5 (the real ABAP sources)
 @abap2ui5/node-runtime     the backend AND the UI5 frontend, one package, one commit
         │
         ▼
-cap2ui5 (this plugin)      mounts the route, implements the draft store over a
+@cap2ui5/cds-plugin        mounts the route, implements the draft store over a
                            CDS entity, turns a JS class into something the
                            runtime can call — and contains no framework logic
 ```
@@ -96,10 +96,13 @@ archived. Nothing consumes their output any more: `@cap2ui5/cds-plugin` depends 
 ## Why the ABAP names remain
 
 `ZCL_HELLO`, `z2ui5_if_client`, `check_on_init` — the runtime *is* ABAP, so its
-identifiers are ABAP's. The plugin's facade renames the handful an app author
-meets every day (`c.isDisplay`, `c.bind`, `c.event`), and `c.raw` reaches the
-rest under their original names. Every abap2UI5 sample and document therefore
-still maps onto what you are doing.
+identifiers are ABAP's. The plugin keeps them: the client an app's
+`main( client )` receives is `z2ui5_if_client` under its own method names —
+`client->check_on_navigated( )` is `client.check_on_navigated()` — and the
+view builder is `z2ui5_cl_ui5_view_builder`. Every abap2UI5 sample and
+document therefore maps onto what you are doing, and an ABAP app ports line
+by line; `npx cap2ui5 abap2js` does the porting (see
+[Migrating from abap2UI5](./migration-from-abap2ui5#translate-it-npx-cap2ui5-abap2js)).
 
 ## Next
 

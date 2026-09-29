@@ -16,7 +16,11 @@ Not "compatible" — identical, because it is the same code:
 - **the same wire.** One `PROTOCOL` version, stamped by the same code that
   reads it;
 - **the same concepts.** Roundtrips, the draft chain, the app stack, value
-  helps as apps, one class per app.
+  helps as apps, one class per app;
+- **the same API.** The client an app's `main( client )` receives is
+  `z2ui5_if_client` under its ABAP method names, and the view builder is
+  `z2ui5_cl_ui5_view_builder`. abap2UI5's documentation of a method is the
+  documentation of the JavaScript one.
 
 The browser cannot tell which side answers.
 
@@ -38,8 +42,10 @@ implementation to keep in step. See
 | data access | Open SQL | `cds.ql`, and CAP's remote services |
 | session state | `Z2UI5_T_01` | `cap2ui5.Drafts`, a CDS entity in your database |
 | identity | `sy-uname` | `cds.context.user.id` |
-| view | the fluent builder | a UI5 XML string — the builder is there, the facade just does not need it |
-| lifecycle predicates | `check_on_init( )` / `check_on_navigated( )` | `c.isFirstRun` / `c.isDisplay` |
+| client calls | `client->check_on_navigated( )` | `client.check_on_navigated()` |
+| parameters by name | ``_event( val = `GO` t_arg = … )`` | one object: `_event({ val: "GO", t_arg: [ … ] })` |
+| binding | `_bind( name )` — the attribute, by reference | `_bind("name")` — the field, by name |
+| view | `z2ui5_cl_ui5_view_builder` | the same builder, or a UI5 XML string |
 
 The full mapping is in
 [Migrating from abap2UI5](./migration-from-abap2ui5#the-translation-table).
@@ -51,9 +57,7 @@ The full mapping is in
 METHOD z2ui5_if_app~main.
   IF client->check_on_navigated( ).
     client->view_display( ... ).
-    RETURN.
-  ENDIF.
-  IF client->get( )-event = 'GO'.
+  ELSEIF client->check_on_event( `GO` ).
     client->message_box_display( |Hello { name }| ).
   ENDIF.
 ENDMETHOD.
@@ -61,18 +65,24 @@ ENDMETHOD.
 
 ```js
 // cap2UI5
-main(c) {
-  if (c.isDisplay) {
-    c.view(/* … */);
-    return;
+main(client) {
+  if (client.check_on_navigated()) {
+    client.view_display(/* … */);
+  } else if (client.check_on_event("GO")) {
+    client.message_box_display(`Hello ${this.name}`);
   }
-  if (c.eventName === "GO") c.messageBox(`Hello ${this.name}`);
 }
 ```
 
-Structure for structure. The languages part company in two places: ABAP names
-its arguments where JavaScript passes an object, and `_bind( name )` becomes
-`c.bind("name")` because JavaScript cannot match a value by reference.
+Line for line. The languages part company in two places: ABAP names its
+arguments where JavaScript passes one object with the same names, and
+`_bind( name )` becomes `client._bind("name")` because JavaScript cannot match
+a value by reference. That is close enough for a machine to do it:
+`npx cap2ui5 abap2js` translates an abap2UI5 app class into a cap2UI5 app,
+line for line, and refuses what it does not know rather than guess — see
+[Migrating from abap2UI5](./migration-from-abap2ui5#translate-it-npx-cap2ui5-abap2js).
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
+samples as cap2UI5 apps, 69 of them translated that way.
 
 ## Which one do I want?
 
@@ -92,11 +102,14 @@ Not structurally. The runtime is a dependency: a new abap2UI5 release is a
 version bump, and it brings the backend and the frontend together. There is no
 port to catch up, no pipeline to re-run, nothing to re-transpile by hand.
 
-What can lag is the **facade** — `c` covers the common surface, and something
-newly added upstream may need a member here before it is convenient. `c.raw`
-reaches it in the meantime, under its original name.
+The client covers every method of `z2ui5_if_client` — the plugin's tests hold
+it to the interface, so a method upstream adds shows up there as a failing
+test — the test reads the interface from the runtime it boots — rather than
+as a gap an app finds. `client.raw`, the transpiled
+interface itself, remains the escape hatch.
 
 ## Next
 
-- [**Migrating from abap2UI5**](./migration-from-abap2ui5) — the translation table
+- [**Migrating from abap2UI5**](./migration-from-abap2ui5) — the translation table, and `abap2js`
+- [**Client API**](../api/client) — every method of `z2ui5_if_client`
 - [**Where cap2UI5 Comes From**](./where-it-comes-from) — why this is a host and not a port

@@ -20,7 +20,8 @@ VitePress build. It is also what CI runs, on every pull request
   "@cap2ui5/cds-plugin"` **inside a code fence** names only what the package
   really exports (and two dead packages are reported, in either form: the
   port's `abap2UI5/…` and the plugin's withdrawn old name `cap2ui5`),
-- every `cds.cap2ui5.<option>` is an option the plugin defines,
+- every `cds.requires.cap2ui5.<option>` is an option the plugin defines (and
+  0.1.0's `cds.cap2ui5.<option>` is reported as the deprecated place),
 - every `1.x.y` release number is the pinned runtime release,
 - every internal anchor exists.
 
@@ -84,16 +85,21 @@ There is **no static frontend route** and no `webapp` option either. The page
 the roundtrip route answers a GET with embeds the whole UI5 component, so the
 plugin serves no frontend files (`/z2ui5/webapp/index.html` answers 404, and
 cap2UI5's `scripts/consumer-test.mjs` asserts it). `plugin/package.json`
-defines `apps`, `requires` and `routes` under `cds.cap2ui5`, nothing else.
+defines `apps`, `roles` and `routes` under `cds.requires.cap2ui5` (next to
+CAP's own `model`); the plugin also reads `body_parser.limit`, which has no
+default there. 0.1.0's top-level `cds.cap2ui5`, with `requires` for the
+roles, is still read with a deprecation warning — the site teaches only the
+new place.
 
 Path conventions inside cap2UI5:
 
 - `plugin/` — the package: `cds-plugin.js` (the route, the auth guard, the
   startup lines naming each app's address), `index.cds` (the `cap2ui5.Drafts`
   entity), `index.js` (what `import`/`require` of `@cap2ui5/cds-plugin`
-  returns) and `lib/`
-  (`define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
-  `runtime.js`)
+  returns), `index.d.ts` (its TypeScript declarations), `bin/cap2ui5.js`
+  (`npx cap2ui5 abap2js`) and `lib/` (`abap2js.js`, `add.js`, `config.js`,
+  `define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
+  `runtime.js`, `view-builder.js`)
 - `examples/bookshop/` — a CAP project using it, with the test suite. Its apps
   are in `examples/bookshop/srv/apps/`
 - `runtime/` — a stand-in for `@abap2ui5/node-runtime`. Only `package.json`
@@ -103,7 +109,7 @@ Path conventions inside cap2UI5:
 
 What a READER's project looks like is a different thing and must not be
 confused with the above: they install `@cap2ui5/cds-plugin`, write apps in
-`srv/apps/` (configurable via `cds.cap2ui5.apps`), may add packages that bring
+`srv/apps/` (configurable via `cds.requires.cap2ui5.apps`), may add packages that bring
 apps (`@cap2ui5/samples` for one), and get the route (whose GET page
 embeds the UI5 frontend) and the draft entity from the plugin. A project from
 `cds init --nodejs` is an ES module project, so the site's examples `import`
@@ -118,9 +124,15 @@ against the cap2UI5 repository.
 - The framework's own classes are **not a supported import**. Importing
   `@abap2ui5/node-runtime/output/…` technically works — the package exports
   `./output/*` — but it couples an app to transpiler output. A JS app imports
-  `@cap2ui5/cds-plugin` and nothing else; `c.raw` is the escape hatch to the transpiled
-  `z2ui5_if_client`. An app that wants the framework's ABAP API (the view
-  builder, for one) is written in ABAP and transpiled — see the views guide.
+  `@cap2ui5/cds-plugin` and nothing else. Since 0.2.0 that is enough: the
+  client an app's `main( client )` receives is `z2ui5_if_client` by its own
+  method names, and the plugin exports `z2ui5_cl_ui5_view_builder` and the
+  interface's constants. `client.raw` is the escape hatch to the transpiled
+  `z2ui5_if_client`.
+- Teach the client by its ABAP names (`client.check_on_navigated()`,
+  `client._bind("name")`, `client.view_display(xml)`). The 0.1.0 names
+  (`c.isDisplay`, `c.bind`, `c.view`, …) throw since 0.2.0 and appear only
+  where a page explains migrating from 0.1.0.
 - Measure before documenting a framework behaviour. The runtime is upstream's
   ABAP running on open-abap, and not everything upstream does works here —
   the user exit is discovered by a class-repository lookup in ABAP and had to

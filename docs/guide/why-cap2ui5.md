@@ -39,7 +39,7 @@ With cap2UI5 the structure shrinks to:
 
 ```
 my-cap-project/
-├── package.json                     # ← + 1 dependency: cap2ui5
+├── package.json                     # ← + 1 dependency: @cap2ui5/cds-plugin
 └── srv/
     └── apps/
         └── my_app.js                # ← your app. One file.
@@ -60,7 +60,7 @@ You spend the entire time in **JavaScript** (or TypeScript, if you prefer). No X
 ```bash
 cds watch
 # → CAP server runs on :4004, and the plugin prints each app's address:
-# → [cap2ui5] ZCL_MY_APP  http://localhost:4004/sap/bc/z2ui5?app_start=ZCL_MY_APP → open it, done
+# → [cap2ui5] - ZCL_MY_APP  http://localhost:4004/sap/bc/z2ui5?app_start=ZCL_MY_APP → open it, done
 ```
 
 ### 2. Server state = app state
@@ -68,30 +68,30 @@ cds watch
 A cap2UI5 app is a **class with fields**. These fields are your state:
 
 ```js
-class CustomerEdit extends z2ui5_if_app {
+defineApp("ZCL_CUSTOMER_EDIT", class {
 
   customer_id   = "";
-  customer_data = {};
+  customer_data = { name: "", email: "" };
   is_dirty      = false;
   validation    = { name: "None", email: "None" };
 
-  async main(c) { /* ... */ }
-}
+  async main(client) { /* ... */ }
+});
 ```
 
-After every roundtrip the entire instance is **persisted automatically in the CDS entity `cap2ui5.Drafts`**. On the next roundtrip it is rebuilt, the browser's model is applied, and `main(c)` runs again. You don't need to manage a JSONModel, write a reducer, or build a "service worker" for offline state — the server holds everything.
+After every roundtrip the entire instance is **persisted automatically in the CDS entity `cap2ui5.Drafts`**. On the next roundtrip it is rebuilt, the browser's model is applied, and `main(client)` runs again. You don't need to manage a JSONModel, write a reducer, or build a "service worker" for offline state — the server holds everything.
 
 ### 3. Bindings without a model
 
 This is the core pattern that makes cap2UI5 (and abap2UI5) lightweight code in the first place:
 
 ```js
-`<Input value="${c.bind("name")}"/>`
+`<Input value="${client._bind("name")}"/>`
 ```
 
-`c.bind("name")` returns the UI5 binding path for that field. Binding is two-way: when the user types, the value arrives on `this.name` **before** your next `main(c)` runs. No JSONModel, no property mapping, no sync code.
+`client._bind("name")` returns the UI5 binding path for that field. Binding is two-way: when the user types, the value arrives on `this.name` **before** your next `main(client)` runs. No JSONModel, no property mapping, no sync code.
 
-(In abap2UI5 the ABAP call passes the attribute itself and the framework matches it by reference. JavaScript cannot do that — two empty strings are indistinguishable — so the facade takes the field name instead.)
+(In abap2UI5 the ABAP call passes the attribute itself and the framework matches it by reference. JavaScript cannot do that — two empty strings are indistinguishable — so cap2UI5's `_bind()` takes the field name instead — the one place where the JavaScript call differs from `client->_bind( name )`.)
 
 → Details under [Data Binding](./data-binding).
 
@@ -115,8 +115,10 @@ You use CDS entities where it **makes business sense** (master data, business da
 Inside `main()` you can do **anything** Node.js allows — including, of course, CAP connections:
 
 ```js
+customers = t.table({ CustomerID: "", CompanyName: "" });   // a field: part of the model
+
 async main(client) {
-  if (c.isDisplay) {
+  if (client.check_on_navigated()) {
     const northwind = await cds.connect.to("northwind");
     this.customers = await northwind.run(SELECT.from("Customers"));
     /* ... view ... */
@@ -138,7 +140,7 @@ The UI5 bundle is loaded once. After that every roundtrip returns only **a bit o
 
 ## Where it gets unfair
 
-The trade-offs are listed on [What is cap2UI5?](./what-is-cap2ui5#the-gap) — offline, pixel-perfect design systems, read-heavy filtering. One of them is worth a second sentence here, because it is the one that bites in a CAP project: a **live search filter over millions of rows** sends every keystroke's filter change to the server, where a Fiori Elements list filters locally in the JSONModel or pages server-side through the OData driver. If that is your screen, use the OData model (see [set_odata_model](../examples/external-odata#where-the-data-goes)) or build that one screen with Fiori Elements.
+The trade-offs are listed on [What is cap2UI5?](./what-is-cap2ui5#the-gap) — offline, pixel-perfect design systems, read-heavy filtering. One of them is worth a second sentence here, because it is the one that bites in a CAP project: a **live search filter over millions of rows** sends every keystroke's filter change to the server, where a Fiori Elements list filters locally in the JSONModel or pages server-side through the OData driver. If that is your screen, use the OData model — the front-end action `z2ui5_if_client.cs_event.set_odata_model`, run with [`client.follow_up_action()`](../api/client#events-and-front-end-actions) — or build that one screen with Fiori Elements.
 
 For **UI-centric back-office apps**, which are the typical CAP use case, cap2UI5 is almost always the more ergonomic choice.
 

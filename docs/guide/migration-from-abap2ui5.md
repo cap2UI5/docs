@@ -2,8 +2,9 @@
 
 If you know abap2UI5, you already know cap2UI5. Same pattern, same roundtrip,
 same frontend, same framework — literally the same framework, since the plugin
-runs upstream's own runtime. What changes is the **language your app is written
-in** and **where its state is stored**.
+runs upstream's own runtime. And the same client: what `main( client )`
+receives is `z2ui5_if_client`, under its ABAP method names. What changes is
+the **language your app is written in** and **where its state is stored**.
 
 ## The mental model does not change
 
@@ -21,11 +22,9 @@ CLASS zcl_my_app DEFINITION PUBLIC.
 ENDCLASS.
 
 METHOD z2ui5_if_app~main.
-  IF client->check_on_init( ).
+  IF client->check_on_navigated( ).
     client->view_display( ... ).
-    RETURN.
-  ENDIF.
-  IF client->get( )-event = 'GO'.
+  ELSEIF client->check_on_event( `GO` ).
     client->message_box_display( |Hello { name }| ).
   ENDIF.
 ENDMETHOD.
@@ -38,15 +37,21 @@ import { defineApp } from "@cap2ui5/cds-plugin";
 defineApp("ZCL_MY_APP", class {
   name = "";
 
-  main(c) {
-    if (c.isDisplay) {
-      c.view(/* … */);
-      return;
+  main(client) {
+    if (client.check_on_navigated()) {
+      client.view_display(/* … */);
+    } else if (client.check_on_event("GO")) {
+      client.message_box_display(`Hello ${this.name}`);
     }
-    if (c.eventName === "GO") c.messageBox(`Hello ${this.name}`);
   }
 });
 ```
+
+Line for line. `client->method( )` is `client.method()`; a method's preferred
+parameter is its one positional argument, and parameters by name are one
+object with the ABAP names. [abap2UI5's documentation](https://abap2ui5.github.io/docs/)
+of a method is therefore the documentation of the JavaScript one; the
+[Client API](../api/client) lists them all.
 
 ## The translation table
 
@@ -55,48 +60,64 @@ defineApp("ZCL_MY_APP", class {
 | `CLASS … INTERFACES z2ui5_if_app` | `defineApp("NAME", class { … })` |
 | `DATA name TYPE string` | `name = ""` |
 | `DATA amount TYPE p LENGTH 9 DECIMALS 2` | `amount = t.packed(9, 2)` |
+| `TYPE n`, `d`, `t` | `t.numc(n)`, `t.date()`, `t.time()` |
 | `DATA rows TYPE ty_t_row` | `rows = t.table({ … })` |
-| `z2ui5_if_app~main` | `main(c)` |
-| `client->check_on_init( )` | `c.isFirstRun` |
-| `client->check_on_navigated( )` | `c.isDisplay` ← **render on this one** |
-| `client->get( )-event` | `c.eventName` |
-| `client->get_event_arg( 1 )` | `c.eventArg(1)` |
-| `client->_bind( name )` | `c.bind("name")` — a **name**, not a value |
-| `client->_bind_edit( name )` | `c.bind("name")` — binding is two-way; there is no separate variant |
-| `client->_event( 'GO' )` | `c.event("GO")` |
-| `client->view_display( xml )` | `c.view(xml)` |
-| `client->popup_display( xml )` | `c.popup(xml)` |
-| `client->message_box_display( t )` | `c.messageBox(t)` |
-| `client->message_toast_display( t )` | `c.messageToast(t)` |
-| `client->nav_app_call( app )` | `c.navTo(app)` |
-| `client->nav_app_leave( )` | `c.navBack({ event, data })` |
-| `client->get_app_prev( )` | `c.prevApp` |
-| anything else on `z2ui5_if_client` | `c.raw.z2ui5_if_client$<method>( … )`, async |
+| `z2ui5_if_app~main` | `main(client)` |
+| `client->check_on_init( )` | `client.check_on_init()` |
+| `client->check_on_navigated( )` | `client.check_on_navigated()` ← **render on this one** |
+| ``client->check_on_event( `GO` )`` | `client.check_on_event("GO")` |
+| `client->get_event_arg( 1 )` | `client.get_event_arg(1)` |
+| `client->_bind( name )`, `_bind( s_order-customer )` | `client._bind("name")`, `client._bind("s_order-customer")` — a **name**, not a value |
+| `client->_bind( val = t_tab path = abap_true )` | `client._bind({ val: "t_tab", path: true })` |
+| ``client->_event( val = `GO` t_arg = VALUE #( ( `x` ) ) )`` | `client._event({ val: "GO", t_arg: ["x"] })` |
+| `client->follow_up_action( val = z2ui5_if_client=>cs_event-set_title t_arg = … )` | `client.follow_up_action({ val: z2ui5_if_client.cs_event.set_title, t_arg: [ … ] })` |
+| `client->view_display( view->stringify( ) )` | `client.view_display(view.stringify())` |
+| ``client->message_box_display( text = … type = `error` )`` | `client.message_box_display({ text: …, type: "error" })` |
+| `client->nav_app_call( NEW zcl_other( ) )` | `client.nav_app_call("ZCL_OTHER")` |
+| `client->nav_app_leave( event = … r_data = … )` | `client.nav_app_leave({ event, r_data })` |
+| `client->get( )-r_event_data` | `client.get().r_event_data` |
+| `z2ui5_cl_ui5_view_builder=>factory( )->ele( … )` | `z2ui5_cl_ui5_view_builder.factory().ele(…)` |
 
-## The three differences that actually bite
+Every method of the interface is there under its name — the plugin's tests
+hold the client to the interface, so none is missing and none is invented.
+`z2ui5_if_client` and `z2ui5_cl_ui5_view_builder` are imported from
+`@cap2ui5/cds-plugin`.
+
+## What is JavaScript's own
 
 **`_bind` takes a name, not a value.** In ABAP, `client->_bind( name )` passes
-the attribute and the framework matches it by reference. JavaScript cannot do
-that — two empty strings are indistinguishable — so the facade takes the field
-name and resolves the binding for you.
+the attribute and the framework matches it by reference. A JavaScript value
+cannot carry one — two empty strings are indistinguishable — so the field is
+named: `client._bind("name")`. A cell of a table is
+`{ val: column, tab: "t_tab", tab_index: 2 }`.
 
-**Render on `isDisplay`, not `isFirstRun`.** The same trap as in ABAP, with
-clearer names: `check_on_init( )` is this instance's first roundtrip only, and
-`check_on_navigated( )` is also every return from a navigation. The JS facade
-renames them to say which is which.
+**Some answers come after `main()`.** What `_event()`, a `_bind()` with
+options and `follow_up_action()` in a view attribute return is a placeholder
+that becomes the wire after `main()` returns — embed it as it is. `main()`
+stays synchronous; make it `async` only for your own I/O.
 
-**Views are XML strings.** abap2UI5's fluent builder exists in the runtime, but
-the facade does not expose it: in JavaScript a template literal is shorter than
-a chain. See [Views](./views).
+**`client.get_app( id )`** answers the app behind a draft id as a handle whose
+fields can be written — `app.backend_event = "…"`, then
+`client.nav_app_leave(app)` — but not read. Reading the other app is
+`client.get_app_prev()`, as plain values.
 
-```abap
-client->view_display( z2ui5_cl_ui5_view_builder=>factory(
-  )->ele( `Page` )->tag( `Input` )->a( ... )->stringify( ) ).
-```
+**`client.nav_app_call( app, fields )`** presets the called app's fields —
+what an ABAP app does between `NEW` and `nav_app_call( )`.
 
-```js
-c.view(`<Page><Input value="${c.bind("name")}"/></Page>`);
-```
+**Every field is model.** There is no `PROTECTED SECTION`: every field with an
+initial value is part of the model. A helper method that needs the client gets
+it as in ABAP, `this.client = client` in `main()`, without declaring it as a
+field.
+
+**What is not there.** `client.set_session_stateful()` throws — the app's
+state is in its fields, which are in the draft. The obsolete
+`*_model_update()` do nothing, as they do in ABAP, and `_bind_edit()` is
+`_bind()`. `client.raw` is the transpiled `z2ui5_if_client` itself,
+asynchronous, for what an app should never need.
+
+**Render on `check_on_navigated()`, not `check_on_init()`.** The same trap as
+in ABAP: `check_on_init()` is this instance's first roundtrip only, and
+`check_on_navigated()` is also every return from a navigation.
 
 ## What is genuinely different
 
@@ -107,18 +128,46 @@ c.view(`<Page><Input value="${c.bind("name")}"/></Page>`);
 | data access | Open SQL | `cds.ql` — and CAP's remote services |
 | deployment | abapGit into a system | `npm i` into a CAP project |
 
-## Porting an existing app
+## Translate it: `npx cap2ui5 abap2js`
 
-There is no automatic converter, and the honest reason is that the interesting
-part — Open SQL to `cds.ql`, ABAP types to declared fields — is exactly the part
-a converter would get wrong. The table above covers the framework calls; the
-rest is your business logic, which you are better placed to translate.
+Because the client and the view builder are abap2UI5's own, an app class
+translates line for line — and the plugin does it:
 
-Start with the smallest app you have. The structure carries over almost
-untouched, and the first one takes an afternoon.
+```bash
+npx cap2ui5 abap2js src/zcl_my_app.clas.abap --out srv/apps
+```
+
+`zcl_my_app.clas.abap` becomes `srv/apps/zcl_my_app.js`, registered as
+`ZCL_MY_APP`, so `?app_start=` is the same on both sides. A view chain keeps
+one call per line, `VALUE #( )` one row per line, and comments and texts come
+along untouched. A directory translates every class in it; `--check` writes
+nothing and fails when a module is missing or would change, for CI.
+
+It knows the part of ABAP an abap2UI5 app is written in — attributes and
+`TYPES`, `VALUE #( )`, `COND`/`SWITCH`, string templates, `IF`/`CASE`/`DO`,
+the client's and the view builder's calls — and **refuses everything else**
+with file, row and column rather than guess:
+
+```
+refused: z2ui5_cl_x.clas.abap:41:7 - LOOP AT ... ASSIGNING / REFERENCE INTO writes through the row - not supported yet
+```
+
+What it refuses is typically your business logic — Open SQL to `cds.ql`, a
+field-symbol, a `sy-` field — and that part you are better placed to
+translate. The options and the details of the translation are in the
+plugin's [README](https://github.com/cap2UI5/cap2UI5/tree/main/plugin#an-abap-app-translated-npx-cap2ui5-abap2js).
+
+How far "line for line" goes is measured, not claimed: the
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) package is 71 of
+abap2UI5's samples as cap2UI5 apps — 69 of them written by `abap2js`, two
+ported by hand — and a differential test serves each beside its transpiled
+ABAP original and compares every roundtrip. Add it with
+`npm add -D @cap2ui5/samples`, and each sample starts under its ABAP class
+name.
 
 ## Next
 
 - [**App Lifecycle**](./lifecycle) — the predicates, in detail
 - [**Data Binding**](./data-binding) — the type declarations
+- [**Client API**](../api/client) — every method of `z2ui5_if_client`
 - [**cap2UI5 vs. abap2UI5**](./vs-abap2ui5) — when to use which

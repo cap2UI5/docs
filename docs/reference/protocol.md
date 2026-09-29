@@ -49,7 +49,7 @@ configurable — see [Configuration](./configuration).
 | | |
 |---|---|
 | `ID` | which draft to continue. Empty starts a new app |
-| `EVENT`, `T_EVENT_ARG` | what the user did, and the arguments the control carried — `c.eventName` and `c.eventArg(i)` |
+| `EVENT`, `T_EVENT_ARG` | what the user did, and the arguments the control carried — `client.get_event()` and `client.get_event_arg(i)` |
 | `MODEL` | the bound data as the browser has it; applied to the app instance before `main` runs |
 
 ## Response
@@ -76,8 +76,8 @@ Measured against the example, a start of `ZCL_JS_HELLO`:
 | `S_ACTION.T_CUSTOM` | app-issued frontend actions |
 | `MODEL` | the bound data as the server has it after `main` |
 
-`S_ACTION` is an **ordered list**, which is why two `c.messageToast()` calls
-arrive in the order you wrote them.
+`S_ACTION` is an **ordered list**, which is why two `client.message_toast_display()`
+calls arrive in the order you wrote them.
 
 ## `PROTOCOL` — the wire carries its own version
 
@@ -101,10 +101,14 @@ For a cap2UI5 project the check is belt and braces — both halves come from one
 
 An unhandled error answers `500` with `roundtrip failed (<cds.context.id>)`.
 The detail goes to the server log under the same id; see
-[Configuration](./configuration).
+[Configuration](./configuration). An app module that fails to load does not
+get that far: it fails the server's start.
 
 Authentication is decided **before** the body is read: an unauthenticated
-caller gets `401` without the server buffering the payload.
+caller gets `401` with the auth strategy's login challenge, an authenticated
+user who lacks the configured role `403`, both without the server buffering
+the payload. A body over the limit gets `413`. These three are answered by
+CAP's error middleware, in CAP's error format.
 
 ## Next
 

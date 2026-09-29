@@ -40,9 +40,16 @@ vendored folder, no sync pipeline. Upgrading is `npm update @cap2ui5/cds-plugin`
 
 ## `srv/apps/` — the one directory that is yours
 
-Every `.js`, `.mjs` or `.cjs` file in it is loaded once the runtime is up. A
-file is not special in any way: it just calls `defineApp`, and it may call it
-more than once.
+Every `.js`, `.mjs` or `.cjs` file in it is loaded once the runtime is up and
+CAP has served the model, so an app module may call `cds.entities()` at its
+top. A file is not special in any way: it just calls `defineApp`, and it may
+call it more than once. A module that fails to load fails the start, as a
+service implementation does.
+
+`cds add cap2ui5` creates a first one, `srv/apps/hello.js`, when the directory
+has none. In 0.3.0 that file uses `require`, so in an ES module project — what
+`cds init --nodejs` creates — rename it to `hello.cjs`, or change its first
+line to `import { defineApp, z2ui5_cl_ui5_view_builder } from "@cap2ui5/cds-plugin";`.
 
 ```js
 // srv/apps/pick.js — two apps in one file is fine
@@ -53,12 +60,12 @@ defineApp("ZCL_PICK_ONE", class { /* … */ });
 ```
 
 The **first argument to `defineApp` is the name on the wire** — what
-`?app_start=` takes and what `c.navTo()` resolves. The file name is irrelevant.
+`?app_start=` takes and what `client.nav_app_call()` resolves. The file name is irrelevant.
 
 To put apps somewhere else, point the plugin at it:
 
 ```json
-{ "cds": { "cap2ui5": { "apps": "srv/my-apps" } } }
+{ "cds": { "requires": { "cap2ui5": { "apps": "srv/my-apps" } } } }
 ```
 
 See [Configuration](../reference/configuration) for the rest of the knobs.
@@ -98,7 +105,7 @@ In `node_modules`, in two packages, and you own neither:
 | | |
 |---|---|
 | `@cap2ui5/cds-plugin` | the plugin — about 1,050 lines in 0.1.0, of which about 640 are code. `cds-plugin.js`, `index.cds`, `index.js`, `lib/` |
-| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. the plugin pins one exact release |
+| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. The plugin pins one exact release |
 
 That split is the whole design. The plugin is a **host**: it mounts a route,
 implements the draft store over a CDS entity, and turns a JavaScript class into

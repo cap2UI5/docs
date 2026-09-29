@@ -15,7 +15,7 @@ browser  ──POST /rest/root/z2ui5 {id, event, model}──▶  CAP
                                                         │  load draft <id>
                                                         │  rebuild the app instance
                                                         │  apply the model the browser sent
-                                                        │  call your main(c)
+                                                        │  call your main(client)
                                                         │  write a NEW draft, new id
          ◀──{S_FRONT:{ID:…}, actions, model}────────────┘
 ```
@@ -35,7 +35,7 @@ defineApp("ZCL_ORDER", class {
   customer = { name: "", city: "" };
   lines    = t.table({ sku: "", qty: 0, price: t.packed(9, 2) });
 
-  main(c) { /* … */ }
+  main(client) { /* … */ }
 });
 ```
 
@@ -47,9 +47,9 @@ A field the plugin cannot type is **left out of the model and named in a
 warning** rather than silently dropped:
 
 ```
-[defineApp] ZCL_ORDER: these fields are NOT part of the model —
-  total has no ABAP type: null, undefined and an empty array carry none.
-  Give it a value, or declare it with t.table(…) / t.packed(…).
+[cap2ui5] - defineApp ZCL_ORDER: these fields are NOT part of the model —
+  total has no ABAP type
+  Give an initial value, or declare it with t.table(…) / t.struct(…) / t.packed(…) / t.char(…). The app runs without them.
 ```
 
 `null`, `undefined` and `[]` carry no type, so declare them: `t.table({…})` for
@@ -60,6 +60,10 @@ a table, `t.packed(9, 2)` for a decimal, `t.char(3)` for a fixed-width string.
 Anything that is not a declared field. A value stashed on `this` inside `main`
 with no initializer at construction time is not part of the model and will be
 gone on the next roundtrip. If you want it to survive, declare it.
+
+That is also what makes `this.client = client` in `main()` safe: a helper
+method reaches the client the way it does in an ABAP app, and the client is
+never persisted.
 
 ## It survives a restart — measured
 

@@ -138,7 +138,7 @@ export default defineConfig({
         {
           text: 'API Reference',
           items: [
-            { text: 'c — the client facade', link: '/api/client' },
+            { text: 'client — z2ui5_if_client', link: '/api/client' },
             { text: 'App Interface',        link: '/api/app-interface' }
           ]
         }

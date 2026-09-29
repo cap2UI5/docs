@@ -23,36 +23,24 @@ defineApp("ZCL_ORDERS", class {
   rows     = t.table({ ID: 0, customer: "", total: t.packed(11, 2), open: false });
   hits     = 0;
 
-  async main(c) {
-    if (c.eventName === "GO") {
-      const { Orders } = cds.entities("my.shop");
-      let q = SELECT.from(Orders);
-      if (this.customer) q = q.where`customer like ${"%" + this.customer + "%"}`;
-      if (this.minTotal) q = q.and`total >= ${this.minTotal}`;
-      if (this.onlyOpen) q = q.and`open = ${true}`;
-
-      this.rows = await q;
-      this.hits = this.rows.length;
-      c.messageToast(`${this.hits} orders`);
-    }
-
-    if (c.isDisplay) {
-      c.view(
+  async main(client) {
+    if (client.check_on_navigated()) {
+      client.view_display(
         `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:f="sap.ui.layout.form"` +
         ` displayBlock="true" height="100%">` +
         `<Shell><Page title="Orders">` +
 
         `<f:SimpleForm editable="true" layout="ResponsiveGridLayout">` +
         `<f:content>` +
-        `<Label text="Customer"/><Input value="${c.bind("customer")}"/>` +
-        `<Label text="Minimum total"/><Input value="${c.bind("minTotal")}"/>` +
-        `<Label text="Open only"/><CheckBox selected="${c.bind("onlyOpen")}"/>` +
+        `<Label text="Customer"/><Input value="${client._bind("customer")}"/>` +
+        `<Label text="Minimum total"/><Input value="${client._bind("minTotal")}"/>` +
+        `<Label text="Open only"/><CheckBox selected="${client._bind("onlyOpen")}"/>` +
         `</f:content></f:SimpleForm>` +
 
-        `<Button text="Go" type="Emphasized" press="${c.event("GO")}"/>` +
-        `<Text text="${c.bind("hits")} hits"/>` +
+        `<Button text="Go" type="Emphasized" press="${client._event("GO")}"/>` +
+        `<Text text="${client._bind("hits")} hits"/>` +
 
-        `<Table items="${c.bind("rows")}">` +
+        `<Table items="${client._bind("rows")}">` +
         `<columns><Column><Text text="Customer"/></Column>` +
         `<Column><Text text="Total"/></Column><Column><Text text="Open"/></Column></columns>` +
         `<items><ColumnListItem><cells>` +
@@ -60,16 +48,30 @@ defineApp("ZCL_ORDERS", class {
         `</cells></ColumnListItem></items></Table>` +
 
         `</Page></Shell></mvc:View>`);
+      return;
+    }
+
+    if (client.check_on_event("GO")) {
+      const { Orders } = cds.entities("my.shop");
+      let q = SELECT.from(Orders).where`customer like ${"%" + this.customer + "%"}`;
+      if (this.minTotal) q = q.and`total >= ${this.minTotal}`;
+      if (this.onlyOpen) q = q.and`open = ${true}`;
+
+      this.rows = await q;
+      this.hits = this.rows.length;
+      client.message_toast_display(`${this.hits} orders`);
     }
   }
 });
 ```
 
-## Why the event branch comes first
+## Why `GO` does not render
 
-`GO` runs, *then* the render branch runs in the same roundtrip. The order
-matters: the table the view binds is the one the query just produced. Writing
-the render branch first with a `return` would show the user the previous result.
+`client.check_on_navigated()` is true on the first roundtrip and when the app
+gets the screen back — not on the `GO` roundtrip. The view stays as it is, and
+the new `rows` and `hits` are pushed into it on their own: changed bound data
+needs no `client.view_display()`. Render again only when the view's
+*structure* changes.
 
 ## The types the form needs
 
@@ -84,8 +86,9 @@ A `CheckBox` binds `selected`, an `Input` binds `value` — ordinary UI5.
 
 ## Building the query conditionally
 
-`cds.ql` composes, so the filter is plain JavaScript: add a `where` only for the
-fields the user filled. The `${…}` holes are **bound parameters**, so a customer
+`cds.ql` composes, so the filter is plain JavaScript: the customer condition is
+always there (an empty one is `like '%%'`, which matches every row), and an
+`and` is added only for the other fields the user filled. The `${…}` holes are **bound parameters**, so a customer
 name containing a quote is a value and not a syntax error.
 
 ## Keeping the criteria
