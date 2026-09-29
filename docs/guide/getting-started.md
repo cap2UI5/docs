@@ -148,11 +148,8 @@ you.
 ::: details Or let `cds add cap2ui5` write a first app
 `cds add cap2ui5` creates `srv/apps/hello.js` in a project that has no apps
 yet: abap2UI5's hello world, `HELLO`, with its view built by
-`z2ui5_cl_ui5_view_builder` (see [Views](./views)). Plugin 0.3.0 writes that
-file with `require`, so in a project from `cds init --nodejs` rename it to
-`hello.cjs`, or change its `require` line to
-`import { defineApp, z2ui5_cl_ui5_view_builder } from "@cap2ui5/cds-plugin";`.
-It takes the app name `HELLO`, so use it instead of the file above, not beside it.
+`z2ui5_cl_ui5_view_builder` (see [Views](./views)), written with `import` in a
+project from `cds init --nodejs`. It takes the app name `HELLO`, so use it instead of the file above, not beside it.
 :::
 
 Four things worth knowing, and each of them is a rule rather than a style:

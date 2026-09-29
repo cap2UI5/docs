@@ -102,7 +102,7 @@ run behind it under `xsuaa` and `ias` and not only under `mocked`.
 ## The runtime
 
 `@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.145.0`
-for 0.3.0 — so `npm add @cap2ui5/cds-plugin` already gives you one known
+for 0.3.1 — so `npm add @cap2ui5/cds-plugin` already gives you one known
 runtime release. There is nothing to add to your own `package.json`.
 
 The runtime resolves as the plugin's own dependency, at the pinned version.
