@@ -128,14 +128,20 @@ in ABAP: `check_on_init()` is this instance's first roundtrip only, and
 | data access | Open SQL | `cds.ql` — and CAP's remote services |
 | deployment | abapGit into a system | `npm i` into a CAP project |
 
-## Translate it: `npx cap2ui5 abap2js`
+## Translate it: `cap2ui5 abap2js`
 
 Because the client and the view builder are abap2UI5's own, an app class
 translates line for line — and the plugin does it:
 
 ```bash
-npx cap2ui5 abap2js src/zcl_my_app.clas.abap --out srv/apps
+npm add -D @abaplint/core      # once: the ABAP parser it reads with
+npx --no-install cap2ui5 abap2js src/zcl_my_app.clas.abap --out srv/apps
 ```
+
+It needs `@cap2ui5/cds-plugin` installed in the project: `--no-install` makes
+npx run the `cap2ui5` of the project's `@cap2ui5/cds-plugin` or fail — never
+download one. In a `package.json` script the command is
+`cap2ui5 abap2js …`, which runs the installed one as well.
 
 `zcl_my_app.clas.abap` becomes `srv/apps/zcl_my_app.js`, registered as
 `ZCL_MY_APP`, so `?app_start=` is the same on both sides. A view chain keeps
@@ -155,7 +161,7 @@ refused: z2ui5_cl_x.clas.abap:41:7 - LOOP AT ... ASSIGNING / REFERENCE INTO writ
 What it refuses is typically your business logic — Open SQL to `cds.ql`, a
 field-symbol, a `sy-` field — and that part you are better placed to
 translate. The options and the details of the translation are in the
-plugin's [README](https://github.com/cap2UI5/cap2UI5/tree/main/plugin#an-abap-app-translated-npx-cap2ui5-abap2js).
+plugin's [README](https://github.com/cap2UI5/cap2UI5/tree/main/plugin#an-abap-app-translated-cap2ui5-abap2js).
 
 How far "line for line" goes is measured, not claimed: the
 [`@cap2ui5/samples`](https://github.com/cap2UI5/samples) package is 71 of

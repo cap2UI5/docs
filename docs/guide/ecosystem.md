@@ -9,7 +9,7 @@ owns what saves time when something breaks.
 |---|---|
 | [**abap2UI5/abap2UI5**](https://github.com/abap2UI5/abap2UI5) | the framework itself: the ABAP sources and the UI5 shell. Everything cap2UI5 runs comes from here |
 | [**cap2UI5/cap2UI5**](https://github.com/cap2UI5/cap2UI5) | the plugin. `plugin/` is the npm package `@cap2ui5/cds-plugin`; `examples/bookshop` is a CAP project using it; `runtime/` is a stand-in for `@abap2ui5/node-runtime` that the repository's own tests build from upstream |
-| [**cap2UI5/samples**](https://github.com/cap2UI5/samples) | abap2UI5's samples as cap2UI5 apps, each translated from its ABAP original by `npx cap2ui5 abap2js` — the npm package `@cap2ui5/samples` |
+| [**cap2UI5/samples**](https://github.com/cap2UI5/samples) | abap2UI5's samples as cap2UI5 apps, each translated from its ABAP original by `npx --no-install cap2ui5 abap2js` — the npm package `@cap2ui5/samples` |
 | [**cap2UI5/docs**](https://github.com/cap2UI5/docs) | this site |
 
 The decisions that led to the current design are in the plugin repository,

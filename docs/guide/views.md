@@ -139,7 +139,7 @@ JavaScript name.
 
 Template literal or builder is a matter of taste in a new app. The builder is
 what an app ported from ABAP already has — and what
-[`npx cap2ui5 abap2js`](./migration-from-abap2ui5#translate-it-npx-cap2ui5-abap2js)
+[`npx --no-install cap2ui5 abap2js`](./migration-from-abap2ui5#translate-it-cap2ui5-abap2js)
 writes.
 
 ## The ABAP view builder
@@ -147,7 +147,7 @@ writes.
 An app can also stay in ABAP: a `z2ui5_if_app` class, transpiled against the
 runtime the plugin hosts, runs beside the JavaScript apps. That is the route
 for a class you would rather not translate — the
-[translation](./migration-from-abap2ui5#translate-it-npx-cap2ui5-abap2js) is
+[translation](./migration-from-abap2ui5#translate-it-cap2ui5-abap2js) is
 the other one.
 
 ### An app in ABAP
