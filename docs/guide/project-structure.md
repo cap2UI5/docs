@@ -47,9 +47,8 @@ call it more than once. A module that fails to load fails the start, as a
 service implementation does.
 
 `cds add cap2ui5` creates a first one, `srv/apps/hello.js`, when the directory
-has none. In 0.3.0 that file uses `require`, so in an ES module project — what
-`cds init --nodejs` creates — rename it to `hello.cjs`, or change its first
-line to `import { defineApp, z2ui5_cl_ui5_view_builder } from "@cap2ui5/cds-plugin";`.
+has none — with `import` or `require`, whichever module format the project's
+`package.json` declares.
 
 ```js
 // srv/apps/pick.js — two apps in one file is fine

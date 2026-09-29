@@ -37,12 +37,12 @@ then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
 | **The entity** | `cap2ui5.Drafts` deploys through your normal `db` module, HDI container included. Nothing special |
 | **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
 | **Scaling** | app state is in the database, not in memory, so a second instance is a second instance. No sticky sessions, no shared cache |
-| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.145.0` for 0.3.0). Commit your `package-lock.json` and a redeploy installs the same release |
+| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.145.0` for 0.3.1). Commit your `package-lock.json` and a redeploy installs the same release |
 
 ## Pin the plugin
 
 ```json
-{ "dependencies": { "@cap2ui5/cds-plugin": "^0.3.0" } }
+{ "dependencies": { "@cap2ui5/cds-plugin": "^0.3.1" } }
 ```
 
 `@cap2ui5/cds-plugin` is on npm, and it depends on one exact `@abap2ui5/node-runtime`
@@ -101,7 +101,7 @@ With that route **every roundtrip is refused**. `@sap/approuter` requires an
 authenticated route whose `csrfProtection` is not `false`, and answers
 `403` with `x-csrf-token: Required` otherwise (read in approuter 23.0.0,
 `lib/middleware/xsrf-token-handler.js`). The abap2UI5 frontend up to and
-including runtime `1.145.0` — the release `@cap2ui5/cds-plugin` 0.3.0 pins — sends no
+including runtime `1.145.0` — the release `@cap2ui5/cds-plugin` 0.3.1 pins — sends no
 such token. The first page loads, because it is a GET; the first click fails.
 
 What works today is a route for the roundtrip path **in front of** the

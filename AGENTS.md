@@ -62,7 +62,7 @@ against the repos, don't guess):
 | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
-On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.0` (Node ≥ 22, peer
+On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.1` (Node ≥ 22, peer
 `@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
 `@cap2ui5/samples@0.1.0`. The plugin pins `@abap2ui5/node-runtime@1.145.0`
 (on npm since 2026-09-27) **exactly**. Up to 0.2.0 the plugin was the unscoped

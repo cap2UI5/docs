@@ -31,7 +31,7 @@ abap2UI5 builds itself.
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.3.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+All three are on npm: `@cap2ui5/cds-plugin` 0.3.1 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
 `@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which the plugin pins exactly,
 and `@cap2ui5/samples` 0.1.0. `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
