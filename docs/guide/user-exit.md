@@ -199,7 +199,7 @@ messages carry entity names, SQL fragments and deployment paths.
   App state belongs on the app instance; see [App Lifecycle](./lifecycle).
 - **Not a request filter.** It shapes config, it does not accept or reject
   requests. Authentication and authorisation belong on the CAP service
-  (`@requires`, `@restrict`) and on `cds.cap2ui5.requires` — see
+  (`@requires`, `@restrict`) and on `cds.requires.cap2ui5.roles` — see
   [Deployment](../reference/deployment).
 - **Not a place for per-user secrets.** The object is registered once and
   shared by every request in the process; only the context argument is per

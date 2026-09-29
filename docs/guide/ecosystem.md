@@ -40,7 +40,8 @@ package `cap2ui5`, which is withdrawn from npm.
 ## What the plugin does and does not own
 
 **Owns:** the CAP route and its authentication guard, `cap2ui5.Drafts` and the
-draft store over it, `defineApp` and the `c` facade, the two ABI gates.
+draft store over it, `defineApp` and the client that maps a JavaScript app
+onto `z2ui5_if_client`, the two ABI gates.
 
 **Does not own:** views, the wire format, the model service, the lifecycle, the
 UI5 shell, the frontend actions — all upstream's, running unmodified. The plugin

@@ -56,7 +56,7 @@
  *      lands on a file that exists. Two dead packages are reported by name,
  *      in either form: "abap2UI5/…", the port's package, and "cap2ui5", the
  *      plugin's name up to 0.2.0, withdrawn from npm.
- *   5. every plugin option named as `cds.cap2ui5.<key>` is a key the plugin
+ *   5. every plugin option named as `cds.requires.cap2ui5.<key>` is a key the plugin
  *      really defines, every three-part release number (1.x.y) is the runtime
  *      release the checkout pins or an allowlisted historical number, and a
  *      `"@cap2ui5/cds-plugin": "^x.y.z"` a page tells a reader to write is a
@@ -159,12 +159,17 @@ const PLUGIN_EXPORTS = (() => {
   return inner ? new Set(inner[1].split(",").map((s) => s.trim()).filter(Boolean)) : null;
 })();
 
-/** the plugin's own configuration keys, from package.json#cds.cap2ui5 */
+/** the plugin's own configuration keys, from package.json#cds.requires.cap2ui5
+ *  (where they live since 0.2.0). `model` there is CAP's own key - the entry's
+ *  CDS model - and not a setting of the plugin. Keys the plugin reads without a
+ *  default in package.json (body_parser) are in .verify-refs-ignore. */
 const PLUGIN_OPTIONS = (() => {
   if (!haveApp) return null;
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(APP, "plugin", "package.json"), "utf8"));
-    return new Set(Object.keys(pkg.cds?.cap2ui5 ?? {}));
+    const own = pkg.cds?.requires?.cap2ui5;
+    if (!own || typeof own !== "object") return null;
+    return new Set(Object.keys(own).filter((k) => k !== "model"));
   } catch { return null; }
 })();
 
@@ -276,10 +281,12 @@ const DESTRUCTURE_RE = /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*require\(\s*["'`]@
 // a file.
 const IMPORT_RE = /\bimport\s+(?:[^"'`;]*?\s+from\s+)?["'`](@cap2ui5\/cds-plugin|cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]/gi;
 const IMPORT_NAMES_RE = /\bimport\s*\{([^}]*)\}\s*from\s*["'`]@cap2ui5\/cds-plugin["'`]/g;
-// `cds.cap2ui5.apps`, `cap2ui5.routes` in prose or a config block. Case
-// matters and the flag is deliberately absent: `cap2ui5.Drafts` is the CDS
-// ENTITY, which the docs name constantly and which is not an option at all.
-const OPTION_RE = /`(?:cds\.)?cap2ui5\.([a-z][a-z_]*)`/g;
+// `cds.requires.cap2ui5.apps`, `cap2ui5.routes` in prose or a config block.
+// Case matters and the flag is deliberately absent: `cap2ui5.Drafts` is the
+// CDS ENTITY, which the docs name constantly and which is not an option at all.
+// `cds.cap2ui5.<key>` is 0.1.0's place - still read, with a deprecation
+// warning - so it is reported as the old place rather than checked.
+const OPTION_RE = /`(cds\.(?:requires\.)?)?cap2ui5\.([a-z][a-z_]*)`/g;
 // which app ids a PAGE defines itself: a page teaching an app may name it
 const DEFINES_RE = /defineApp\(\s*["'`]([A-Za-z0-9_]+)["'`]/g;
 
@@ -392,10 +399,15 @@ for (const file of markdownFiles(DOCS)) {
 
     for (const m of line.matchAll(OPTION_RE)) {
       if (!PLUGIN_OPTIONS) continue;
-      const key = m[1].toLowerCase();
+      if (m[1] === "cds.") {
+        add(file, n, `cds.cap2ui5.${m[2]} is 0.1.0's place, deprecated - `
+          + `the settings are under cds.requires.cap2ui5`);
+        continue;
+      }
+      const key = m[2].toLowerCase();
       if (PLUGIN_OPTIONS.has(key) || IGNORE.has(`cap2ui5.${key}`)) continue;
-      add(file, n, `cap2ui5.${m[1]} is not a plugin option `
-        + `(package.json#cds.cap2ui5 defines ${[...PLUGIN_OPTIONS].join(", ")})`);
+      add(file, n, `cap2ui5.${m[2]} is not a plugin option `
+        + `(package.json#cds.requires.cap2ui5 defines ${[...PLUGIN_OPTIONS].join(", ")})`);
     }
 
     for (const m of line.matchAll(CLASS_RE)) {
