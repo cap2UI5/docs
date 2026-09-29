@@ -44,8 +44,12 @@ Every `.js`, `.mjs` or `.cjs` file in it is loaded once the runtime is up and
 CAP has served the model, so an app module may call `cds.entities()` at its
 top. A file is not special in any way: it just calls `defineApp`, and it may
 call it more than once. A module that fails to load fails the start, as a
-service implementation does. `cds add cap2ui5` creates a first one,
-`srv/apps/hello.js`.
+service implementation does.
+
+`cds add cap2ui5` creates a first one, `srv/apps/hello.js`, when the directory
+has none. In 0.3.0 that file uses `require`, so in an ES module project — what
+`cds init --nodejs` creates — rename it to `hello.cjs`, or change its first
+line to `import { defineApp, z2ui5_cl_ui5_view_builder } from "@cap2ui5/cds-plugin";`.
 
 ```js
 // srv/apps/pick.js — two apps in one file is fine

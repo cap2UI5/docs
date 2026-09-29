@@ -53,8 +53,8 @@ defineApp("ZCL_NORTHWIND", class {
   products = t.table({ ProductID: 0, ProductName: "", UnitPrice: t.packed(11, 2) });
   status   = "";
 
-  async main(c) {
-    if (c.eventName === "LOAD") {
+  async main(client) {
+    if (client.check_on_event("LOAD")) {
       try {
         const nw = await cds.connect.to("Northwind");
         this.products = await nw.run(SELECT.from("Products").limit(20));
@@ -62,17 +62,17 @@ defineApp("ZCL_NORTHWIND", class {
       } catch (e) {
         // a remote call fails in ways a local one does not
         this.status = "the service did not answer";
-        c.messageBox(`Northwind unreachable: ${e.message}`);
+        client.message_box_display({ text: `Northwind unreachable: ${e.message}`, type: "error" });
       }
     }
 
-    if (c.isDisplay) {
-      c.view(
+    if (client.check_on_navigated()) {
+      client.view_display(
         `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" displayBlock="true" height="100%">` +
         `<Shell><Page title="Northwind">` +
-        `<Button text="Load" press="${c.event("LOAD")}"/>` +
-        `<Text text="${c.bind("status")}"/>` +
-        `<Table items="${c.bind("products")}">` +
+        `<Button text="Load" press="${client._event("LOAD")}"/>` +
+        `<Text text="${client._bind("status")}"/>` +
+        `<Table items="${client._bind("products")}">` +
         `<columns><Column><Text text="Product"/></Column><Column><Text text="Price"/></Column></columns>` +
         `<items><ColumnListItem><cells>` +
         `<Text text="{PRODUCTNAME}"/><ObjectNumber number="{UNITPRICE}"/>` +

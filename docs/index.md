@@ -30,9 +30,11 @@ features:
   - title: Apps are plain JavaScript
     icon: 🟨
     details: >-
-      defineApp("ZCL_HELLO", class { name = ""; main(c) { … } }) — synchronous,
-      no async, no await, no ABAP. State is ordinary fields, and c.bind("name")
-      binds one into the view.
+      defineApp("ZCL_HELLO", class { name = ""; main(client) { … } }) — synchronous,
+      no async, no await, no ABAP. State is ordinary fields, and
+      client._bind("name") binds one into the view. The client is abap2UI5's
+      z2ui5_if_client under its own method names — client.check_on_navigated(),
+      client._event("GO") — so an ABAP app ports line by line.
   - title: It IS abap2UI5, not a copy of it
     icon: 🔗
     details: >-

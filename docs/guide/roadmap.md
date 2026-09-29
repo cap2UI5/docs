@@ -16,6 +16,15 @@ limitation this page used to carry — and it retired the pipelines, the vendore
 core and 82,804 lines of generated code with it. The reasoning and the
 measurements are in [Where cap2UI5 Comes From](./where-it-comes-from).
 
+Since then the JavaScript side closed its own gaps. 0.2.0 made the client an
+app receives abap2UI5's `z2ui5_if_client`, every method under its ABAP name,
+exported `z2ui5_cl_ui5_view_builder` and shipped TypeScript declarations;
+0.3.0 added `npx cap2ui5 abap2js`, which translates an abap2UI5 app class
+into a cap2UI5 app line for line, and apps that come from a package —
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
+samples that way. The details are in the plugin's
+[CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
+
 ## Known limits today
 
 ### Behind an approuter, the roundtrip path needs its own route
@@ -28,20 +37,22 @@ is refused with `403` until the roundtrip path gets a route of its own with
 abap2UI5/abap2UI5#2802 teaches the frontend the token handshake; it is merged,
 but no abap2UI5 release carries it yet.
 
-### The facade does not cover everything
-
-`c` covers views, popups, nested views, navigation, messages, event arguments
-and nested state. Everything else lives behind `c.raw`, which is the full
-`z2ui5_if_client` — async, and under its original ABAP names. That is a real
-escape hatch rather than a placeholder, but a method used often enough deserves
-a facade member.
-
 ### The apps are JavaScript, and so are the errors
 
-A mistyped field name throws at runtime, not at edit time. `c.bind("nmae")`
-tells you the known fields, and an untypeable field is named in a warning — but
-there is no type checking across your app, and the TypeScript story is
-unwritten.
+A mistyped field name throws at runtime, not at edit time:
+`client._bind("nmae")` names the app's known fields, and an untypeable field
+is named in a warning. The package ships TypeScript declarations, so an
+annotated client —
+`/** @param {import("@cap2ui5/cds-plugin").Client<{ name: string }>} client */`
+— gets completion and checked field names in the editor; nothing checks an
+unannotated app.
+
+### `abap2js` translates part of ABAP
+
+`npx cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written in and
+refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file, row
+and column. What it refuses you translate by hand. Of abap2UI5's 129
+samples, it translates 69 today.
 
 ### UI5 comes from the CDN, and only from the CDN
 
@@ -69,18 +80,16 @@ background pages may still carry the port's mechanics; if a page contradicts
 upstream release, pin the plugin to it, and the route CAP generates works
 unchanged.
 
-**Grow the facade where use shows it is needed** — driven by real apps rather
-than by completing a table.
+**Teach `abap2js` more ABAP.** Some of its refusals say "not supported yet".
 
-**Finish this documentation**, including a page on writing an app against
-`c.raw` when the facade does not reach.
+**Finish this documentation.**
 
 ## What is deliberately not planned
 
-**A cap2UI5 view builder.** Views are UI5 XML strings; a template literal is
-shorter and clearer than a fluent chain in JavaScript. abap2UI5's builder runs
-in the runtime, and an app written in ABAP can use it — see
-[The ABAP view builder](./views#the-abap-view-builder).
+**A view builder of cap2UI5's own.** The builder a JavaScript app uses is
+abap2UI5's `z2ui5_cl_ui5_view_builder`, rendered by the transpiled class in
+the runtime — see [The view builder](./views#the-view-builder). A UI5 XML
+string in a template literal works as well.
 
 **A second implementation of anything upstream owns.** The whole point of the
 current design is that there is one implementation of the framework. A feature

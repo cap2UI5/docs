@@ -12,14 +12,19 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
   ├── srv/apps/*.js          your apps          ← you write this
   ├── db/, srv/*.cds         your model          ← you write this
   └── node_modules/
-      ├── cap2ui5            the plugin          ← about 640 lines of code
+      ├── @cap2ui5/cds-plugin  the plugin
       │   ├── cds-plugin.js    mounts the route behind CAP's middlewares
       │   ├── index.cds        cap2ui5.Drafts
-      │   ├── index.js         defineApp, defineExit, t
+      │   ├── index.js         defineApp, defineExit, t, z2ui5_cl_ui5_view_builder,
+      │   │                    z2ui5_if_client, abap2js
       │   └── lib/
-      │       ├── define-app.js    a JS class → something the runtime can call
+      │       ├── define-app.js    a JS class → something the runtime can call,
+      │       │                    and the client main( ) receives
+      │       ├── define-exit.js   the user exit, registered
+      │       ├── view-builder.js  records a view builder chain for upstream's class
       │       ├── draft-store.js   the draft store, over a CDS entity
-      │       └── runtime.js       locate and boot the runtime
+      │       ├── runtime.js       locate and boot the runtime
+      │       └── abap2js.js       npx cap2ui5 abap2js
       └── @abap2ui5/node-runtime  abap2UI5 itself, one exact release
           ├── output/            upstream's ABAP, downported + transpiled —
           │                      the GET page embeds the UI5 frontend, from
@@ -27,8 +32,10 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
           └── setup/             the one hook output/ imports
 ```
 
-The plugin contains **no framework logic**. No view builder, no wire format, no
-lifecycle, no model service — all of that is upstream's code running unmodified.
+The plugin contains **no framework logic**. No wire format, no lifecycle, no
+model service — all of that is upstream's code running unmodified. Even the
+view builder a JavaScript app calls is upstream's `z2ui5_cl_ui5_view_builder`:
+the plugin records the chain and the transpiled class renders it.
 
 ## Why that removes a whole class of bug
 
@@ -47,14 +54,14 @@ mismatch loudly. See [HTTP Protocol](./protocol).
 POST /rest/root/z2ui5
   │
   ├─ cds.middlewares.before        ← context, auth: cds.context.user now exists
-  ├─ guard                         ← cap2ui5.requires, before the body is read
-  ├─ express.raw                   ← up to 10 MB
+  ├─ guard                         ← cds.requires.cap2ui5.roles, before the body is read
+  ├─ express.raw                   ← up to body_parser.limit, 10 MB by default
   └─ cl_express_icf_shim.run       ← upstream's own express adapter
         │
         ├─ load the draft          ← ZCL_CDS_DRAFT_STORE → cap2ui5.Drafts
         ├─ rebuild the app instance
         ├─ apply the browser's model
-        ├─ call your main(c)       ← defineApp's wrapper
+        ├─ call your main(client)  ← defineApp's wrapper
         ├─ compose the response    ← upstream's handler
         └─ write the next draft
 ```
@@ -79,12 +86,19 @@ that:
 
 - it **boxes** each declared field at construction and derives the RTTI schema
   from the same pass, because `_bind()` matches a value by *identity* among the
-  object's attributes — there is no name parameter;
-- it hands `main` a **Proxy** whose reads unwrap the boxes and whose writes write
-  through, so your code sees plain values while the framework keeps its boxes;
+  object's attributes — there is no name parameter. That is why
+  `client._bind("name")` takes a field's name: the wrapper resolves it to the
+  field's box;
+- it hands `main` — and every method `main` calls — a **Proxy** whose reads
+  unwrap the boxes and whose writes write through, so your code sees plain
+  values while the framework keeps its boxes;
+- it hands `main` the **client**: `z2ui5_if_client` under its own method
+  names, over the transpiled, asynchronous one (still reachable as
+  `client.raw`);
 - it makes `main` **synchronous**: queries are resolved before it runs, commands
-  are recorded and replayed after, and event tokens are substituted once the
-  async call can be awaited.
+  are recorded and replayed after, and the placeholders `_event()`, a
+  `_bind()` with options and a view builder chain stand for are substituted
+  once the async calls can be awaited.
 
 ## The hazards, and what guards each
 
