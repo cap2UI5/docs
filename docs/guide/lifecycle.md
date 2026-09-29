@@ -4,7 +4,7 @@ An app is a class. Each roundtrip rebuilds an instance of it from the draft,
 applies what the browser sent, and calls `main(c)` exactly once.
 
 ```js
-import { defineApp } from "cap2ui5";
+import { defineApp } from "@cap2ui5/cds-plugin";
 
 defineApp("ZCL_HELLO", class {
   name = "";

@@ -9,7 +9,7 @@ A project has **one**, registered with `defineExit`:
 
 ```js
 // srv/apps/exit.js
-import { defineExit } from "cap2ui5";
+import { defineExit } from "@cap2ui5/cds-plugin";
 
 defineExit({
   onPage(cfg, ctx) {                 // the bootstrap page, once per page load

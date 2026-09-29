@@ -66,7 +66,7 @@ background pages may still carry the port's mechanics; if a page contradicts
 ## What's next
 
 **Drop the approuter exception.** Once abap2UI5/abap2UI5#2802 is in an
-upstream release, pin `cap2ui5` to it, and the route CAP generates works
+upstream release, pin the plugin to it, and the route CAP generates works
 unchanged.
 
 **Grow the facade where use shows it is needed** — driven by real apps rather

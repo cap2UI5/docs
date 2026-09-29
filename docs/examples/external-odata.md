@@ -45,7 +45,7 @@ plain CAP.
 ```js
 // srv/apps/northwind.js
 import cds from "@sap/cds";
-import { defineApp, t } from "cap2ui5";
+import { defineApp, t } from "@cap2ui5/cds-plugin";
 const { SELECT } = cds.ql;
 
 defineApp("ZCL_NORTHWIND", class {

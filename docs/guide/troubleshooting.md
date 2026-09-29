@@ -87,9 +87,9 @@ startup lines:
 
 The project is an **ES module project** (`"type": "module"` in
 `package.json`, which is what `cds init --nodejs` creates), and an app file in
-it uses `require("cap2ui5")`. The plugin imports the apps as part of booting
+it uses `require("@cap2ui5/cds-plugin")`. The plugin imports the apps as part of booting
 the runtime, so one such file fails the boot, and the route has nothing to
-answer with. Write `import { defineApp } from "cap2ui5"` instead — or rename
+answer with. Write `import { defineApp } from "@cap2ui5/cds-plugin"` instead — or rename
 the file to `.cjs`, where `require` stays valid.
 
 ## The draft cannot be restored

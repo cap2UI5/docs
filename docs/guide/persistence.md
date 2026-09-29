@@ -113,7 +113,7 @@ start:
 ```
 [cds] - loaded model from 2 file(s):
   srv/cat-service.cds
-  node_modules/cap2ui5/index.cds
+  node_modules/@cap2ui5/cds-plugin/index.cds
 [cds] - connect to db > sqlite { url: ':memory:' }
 ```
 
