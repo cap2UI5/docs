@@ -4,12 +4,16 @@ An app is a CAP handler in every way that matters, so calling a remote service
 is CAP's job rather than cap2UI5's: import the service, declare it in
 `cds.requires`, `cds.connect.to` it, and run a query.
 
-::: warning Not exercised by this project's test suite
-Everything here is standard CAP remote-service usage, and it works from an app
-because an app is ordinary handler code with `cds` in scope. But there is no
-test in the repository that calls a remote service, so treat this page as the
-shape rather than as a measured recipe — unlike [Hello World](./hello-world)
-and [List & Detail](./list), which are files the CI runs.
+::: tip Runnable and tested: cap2UI5/samples-stack
+[cap2UI5/samples-stack](https://github.com/cap2UI5/samples-stack) has this page
+as a project you can run. Its sample
+[`Z2UI5_CL_CAPS_APP_001`](https://github.com/cap2UI5/samples-stack/blob/main/srv/apps/z2ui5_cl_caps_app_001.js)
+reads SAP S/4HANA's OData service `API_BUSINESS_PARTNER` the way this page
+shows — `cds.connect.to`, then `cds.ql` — and runs without the system: while no
+credentials are configured, `cds watch` mocks the service. Its tests drive the
+app against that mock and through a real OData V2 request. The Northwind code
+below has the same shape, but no test runs it — the sample is the measured
+recipe.
 :::
 
 ## Import the service
@@ -106,4 +110,9 @@ until you refresh it deliberately.
 ## Next
 
 - [**List & Detail**](./list) — the same shape against your own entities, tested
+- [**cap2UI5/samples-stack**](https://github.com/cap2UI5/samples-stack) — this
+  page against SAP S/4HANA, and a function module in an SAP system called over
+  RFC with `@sap/cds-rfc`
+  ([`Z2UI5_CL_CAPS_APP_002`](https://github.com/cap2UI5/samples-stack/blob/main/srv/apps/z2ui5_cl_caps_app_002.js))
+  — both runnable without the system, both tested
 - [**Data Binding**](../guide/data-binding) — declaring the row type
