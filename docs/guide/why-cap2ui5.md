@@ -140,7 +140,7 @@ The UI5 bundle is loaded once. After that every roundtrip returns only **a bit o
 
 ## Where it gets unfair
 
-The trade-offs are listed on [What is cap2UI5?](./what-is-cap2ui5#the-gap) — offline, pixel-perfect design systems, read-heavy filtering. One of them is worth a second sentence here, because it is the one that bites in a CAP project: a **live search filter over millions of rows** sends every keystroke's filter change to the server, where a Fiori Elements list filters locally in the JSONModel or pages server-side through the OData driver. If that is your screen, use the OData model (see [set_odata_model](../examples/external-odata#where-the-data-goes)) or build that one screen with Fiori Elements.
+The trade-offs are listed on [What is cap2UI5?](./what-is-cap2ui5#the-gap) — offline, pixel-perfect design systems, read-heavy filtering. One of them is worth a second sentence here, because it is the one that bites in a CAP project: a **live search filter over millions of rows** sends every keystroke's filter change to the server, where a Fiori Elements list filters locally in the JSONModel or pages server-side through the OData driver. If that is your screen, use the OData model — the front-end action `z2ui5_if_client.cs_event.set_odata_model`, run with [`client.follow_up_action()`](../api/client#events-and-front-end-actions) — or build that one screen with Fiori Elements.
 
 For **UI-centric back-office apps**, which are the typical CAP use case, cap2UI5 is almost always the more ergonomic choice.
 
