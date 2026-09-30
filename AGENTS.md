@@ -19,7 +19,7 @@ VitePress build. It is also what CI runs, on every pull request
 - every `require("@cap2ui5/cds-plugin")` or `import { … } from
   "@cap2ui5/cds-plugin"` **inside a code fence** names only what the package
   really exports (and two dead packages are reported, in either form: the
-  port's `abap2UI5/…` and the plugin's old name `cap2ui5`, deprecated on npm),
+  port's `abap2UI5/…` and the plugin's old name `cap2ui5`, a deprecated placeholder on npm),
 - every `cds.requires.cap2ui5.<option>` is an option the plugin defines (and
   0.1.0's `cds.cap2ui5.<option>` is reported as the deprecated place),
 - every `1.x.y` release number is the pinned runtime release,
@@ -66,10 +66,10 @@ On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.1` (Node ≥ 22, peer
 `@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
 `@cap2ui5/samples@0.1.0`. The plugin pins `@abap2ui5/node-runtime@1.145.0`
 (on npm since 2026-09-27) **exactly**. Up to 0.2.0 the plugin was the unscoped
-package `cap2ui5`. On npm that name is now only a deprecated notice,
-`cap2ui5@0.1.1`, whose `require` throws and whose bin exits naming
-`@cap2ui5/cds-plugin` (0.2.0 never reached npm), so the site names it only as
-the old name. What did NOT change name: the
+package `cap2ui5`. On npm that name is now only a deprecated placeholder,
+`cap2ui5@0.0.1-placeholder` (since 2026-09-30): no `main`, and a `cap2ui5` bin
+that prints where to go and exits 1. It installs nothing an app can use (0.2.0
+never reached npm), so the site names it only as the old name. What did NOT change name: the
 configuration `cds.requires.cap2ui5`, `cds add cap2ui5`, the bin
 `npx cap2ui5 abap2js`, the entity `cap2ui5.Drafts` and the logger `cap2ui5`. The runtime package was renamed from
 `@abap2ui5/runtime` before its first publish — the old name never existed on

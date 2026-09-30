@@ -73,8 +73,8 @@ into your repository, and there are no frontend files to serve.
 
 ::: info Coming from the package `cap2ui5`
 Up to 0.2.0 the plugin was the unscoped package `cap2ui5`. On npm that name is
-now a deprecated notice that only throws an error naming the new package. A
-project that has it swaps it:
+now only a deprecated placeholder that installs nothing usable. A project that
+has it swaps it:
 
 ```bash
 npm rm cap2ui5 && npm add @cap2ui5/cds-plugin

@@ -55,7 +55,7 @@
  *      package actually exports, and a "@cap2ui5/cds-plugin/<sub>" specifier
  *      lands on a file that exists. Two dead packages are reported by name,
  *      in either form: "abap2UI5/…", the port's package, and "cap2ui5", the
- *      plugin's name up to 0.2.0, now a deprecated notice on npm.
+ *      plugin's name up to 0.2.0, now a deprecated placeholder on npm.
  *   5. every plugin option named as `cds.requires.cap2ui5.<key>` is a key the plugin
  *      really defines, every three-part release number (1.x.y) is the runtime
  *      release the checkout pins or an allowlisted historical number, and a
@@ -221,9 +221,9 @@ const PLUGIN_VERSION = (() => {
   } catch { return null; }
 })();
 const CAP2UI5_DEP_RE = /"@cap2ui5\/cds-plugin"\s*:\s*"[~^]?(\d+\.\d+)\.[\dx]+"/g;
-// The unscoped package `cap2ui5` is, since 0.3.0, only a deprecated notice on
-// npm whose require( ) throws - a dependency on it installs nothing a reader
-// can use, whatever its range.
+// The unscoped package `cap2ui5` is, since 0.3.0, only a deprecated placeholder
+// on npm - a dependency on it installs nothing a reader can use, whatever its
+// range.
 const WITHDRAWN_DEP_RE = /"cap2ui5"\s*:\s*"[~^]?\d/g;
 const minor = (v) => String(v).split(".").slice(0, 2).join(".");
 
@@ -269,7 +269,7 @@ const RELEASE_RE = /\b1\.\d{2,3}\.\d+\b/g;
 const CLASS_RE = /`(z2ui5_(?:cl|if|cx)_[a-z0-9_]+)(?![a-z0-9_])/gi;
 // require("@cap2ui5/cds-plugin"), require("@cap2ui5/cds-plugin/lib/…"), and two
 // dead packages: the port's `abap2UI5` and the plugin's own old name `cap2ui5`,
-// a deprecated notice on npm since 0.3.0.
+// a deprecated placeholder on npm since 0.3.0.
 const PKG = "@cap2ui5/cds-plugin";
 const REQUIRE_RE = /require\(\s*["'`](@cap2ui5\/cds-plugin|cap2ui5|abap2UI5)(?:\/([^"'`]+))?["'`]\s*\)/gi;
 // `const { defineApp, t } = require("@cap2ui5/cds-plugin")` — the names, not just the path
@@ -327,7 +327,7 @@ for (const file of markdownFiles(DOCS)) {
     }
 
     for (const m of line.matchAll(WITHDRAWN_DEP_RE)) {
-      add(file, n, `tells a reader to depend on "cap2ui5", which is only a deprecated notice on npm `
+      add(file, n, `tells a reader to depend on "cap2ui5", which is only a deprecated placeholder on npm `
         + `- the package is "${PKG}"`);
     }
 
@@ -363,7 +363,7 @@ for (const file of markdownFiles(DOCS)) {
           continue;
         }
         if (pkg.toLowerCase() === "cap2ui5") {
-          add(file, n, `${how} "${spec}" is the plugin's OLD name, only a deprecated notice on npm - `
+          add(file, n, `${how} "${spec}" is the plugin's OLD name, only a deprecated placeholder on npm - `
             + `the package is "${PKG}"`);
           continue;
         }
