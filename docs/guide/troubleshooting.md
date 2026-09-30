@@ -183,10 +183,11 @@ refused without the payload being buffered. To open the route deliberately, set
 
 The page loads, the first click fails with `403`, and the response carries
 `x-csrf-token: Required`. That is the approuter, not the plugin: the route
-`cds add approuter` generates has `"csrfProtection": true`, and the abap2UI5
-frontend in the pinned runtime sends no CSRF token. Give the roundtrip path a
-route of its own with `"csrfProtection": false` — the exact route, and why it
-is safe, are in [Deployment](../reference/deployment#the-approuter-needs-one-extra-route-today).
+`cds add approuter` generates has `"csrfProtection": true`. Since plugin 0.4.0
+the frontend fetches and sends the token itself, so this means an older plugin:
+the frontend in the runtime 0.3.x pins sends none. Upgrade to
+0.4.0, or give the roundtrip path a route of its own — see
+[Deployment](../reference/deployment#the-approuter-and-its-csrf-token).
 
 ## Two users see each other's state
 

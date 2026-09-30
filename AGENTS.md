@@ -19,7 +19,7 @@ VitePress build. It is also what CI runs, on every pull request
 - every `require("@cap2ui5/cds-plugin")` or `import { … } from
   "@cap2ui5/cds-plugin"` **inside a code fence** names only what the package
   really exports (and two dead packages are reported, in either form: the
-  port's `abap2UI5/…` and the plugin's withdrawn old name `cap2ui5`),
+  port's `abap2UI5/…` and the plugin's old name `cap2ui5`, a deprecated placeholder on npm),
 - every `cds.requires.cap2ui5.<option>` is an option the plugin defines (and
   0.1.0's `cds.cap2ui5.<option>` is reported as the deprecated place),
 - every `1.x.y` release number is the pinned runtime release,
@@ -62,12 +62,18 @@ against the repos, don't guess):
 | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
-On npm since 2026-09-29: `@cap2ui5/cds-plugin@0.3.1` (Node ≥ 22, peer
+On npm: `@cap2ui5/cds-plugin@0.4.0` (since 2026-09-30; Node ≥ 22, peer
 `@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
-`@cap2ui5/samples@0.1.0`. The plugin pins `@abap2ui5/node-runtime@1.145.0`
-(on npm since 2026-09-27) **exactly**. Up to 0.2.0 the plugin was the unscoped
-package `cap2ui5`; it is withdrawn from npm (0.2.0 never reached it), so the
-site names it only as the old name. What did NOT change name: the
+`@cap2ui5/samples@0.2.0` (peer `^0.4.0`). The plugin pins
+`@abap2ui5/node-runtime@1.146.0` **exactly**, the first runtime whose frontend
+does the approuter's `X-CSRF-Token` handshake and has `accelerate( )`.
+verify-refs reads that pin from `plugin/package.json`, not from the stand-in
+`runtime/package.json`. Up to 0.2.0 the plugin was the unscoped
+package `cap2ui5`. On npm that name is now only a deprecated placeholder,
+`cap2ui5@0.0.1-placeholder` (since 2026-09-30, cap2UI5/cap2UI5#97): no `main`,
+and a `cap2ui5` bin that prints where to go and exits 1. It installs nothing an
+app can use (0.2.0 never reached npm), so the site names it only as the old
+name. What did NOT change name: the
 configuration `cds.requires.cap2ui5`, `cds add cap2ui5`, the bin `cap2ui5`
 (`npx --no-install cap2ui5 abap2js`), the entity `cap2ui5.Drafts` and the
 logger `cap2ui5`. The runtime package was renamed from
@@ -140,8 +146,8 @@ against the cap2UI5 repository.
   be given a host-side registration (`defineExit`) instead. Boot the runtime
   and check rather than porting a claim from abap2UI5's documentation.
 - Write the translator as `npx --no-install cap2ui5 abap2js`, never a bare
-  `npx cap2ui5`. The unscoped npm name `cap2ui5` was withdrawn and is
-  anybody's now; a bare `npx cap2ui5` where the plugin is not installed
+  `npx cap2ui5`. The unscoped npm name `cap2ui5` holds only a placeholder;
+  a bare `npx cap2ui5` where the plugin is not installed
   downloads and runs whatever npm has under it. `--no-install` runs the
   project's own `@cap2ui5/cds-plugin` bin or fails. A page that shows the
   command says it needs the plugin installed. Left as they are: `cds add

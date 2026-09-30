@@ -29,6 +29,12 @@ The reasoning behind all of it is in [ROADMAP.md](ROADMAP.md) §§8–25 and in
 
 ## Open — the approuter and CSRF
 
+> **2026-09-30:** resolved in code. `@cap2ui5/cds-plugin` 0.4.0 pins runtime
+> 1.146.0, which carries `5a1bd70`; the deployment page now says the generated
+> catch-all route works, and keeps the extra route only for 0.3.x. What is left
+> is to run it once behind an approuter bound to XSUAA or IAS — it is read from
+> both sides' code, not measured. The text below is the state before.
+
 `cds add approuter` generates a catch-all route with `"csrfProtection": true`,
 and the frontend in runtime 1.145.0 sends no `X-CSRF-Token`, so behind that
 route every roundtrip gets 403. The site documents the working setup — an

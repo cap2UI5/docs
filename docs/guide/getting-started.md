@@ -72,8 +72,9 @@ Your own `server.js`, if you have one, is not touched. Nothing is generated
 into your repository, and there are no frontend files to serve.
 
 ::: info Coming from the package `cap2ui5`
-Up to 0.2.0 the plugin was the unscoped package `cap2ui5`, which is withdrawn
-from npm. A project that has it swaps it:
+Up to 0.2.0 the plugin was the unscoped package `cap2ui5`. On npm that name is
+now only a deprecated placeholder that installs nothing usable. A project that
+has it swaps it:
 
 ```bash
 npm rm cap2ui5 && npm add @cap2ui5/cds-plugin
@@ -298,8 +299,14 @@ npm add -D @cap2ui5/samples
 cds watch
 ```
 
-The startup lines now list every sample beside `HELLO` and `BOOKS`, each under
-its ABAP class name. As a devDependency the samples are there in development
+The startup lines gain one line for the package, below `HELLO` and `BOOKS`:
+
+```
+[cap2ui5] - @cap2ui5/samples  71 apps - listed on CAP's start page, http://localhost:4004/
+```
+
+CAP's start page lists every sample under its ABAP class name, e.g.
+`Z2UI5_CL_SMP_APP_493`, abap2UI5's hello world. As a devDependency the samples are there in development
 only; a production start leaves them out. How a package brings apps is in
 [Project Structure](./project-structure#apps-from-a-package), the list of
 samples in the [cap2UI5/samples](https://github.com/cap2UI5/samples)

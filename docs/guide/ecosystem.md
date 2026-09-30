@@ -31,11 +31,12 @@ abap2UI5 builds itself.
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.3.1 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
-`@abap2ui5/node-runtime` 1.145.0 (Node ≥ 22), which the plugin pins exactly,
-and `@cap2ui5/samples` 0.1.0. `npm add @cap2ui5/cds-plugin` installs the first two — see the
+All three are on npm: `@cap2ui5/cds-plugin` 0.4.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+`@abap2ui5/node-runtime` 1.146.0 (Node ≥ 22), which the plugin pins exactly,
+and `@cap2ui5/samples` 0.2.0, which needs plugin 0.4. `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
-package `cap2ui5`, which is withdrawn from npm.
+package `cap2ui5`. On npm that name is now only a deprecated placeholder that
+installs nothing usable; its `cap2ui5` command prints where to go instead.
 
 ## What the plugin does and does not own
 

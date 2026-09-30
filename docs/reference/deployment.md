@@ -37,12 +37,12 @@ then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
 | **The entity** | `cap2ui5.Drafts` deploys through your normal `db` module, HDI container included. Nothing special |
 | **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
 | **Scaling** | app state is in the database, not in memory, so a second instance is a second instance. No sticky sessions, no shared cache |
-| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.145.0` for 0.3.1). Commit your `package-lock.json` and a redeploy installs the same release |
+| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.146.0` for 0.4.0). Commit your `package-lock.json` and a redeploy installs the same release |
 
 ## Pin the plugin
 
 ```json
-{ "dependencies": { "@cap2ui5/cds-plugin": "^0.3.1" } }
+{ "dependencies": { "@cap2ui5/cds-plugin": "^0.4.0" } }
 ```
 
 `@cap2ui5/cds-plugin` is on npm, and it depends on one exact `@abap2ui5/node-runtime`
@@ -83,7 +83,7 @@ resources:
 There is **no HTML5 module for the frontend** and no app-repo push, because
 the frontend is embedded in the page the service itself answers with.
 
-### The approuter needs one extra route today
+### The approuter and its CSRF token
 
 `cds add xsuaa,approuter` (cds-dk 10.1) writes `.deploy/app-router/xs-app.json`
 with a single catch-all route:
@@ -96,16 +96,25 @@ with a single catch-all route:
 }
 ```
 
-With that route **every roundtrip is refused**. `@sap/approuter` requires an
-`x-csrf-token` header on every request other than GET and HEAD to an
-authenticated route whose `csrfProtection` is not `false`, and answers
-`403` with `x-csrf-token: Required` otherwise (read in approuter 23.0.0,
-`lib/middleware/xsrf-token-handler.js`). The abap2UI5 frontend up to and
-including runtime `1.145.0` — the release `@cap2ui5/cds-plugin` 0.3.1 pins — sends no
-such token. The first page loads, because it is a GET; the first click fails.
+`@sap/approuter` requires an `x-csrf-token` header on every request other than
+GET and HEAD to an authenticated route whose `csrfProtection` is not `false`,
+and answers `403` with `x-csrf-token: Required` otherwise. It hands out the
+token on a GET or HEAD that carries `x-csrf-token: Fetch`, bound to the session
+(approuter 23.0.0, `lib/middleware/xsrf-token-handler.js`).
 
-What works today is a route for the roundtrip path **in front of** the
-catch-all, with the approuter's token check off:
+Since `@cap2ui5/cds-plugin` 0.4.0 that route works as generated. The frontend
+of runtime `1.146.0`, which it pins, answers a `403` with
+`x-csrf-token: Required` by fetching the token with a HEAD request and sending
+the roundtrip again with it — the handshake
+[abap2UI5/abap2UI5#2802](https://github.com/abap2UI5/abap2UI5/pull/2802) added.
+That is read from both sides' code; it has not yet been run end to end
+against an approuter bound to XSUAA or IAS.
+
+::: details With plugin 0.3.x: one extra route
+The frontend in the runtime 0.3.x pins sends no token, so behind
+the generated route the page loads and the first click fails. Upgrade, or put
+a route for the roundtrip path in front of the catch-all with the approuter's
+check off:
 
 ```json
 {
@@ -116,27 +125,16 @@ catch-all, with the approuter's token check off:
 }
 ```
 
-Add the same route for `rest/root/z2ui5` if your frontend or bookmarks use that
-path, and adjust both if you changed `cds.requires.cap2ui5.routes`.
-
-This is not an open door. Authentication still applies — the route sets no
-`authenticationType`, so the approuter's default applies, and the plugin's own
-guard runs behind it either way — and abap2UI5
-refuses a cross-origin POST itself: it compares the request's `Origin` (or
-`Referer`) against the host, or against the `X-Forwarded-Host` the approuter
-sets, and answers `403` on a mismatch. Measured against approuter 23.0.0 run
-locally without xsuaa: the roundtrips pass, and a POST with a foreign `Origin`
-gets `403`. That protection is the framework's CSRF gate, so leave
+That is not an open door: authentication still applies, and abap2UI5 refuses a
+cross-origin POST itself — it compares `Origin` (or `Referer`) with the host,
+or with the `X-Forwarded-Host` the approuter sets, and answers `403` on a
+mismatch (measured against approuter 23.0.0 run locally without xsuaa). Leave
 `check_csrf_active` on in your [user exit](../guide/user-exit#csrf) when you
-use this route.
-
-::: info Pending upstream: abap2UI5/abap2UI5#2802
-That pull request teaches the frontend the standard `X-CSRF-Token`
-fetch-and-send handshake. It was merged on 2026-09-27, after the release
-the plugin pins, and no abap2UI5 release carries it yet. Once the plugin pins a
-runtime release that does, the extra route can go and the generated catch-all works as
-it is. Until then, keep the route above.
+use it.
 :::
+
+Either way the framework's own CSRF gate stays in front of the apps: leave
+`check_csrf_active` on in your [user exit](../guide/user-exit#csrf).
 
 ## Scale-to-zero and restarts
 

@@ -22,20 +22,21 @@ exported `z2ui5_cl_ui5_view_builder` and shipped TypeScript declarations;
 0.3.0 added `npx --no-install cap2ui5 abap2js`, which translates an abap2UI5
 app class into a cap2UI5 app line for line, and apps that come from a package —
 [`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
-samples that way. The details are in the plugin's
+samples that way. 0.4.0 sends the browser only the fields an app binds, gzips
+the page and the roundtrips, and hosts runtime 1.146.0, whose frontend does the
+approuter's CSRF token handshake and whose accelerations make a table of
+thousands of rows usable. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
 
 ## Known limits today
 
-### Behind an approuter, the roundtrip path needs its own route
+### Not yet run on BTP
 
-The frontend in runtime `1.145.0` sends no `X-CSRF-Token`, and the route
-`cds add approuter` generates demands one on every POST — so every roundtrip
-is refused with `403` until the roundtrip path gets a route of its own with
-`"csrfProtection": false`. The route, and why it is safe, are on
-[Deployment](../reference/deployment#the-approuter-needs-one-extra-route-today).
-abap2UI5/abap2UI5#2802 teaches the frontend the token handshake; it is merged,
-but no abap2UI5 release carries it yet.
+Behind an approuter, the route `cds add approuter` generates should work as it
+is since 0.4.0: the frontend in runtime 1.146.0 does the `X-CSRF-Token`
+handshake the approuter asks for. That is read from both sides' code, not yet
+run end to end against XSUAA or IAS — see
+[Deployment](../reference/deployment#the-approuter-and-its-csrf-token).
 
 ### The apps are JavaScript, and so are the errors
 
@@ -75,10 +76,6 @@ background pages may still carry the port's mechanics; if a page contradicts
 [Architecture](../reference/architecture), the architecture page is right.
 
 ## What's next
-
-**Drop the approuter exception.** Once abap2UI5/abap2UI5#2802 is in an
-upstream release, pin the plugin to it, and the route CAP generates works
-unchanged.
 
 **Teach `abap2js` more ABAP.** Some of its refusals say "not supported yet".
 
