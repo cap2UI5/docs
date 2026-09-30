@@ -1,8 +1,11 @@
 # Data Binding
 
-A field of your class is a bound model field. `client._bind("name")` gives you
-the binding path to put in the view; the browser sends the value back, and the
-framework applies it to the instance before your `main` runs.
+A field of your class becomes a model field when the app binds it.
+`client._bind("name")` gives you the binding path to put in the view; from
+then on the field is sent to the browser, the browser sends the value back,
+and the framework applies it to the instance before your `main` runs. A field
+the app never binds stays on the server — kept in the draft, never sent, never
+overwritten by what a browser posts.
 
 ```js
 defineApp("ZCL_HELLO", class {

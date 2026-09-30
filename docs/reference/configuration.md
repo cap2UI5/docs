@@ -29,6 +29,8 @@ These ship in the plugin's own `package.json` and apply until you override one:
 | `roles` | who may call: a role, or a list of roles any one of which lets the user in, as with CAP's `@requires`. `any` or `null` lets anonymous callers in — read the box below first |
 | `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works. A GET on a route answers with the page that embeds the whole UI5 frontend — there is no separate static route to configure |
 | `body_parser.limit` | the largest roundtrip body, a larger one gets 413. No default of its own: CAP's `cds.server.body_parser.limit` applies, else `10mb`. A roundtrip carries the app's whole model, so a table of a few thousand rows is an ordinary request |
+| `compression` | `true`: the page and every roundtrip of 1 kB or more are gzipped where the browser accepts gzip — the page, which carries the whole UI5 frontend, goes out as 83 kB instead of 358 kB. Nothing is compressed twice behind an approuter or ingress that compresses too; `false` leaves the work to it |
+| `accelerate` | `true`: the plugin calls the runtime's `accelerate( )` when the server starts, where the runtime has one (1.146.0 does), and logs `runtime accelerations active`. `false` runs the runtime's own code — see [Performance](#performance) |
 
 `"cap2ui5": false` under `cds.requires` switches the plugin off: no route, and
 no `cap2ui5.Drafts` table in the model.
@@ -101,8 +103,8 @@ run behind it under `xsuaa` and `ias` and not only under `mocked`.
 
 ## The runtime
 
-`@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.145.0`
-for 0.3.1 — so `npm add @cap2ui5/cds-plugin` already gives you one known
+`@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.146.0`
+for 0.4.0 — so `npm add @cap2ui5/cds-plugin` already gives you one known
 runtime release. There is nothing to add to your own `package.json`.
 
 The runtime resolves as the plugin's own dependency, at the pinned version.
@@ -110,12 +112,31 @@ To load another release, use npm `overrides` in your `package.json`. The log
 names what was loaded at startup:
 
 ```
-[cap2ui5] - @abap2ui5/node-runtime 1.145.0 from …/node_modules/@abap2ui5/node-runtime
+[cap2ui5] - @abap2ui5/node-runtime 1.146.0 from …/node_modules/@abap2ui5/node-runtime
+[cap2ui5] - runtime accelerations active
 ```
 
 Backend, UI5 frontend and wire protocol version come from that one package,
 which is what makes a frontend/backend mismatch impossible. See
 [HTTP Protocol](./protocol).
+
+## Performance
+
+A roundtrip carries the app's model, restored from the draft, run and answered
+whole, so its cost grows with the model. Measured by the plugin on one editable
+table (the plugin's README has the table):
+
+- **The runtime's accelerations.** Without them, a table of n rows costs time
+  in n² — not in abap2UI5's ABAP but in two places of `@abaplint/runtime` it
+  runs on. With them (runtime 1.146.0, `accelerate` on), 2000 rows start in
+  1.6 s instead of 19.6 s, and an edited cell answers in 2.9 s instead of
+  43.5 s.
+- **Node 24 is recommended.** CAP keeps `cds.context` in an
+  `AsyncLocalStorage`, which on Node 22 costs the transpiled framework about
+  as much again as its own work; Node 24 keeps it nearly free. On Node 22.7
+  and later, `NODE_OPTIONS=--experimental-async-context-frame` does the same.
+- **`NODE_COMPILE_CACHE`** set to a directory saves part of the runtime's
+  import on every start — worth it for `cds watch`.
 
 ## What the plugin does not configure
 

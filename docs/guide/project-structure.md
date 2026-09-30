@@ -86,7 +86,7 @@ same one:
 ```json
 {
   "cap2ui5": { "apps": "srv/apps" },
-  "peerDependencies": { "@cap2ui5/cds-plugin": "^0.3.0" }
+  "peerDependencies": { "@cap2ui5/cds-plugin": "^0.4.0" }
 }
 ```
 

@@ -55,10 +55,27 @@ The wrapper awaits it either way.
 
 ### State is the fields
 
-Every field with an initial value becomes part of the model and survives the
-roundtrip. A field the plugin cannot type is left out and **named in a
-warning**, never silently dropped. Unlike ABAP there is no `PROTECTED
-SECTION`: every field is model.
+Every field with an initial value is kept in the draft and survives the
+roundtrip. It reaches the browser only once the app **binds** it —
+`_bind()`, `_bind_edit()`, `_bind_path()`, a component or a cell — and from
+then on it stays bound, as the framework does for an ABAP app. So a field no
+view shows is neither sent to the browser nor taken back from it; there is no
+`PROTECTED SECTION` to hide it, and none is needed. A field the plugin cannot
+type is left out and **named in a warning**, never silently dropped.
+
+Three names `defineApp` refuses, each with a message that says what to write
+instead:
+
+- **a camelCase field** — `isAdmin = false`. A field is an ABAP attribute, and
+  the runtime reads it by its lower-case name; write `is_admin`. Components of
+  a structure and the class's methods may be camelCase.
+- **a `#private` member** used in `main()` or a method it calls. They run on a
+  proxy of the instance, which a private name does not reach. Use a plain
+  field — it is not sent to the browser unless bound — or a module-level
+  function.
+- **an app name the runtime already has a class of** — the framework's own,
+  one of its apps, the plugin's. `defineApp("Z2UI5_CL_UTIL", …)` would replace
+  what every roundtrip runs.
 
 Inside `main` and inside any method it calls, fields read and write as plain
 values. A helper method that needs the client gets it as an ABAP app does —

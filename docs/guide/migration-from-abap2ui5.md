@@ -104,8 +104,12 @@ fields can be written — `app.backend_event = "…"`, then
 **`client.nav_app_call( app, fields )`** presets the called app's fields —
 what an ABAP app does between `NEW` and `nav_app_call( )`.
 
-**Every field is model.** There is no `PROTECTED SECTION`: every field with an
-initial value is part of the model. A helper method that needs the client gets
+**A bound field is model.** Every field with an initial value is kept in the
+draft, and one the app binds is sent to the browser and written back — as
+abap2UI5 does for an ABAP app's attributes. There is no `PROTECTED SECTION`,
+and none is needed to keep a field out of the browser: don't bind it. Fields
+are named in snake_case, as ABAP attributes are — `defineApp` refuses a
+camelCase one. A helper method that needs the client gets
 it as in ABAP, `this.client = client` in `main()`, without declaring it as a
 field.
 

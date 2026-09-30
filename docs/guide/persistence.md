@@ -39,7 +39,8 @@ defineApp("ZCL_ORDER", class {
 });
 ```
 
-All three survive. Structures and tables nest as deeply as you like — the model
+All three survive — every declared field is kept in the draft, bound or not;
+only what the app binds is also sent to the browser. Structures and tables nest as deeply as you like — the model
 carries `ORDER.CUSTOMER.CITY` and `ORDER.LINES[].PRICE`, decimals included, and
 the app reads the whole tree back as plain values on a later roundtrip.
 

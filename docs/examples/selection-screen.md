@@ -18,8 +18,8 @@ const { SELECT } = cds.ql;
 
 defineApp("ZCL_ORDERS", class {
   customer = "";
-  minTotal = 0;
-  onlyOpen = false;
+  min_total = 0;
+  only_open = false;
   rows     = t.table({ ID: 0, customer: "", total: t.packed(11, 2), open: false });
   hits     = 0;
 
@@ -33,8 +33,8 @@ defineApp("ZCL_ORDERS", class {
         `<f:SimpleForm editable="true" layout="ResponsiveGridLayout">` +
         `<f:content>` +
         `<Label text="Customer"/><Input value="${client._bind("customer")}"/>` +
-        `<Label text="Minimum total"/><Input value="${client._bind("minTotal")}"/>` +
-        `<Label text="Open only"/><CheckBox selected="${client._bind("onlyOpen")}"/>` +
+        `<Label text="Minimum total"/><Input value="${client._bind("min_total")}"/>` +
+        `<Label text="Open only"/><CheckBox selected="${client._bind("only_open")}"/>` +
         `</f:content></f:SimpleForm>` +
 
         `<Button text="Go" type="Emphasized" press="${client._event("GO")}"/>` +
@@ -54,8 +54,8 @@ defineApp("ZCL_ORDERS", class {
     if (client.check_on_event("GO")) {
       const { Orders } = cds.entities("my.shop");
       let q = SELECT.from(Orders).where`customer like ${"%" + this.customer + "%"}`;
-      if (this.minTotal) q = q.and`total >= ${this.minTotal}`;
-      if (this.onlyOpen) q = q.and`open = ${true}`;
+      if (this.min_total) q = q.and`total >= ${this.min_total}`;
+      if (this.only_open) q = q.and`open = ${true}`;
 
       this.rows = await q;
       this.hits = this.rows.length;
@@ -78,8 +78,8 @@ needs no `client.view_display()`. Render again only when the view's
 | field | declared as | why |
 |---|---|---|
 | `customer` | `""` | `string` |
-| `minTotal` | `0` | integer. A decimal threshold would be `t.packed(11, 2)` |
-| `onlyOpen` | `false` | `abap_bool`; your code still sees `true`/`false` |
+| `min_total` | `0` | integer. A decimal threshold would be `t.packed(11, 2)` |
+| `only_open` | `false` | `abap_bool`; your code still sees `true`/`false` |
 | `rows` | `t.table({…})` | an empty array carries no type |
 
 A `CheckBox` binds `selected`, an `Input` binds `value` — ordinary UI5.
@@ -93,7 +93,7 @@ name containing a quote is a value and not a syntax error.
 
 ## Keeping the criteria
 
-They persist for free. `customer`, `minTotal` and `onlyOpen` are declared
+They persist for free. `customer`, `min_total` and `only_open` are declared
 fields, so they are in the draft: come back to the app after a navigation and
 the form is still filled in — including after a server restart.
 

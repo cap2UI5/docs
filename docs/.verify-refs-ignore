@@ -17,6 +17,7 @@ my_first_app            # the class the getting-started walkthrough has you writ
 my_app_name             # stands for "your class" in the ?app_start= URL on the navigation page
 zcl_my_app              # stands for "your app class": the name you gave defineApp in the why-cap2UI5 pitch, and the ABAP class on the views page — an ABAP app is registered by its transpiled class, not by defineApp
 ClassName               # literal placeholder in the URL-parameter description
+z2ui5_cl_smp_app_493    # abap2UI5's hello-world sample: a class in abap2UI5/samples and @cap2ui5/samples, not in abap2UI5's src
 
 # --- apps of other repositories -------------------------------------------
 # Registered with defineApp in their own repository, not in cap2UI5 - and apps,
