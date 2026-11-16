@@ -118,19 +118,18 @@ There is nothing to add to your own `package.json`.
 |---|---|---|
 | 0.4.0 | `1.146.0` | the frontend's `X-CSRF-Token` handshake with the approuter, `accelerate( )`, `view_display`'s transitions |
 | 0.5.0 | `1.147.0` | flat tables written to JSON directly, the draft kept as a digest, the developer tools as a bundle of their own |
-| `main`, not released yet | `1.148.0` | fixes in the runtime underneath (`ASSIGN COMPONENT` of a name with a dash, `rescale( )`, `CREATE DATA` with a lower-case type name) |
+| `main`, not released yet | `1.149.0` | the windowed table behind `client.window_bind_tab( )` and `window_get_row( )` — see [`client`](../api/client#the-windowed-table). The eight obsolete invisible custom controls (`z2ui5.cc.Timer`, `Focus`, `Scrolling`, `Title`, `LPTitle`, `Favicon`, `History`, `Info`) are gone from the frontend: a view that still names one fails to load |
 
 The plugin's [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md)
-has the full list per release. `client.window_bind_tab( )` and
-`window_get_row( )` need a runtime **after** `1.148.0` — none of the three
-rows has them, see [`client`](../api/client#the-windowed-table).
+has the full list per release. No plugin release pinned the runtime between
+the last two rows.
 
 The runtime resolves as the plugin's own dependency, at the pinned version.
 To load another release, use npm `overrides` in your `package.json`. The log
 names what was loaded at startup — for a checkout of `main`:
 
 ```
-[cap2ui5] - @abap2ui5/node-runtime 1.148.0 from …/node_modules/@abap2ui5/node-runtime
+[cap2ui5] - @abap2ui5/node-runtime 1.149.0 from …/node_modules/@abap2ui5/node-runtime
 [cap2ui5] - runtime accelerations active
 ```
 

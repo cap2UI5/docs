@@ -155,14 +155,15 @@ runtime from before transitions existed — the one plugin 0.3.x pins —
 
 ## The windowed table
 
-::: warning Not released yet, and not in any pinned runtime
+::: warning Not released yet
 `client.window_bind_tab( )` and `client.window_get_row( )` are on cap2UI5's
-`main`, after 0.5.0 — and they need an `@abap2ui5/node-runtime` **after**
-`1.148.0`, the release `main` pins. On that runtime and every older one the
-client does not have them, and a call throws:
+`main`, after 0.5.0. They come with `@abap2ui5/node-runtime` `1.149.0`, the
+release `main` pins; plugin 0.5.0 and its runtime have neither. On an older
+runtime the client does not have the two methods, and a call throws, naming
+the runtime in use:
 
 ```
-client.window_bind_tab( ): z2ui5_if_client has no window_bind_tab in the abap2UI5 runtime this project runs on (@abap2ui5/node-runtime 1.148.0) - it came with a later release
+client.window_bind_tab( ): z2ui5_if_client has no window_bind_tab in the abap2UI5 runtime this project runs on (@abap2ui5/node-runtime <version>) - it came with a later release
 ```
 
 What follows is read from the plugin's code and abap2UI5's interface. It has

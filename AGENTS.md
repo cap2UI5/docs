@@ -68,7 +68,9 @@ On npm: `@cap2ui5/cds-plugin@0.5.0` (since 2026-10-14; Node ≥ 22, peer
 plugin pins one `@abap2ui5/node-runtime` release **exactly**: 0.4.0 pinned
 1.146.0 (the first runtime whose frontend does the approuter's `X-CSRF-Token`
 handshake and has `accelerate( )`), 0.5.0 pins 1.147.0, and cap2UI5's `main`
-pins 1.148.0.
+pins a later one — read it from `plugin/package.json` there; it moved twice
+within a day of this being written, and the weekly check run exists to say
+when it moves again.
 
 **The site describes two things, and says which is which.** verify-refs
 compares against cap2UI5's `main`, so `main`'s pin is the number it accepts
@@ -76,8 +78,8 @@ compares against cap2UI5's `main`, so `main`'s pin is the number it accepts
 `runtime/package.json`), and a reader installs the newest release on npm. What
 is on `main` under the CHANGELOG's "Unreleased" — at the time of writing
 `cds.requires.cap2ui5.timeout`, `purgeDrafts`, the queue warning, and
-`client.window_bind_tab( )` / `window_get_row( )`, which also need a runtime
-after 1.148.0 — is documented, and marked **not released yet** wherever it
+`client.window_bind_tab( )` / `window_get_row( )`, which come with the
+runtime `main` pins — is documented, and marked **not released yet** wherever it
 appears. Move the mark when the release happens; do not present an unreleased
 thing as installable. Older pins are named only with the plugin version they
 belong to, and are in `docs/.verify-refs-ignore` for that reason.
