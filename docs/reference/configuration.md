@@ -30,10 +30,17 @@ These ship in the plugin's own `package.json` and apply until you override one:
 | `routes` | the paths the roundtrip answers on. Both defaults exist so that a frontend or a bookmark written for either name works. A GET on a route answers with the page that embeds the whole UI5 frontend — there is no separate static route to configure |
 | `body_parser.limit` | the largest roundtrip body, a larger one gets 413. No default of its own: CAP's `cds.server.body_parser.limit` applies, else `10mb`. A roundtrip carries the app's whole model, so a table of a few thousand rows is an ordinary request |
 | `compression` | `true`: the page and every roundtrip of 1 kB or more are gzipped where the browser accepts gzip — the page, which carries the whole UI5 frontend, goes out as 83 kB instead of 358 kB. Nothing is compressed twice behind an approuter or ingress that compresses too; `false` leaves the work to it |
-| `accelerate` | `true`: the plugin calls the runtime's `accelerate( )` when the server starts, where the runtime has one (1.146.0 does), and logs `runtime accelerations active`. `false` runs the runtime's own code — see [Performance](#performance) |
+| `accelerate` | `true`: the plugin calls the runtime's `accelerate( )` when the server starts, where the runtime has one (every runtime since plugin 0.4.0 does), and logs `runtime accelerations active`. `false` runs the runtime's own code — see [Performance](#performance) |
+| `timeout` | **not released yet** — on cap2UI5's `main`, after 0.5.0. The milliseconds an app's async `main( )` may take: `60000` unless set, `0` or `false` for no limit. See [One roundtrip at a time](#one-roundtrip-at-a-time) |
+| `agent` | since 0.5.0. Off unless set: `true`, or `{ path, apps, confirm, forbidden, retention }`, switches on the MCP endpoint AI agents operate apps through — see [Agents](../guide/agents) |
+
+The first three have their defaults in the plugin's `package.json`; the rest
+are read by `plugin/lib/config.js`, which holds theirs. A `timeout` that is
+not a number of milliseconds, an `agent` setting the endpoint does not know and
+an empty `routes` list fail the start, naming the setting.
 
 `"cap2ui5": false` under `cds.requires` switches the plugin off: no route, and
-no `cap2ui5.Drafts` table in the model.
+no `cap2ui5.Drafts` or `cap2ui5.AgentLog` table in the model.
 
 ::: info Coming from 0.1.0
 0.1.0 read a top-level `cds.cap2ui5`, with `requires` for the roles. Those
@@ -103,16 +110,27 @@ run behind it under `xsuaa` and `ias` and not only under `mocked`.
 
 ## The runtime
 
-`@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly** — `1.146.0`
-for 0.4.0 — so `npm add @cap2ui5/cds-plugin` already gives you one known
-runtime release. There is nothing to add to your own `package.json`.
+`@cap2ui5/cds-plugin` depends on `@abap2ui5/node-runtime` **pinned exactly**,
+so `npm add @cap2ui5/cds-plugin` already gives you one known runtime release.
+There is nothing to add to your own `package.json`.
+
+| plugin | runtime it pins | what came with that runtime |
+|---|---|---|
+| 0.4.0 | `1.146.0` | the frontend's `X-CSRF-Token` handshake with the approuter, `accelerate( )`, `view_display`'s transitions |
+| 0.5.0 | `1.147.0` | flat tables written to JSON directly, the draft kept as a digest, the developer tools as a bundle of their own |
+| `main`, not released yet | `1.148.0` | fixes in the runtime underneath (`ASSIGN COMPONENT` of a name with a dash, `rescale( )`, `CREATE DATA` with a lower-case type name) |
+
+The plugin's [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md)
+has the full list per release. `client.window_bind_tab( )` and
+`window_get_row( )` need a runtime **after** `1.148.0` — none of the three
+rows has them, see [`client`](../api/client#the-windowed-table).
 
 The runtime resolves as the plugin's own dependency, at the pinned version.
 To load another release, use npm `overrides` in your `package.json`. The log
-names what was loaded at startup:
+names what was loaded at startup — for a checkout of `main`:
 
 ```
-[cap2ui5] - @abap2ui5/node-runtime 1.146.0 from …/node_modules/@abap2ui5/node-runtime
+[cap2ui5] - @abap2ui5/node-runtime 1.148.0 from …/node_modules/@abap2ui5/node-runtime
 [cap2ui5] - runtime accelerations active
 ```
 
@@ -128,7 +146,7 @@ table (the plugin's README has the table):
 
 - **The runtime's accelerations.** Without them, a table of n rows costs time
   in n² — not in abap2UI5's ABAP but in two places of `@abaplint/runtime` it
-  runs on. With them (runtime 1.146.0, `accelerate` on), 2000 rows start in
+  runs on. With them (measured on the runtime of plugin 0.4.0, `accelerate` on), 2000 rows start in
   1.6 s instead of 19.6 s, and an edited cell answers in 2.9 s instead of
   43.5 s.
 - **Node 24 is recommended.** CAP keeps `cds.context` in an
@@ -137,6 +155,44 @@ table (the plugin's README has the table):
   and later, `NODE_OPTIONS=--experimental-async-context-frame` does the same.
 - **`NODE_COMPILE_CACHE`** set to a directory saves part of the runtime's
   import on every start — worth it for `cds watch`.
+
+## One roundtrip at a time
+
+Since 0.5.0 roundtrips run **one at a time per process**. The transpiled
+framework keeps per-request state where ABAP keeps it per work process — and
+the draft store really awaits the database, so without a queue a second
+request could run inside the first and share that state. A failed roundtrip
+never blocks the next one.
+
+A roundtrip costs milliseconds, so the queue is rarely felt. The price shows
+when an app's `main( )` waits: a slow query or a remote call that does not
+answer holds **every other user's** roundtrip for as long. So keep the I/O in
+`main( )` short, and scale with instances — see
+[Deployment](./deployment#what-changes-in-production-and-what-does-not).
+
+Two things on cap2UI5's `main` make that visible and bounded. They are **not
+released yet** — 0.5.0 has the queue without them:
+
+- **`timeout`.** An async `main( )` that takes longer than
+  `cds.requires.cap2ui5.timeout` milliseconds — a minute unless set — has its
+  roundtrip given up. The browser gets **504** with
+  `roundtrip timed out (<id>)`, the draft of that roundtrip is not written,
+  and the next roundtrip runs. `0` or `false` is no limit. A synchronous
+  `main( )` cannot be interrupted and is not timed, and neither is a
+  transpiled ABAP app.
+- **A warning.** A roundtrip that waited a second or more for its turn is
+  logged, with the wait and how many were ahead of it — at most once every ten
+  seconds:
+
+  ```
+  [cap2ui5] - a roundtrip waited 1840 ms behind 3 other(s): roundtrips run one at a time per process, so a slow main( ) holds everyone - look for the app that awaits, or run more instances
+  ```
+
+::: warning Upgrading past 0.5.0
+An app whose async `main( )` legitimately takes longer than a minute will fail
+with 504 once `timeout` is released. Raise the setting, or set it to `0`, for
+that project.
+:::
 
 ## What the plugin does not configure
 
@@ -159,8 +215,12 @@ One per project, and the whole surface is on [The User Exit](../guide/user-exit)
 
 ## Errors
 
-An unhandled error in the roundtrip answers `roundtrip failed (<id>)`, where
-`<id>` is `cds.context.id`. The detail — the stack, the SQL, the entity names —
+An unhandled error in the roundtrip answers `500` with
+`roundtrip failed (<id>)`, where `<id>` is `cds.context.id` — stripped, since
+0.5.0, to letters, digits and `. _ : -`, because CAP takes that id from a
+request header when there is one. A `main( )` that ran out of
+[time](#one-roundtrip-at-a-time) answers `504` with
+`roundtrip timed out (<id>)` instead (not released yet). The detail — the stack, the SQL, the entity names —
 goes to the server log under the same id. That is deliberate: CDS and driver
 messages carry entity names, SQL fragments and deployment paths, and none of it
 belongs in an HTTP response.
@@ -168,6 +228,7 @@ belongs in an HTTP response.
 ## Next
 
 - [**Deployment**](./deployment) — what changes when this leaves your laptop
-- [**Database Model**](./database) — `cap2ui5.Drafts`
+- [**Database Model**](./database) — `cap2ui5.Drafts` and `cap2ui5.AgentLog`
+- [**Agents: the MCP Endpoint**](../guide/agents) — what `agent` switches on
 - [**The User Exit**](../guide/user-exit) — the CSP, the headers, the draft expiry
 - [**Architecture**](./architecture) — how the pieces fit

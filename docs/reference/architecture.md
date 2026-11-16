@@ -14,7 +14,7 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
   └── node_modules/
       ├── @cap2ui5/cds-plugin  the plugin
       │   ├── cds-plugin.js    mounts the route behind CAP's middlewares
-      │   ├── index.cds        cap2ui5.Drafts
+      │   ├── index.cds        cap2ui5.Drafts, cap2ui5.AgentLog
       │   ├── index.js         defineApp, defineExit, t, z2ui5_cl_ui5_view_builder,
       │   │                    z2ui5_if_client, abap2js
       │   └── lib/

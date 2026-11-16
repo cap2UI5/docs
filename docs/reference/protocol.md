@@ -101,7 +101,9 @@ For a cap2UI5 project the check is belt and braces — both halves come from one
 
 An unhandled error answers `500` with `roundtrip failed (<cds.context.id>)`.
 The detail goes to the server log under the same id; see
-[Configuration](./configuration). An app module that fails to load does not
+[Configuration](./configuration). On cap2UI5's `main`, not released yet, an
+async `main( )` that runs out of its `timeout` answers `504` with
+`roundtrip timed out (<cds.context.id>)` instead. An app module that fails to load does not
 get that far: it fails the server's start.
 
 Authentication is decided **before** the body is read: an unauthenticated

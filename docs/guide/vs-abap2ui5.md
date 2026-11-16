@@ -81,8 +81,8 @@ a value by reference. That is close enough for a machine to do it:
 `npx --no-install cap2ui5 abap2js` translates an abap2UI5 app class into a
 cap2UI5 app, line for line, and refuses what it does not know rather than guess — see
 [Migrating from abap2UI5](./migration-from-abap2ui5#translate-it-cap2ui5-abap2js).
-[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
-samples as cap2UI5 apps, 69 of them translated that way.
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 76 of abap2UI5's
+138 samples as cap2UI5 apps, 73 of them translated that way.
 
 ## Which one do I want?
 

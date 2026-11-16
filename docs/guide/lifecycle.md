@@ -135,7 +135,7 @@ every roundtrip and the app would never render:
 |---|---|
 | `client.isFirstRun`, `client.isDisplay`, `client.eventName`, `client.bind(…)`, … | the pre-0.2.0 names. The error names the `z2ui5_if_client` method that replaces each |
 | `client.isInitial` | it was wired to `check_on_navigated()` and named after `check_on_init()`. Use `check_on_navigated()` to render, `check_on_init()` to seed |
-| `client.set_session_stateful()` | not supported: the app's state is in its fields, which are in the draft |
+| `client.set_session_stateful()` | not supported in a JavaScript app: the app's state is in its fields, which are in the draft |
 | `view_model_update()` and the other `*_model_update()` | obsolete in `z2ui5_if_client`, and they **do nothing**, as in ABAP. Changed bound data is pushed automatically — to an open popup, popover and nested view too |
 
 ## Next

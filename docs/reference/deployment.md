@@ -34,15 +34,43 @@ then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
 | | |
 |---|---|
 | **The frontend** | there are no frontend files. The page the roundtrip route answers a GET with embeds the whole UI5 component, so there is no separate frontend project to build, no HTML5 module to push, no UI5 tooling in the pipeline |
-| **The entity** | `cap2ui5.Drafts` deploys through your normal `db` module, HDI container included. Nothing special |
+| **The entities** | `cap2ui5.Drafts` and, since 0.5.0, `cap2ui5.AgentLog` deploy through your normal `db` module, HDI container included. Nothing special — but an upgrade to 0.5.0 adds a table, so it needs a deploy |
 | **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
-| **Scaling** | app state is in the database, not in memory, so a second instance is a second instance. No sticky sessions, no shared cache |
-| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.146.0` for 0.4.0). Commit your `package-lock.json` and a redeploy installs the same release |
+| **Scaling** | a JavaScript app's state is in the database, not in memory, so a second instance is a second instance: no sticky sessions, no shared cache. Two things to know — see [Scaling](#scaling) |
+| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.147.0` for 0.5.0; the [table](./configuration#the-runtime) has the others). Commit your `package-lock.json` and a redeploy installs the same release |
+
+## Scaling
+
+**"No sticky sessions" holds for JavaScript apps.** Every `defineApp` app keeps
+its state in its fields, the fields are in the draft, and the draft is in the
+database — so any instance answers any roundtrip, and a restart loses nothing.
+
+Two limits, both since 0.5.0:
+
+- **Roundtrips run one at a time per process.** One instance answers one
+  roundtrip at a time, so an app whose `main( )` awaits something slow holds
+  everybody on that instance. More instances are how this scales; what bounds
+  a single slow roundtrip is on
+  [Configuration](./configuration#one-roundtrip-at-a-time).
+- **A stateful ABAP app does not scale out.** A *transpiled ABAP* app that
+  calls `set_session_stateful( )` is kept in memory between its requests, as
+  on an SAP system. The plugin keeps such a session per CAP user, **in the
+  process**: a session id it issues travels as `sap-contextid`, only that
+  user's requests naming it get the session, and `set_session_stateful(
+  abap_false )`, the frontend's terminate ping or 30 idle minutes end it. So
+  with more than one instance such an app needs **sticky routing**, and a
+  restart or a scale-down loses its sessions — a stateful app skips the draft
+  save. A JavaScript app cannot go stateful at all:
+  `client.set_session_stateful()` throws.
+
+If none of your apps is a transpiled ABAP class that goes stateful, the second
+point does not concern you. Before 0.5.0 the first such app answered every
+later request of every user; that is fixed, not a behaviour to plan for.
 
 ## Pin the plugin
 
 ```json
-{ "dependencies": { "@cap2ui5/cds-plugin": "^0.4.0" } }
+{ "dependencies": { "@cap2ui5/cds-plugin": "^0.5.0" } }
 ```
 
 `@cap2ui5/cds-plugin` is on npm, and it depends on one exact `@abap2ui5/node-runtime`
@@ -103,7 +131,7 @@ token on a GET or HEAD that carries `x-csrf-token: Fetch`, bound to the session
 (approuter 23.0.0, `lib/middleware/xsrf-token-handler.js`).
 
 Since `@cap2ui5/cds-plugin` 0.4.0 that route works as generated. The frontend
-of runtime `1.146.0`, which it pins, answers a `403` with
+of the runtime it pins, and of every later one, answers a `403` with
 `x-csrf-token: Required` by fetching the token with a HEAD request and sending
 the roundtrip again with it — the handshake
 [abap2UI5/abap2UI5#2802](https://github.com/abap2UI5/abap2UI5/pull/2802) added.
@@ -140,7 +168,8 @@ Either way the framework's own CSRF gate stays in front of the apps: leave
 
 Both are fine, and tested rather than argued: a process can be **SIGKILLed
 mid-session** and a fresh one continues it, navigation stack included. See
-[Persistence & Sessions](../guide/persistence).
+[Persistence & Sessions](../guide/persistence). The exception is the session
+of a stateful ABAP app, which lives in the process — see [Scaling](#scaling).
 
 ## Health
 

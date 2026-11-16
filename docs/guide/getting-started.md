@@ -302,7 +302,7 @@ cds watch
 The startup lines gain one line for the package, below `HELLO` and `BOOKS`:
 
 ```
-[cap2ui5] - @cap2ui5/samples  71 apps - listed on CAP's start page, http://localhost:4004/
+[cap2ui5] - @cap2ui5/samples  76 apps - listed on CAP's start page, http://localhost:4004/
 ```
 
 CAP's start page lists every sample under its ABAP class name, e.g.

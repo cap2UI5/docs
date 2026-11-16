@@ -21,11 +21,19 @@ app receives abap2UI5's `z2ui5_if_client`, every method under its ABAP name,
 exported `z2ui5_cl_ui5_view_builder` and shipped TypeScript declarations;
 0.3.0 added `npx --no-install cap2ui5 abap2js`, which translates an abap2UI5
 app class into a cap2UI5 app line for line, and apps that come from a package —
-[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 71 of abap2UI5's
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) is 76 of abap2UI5's
 samples that way. 0.4.0 sends the browser only the fields an app binds, gzips
-the page and the roundtrips, and hosts runtime 1.146.0, whose frontend does the
+the page and the roundtrips, and hosts the first runtime whose frontend does the
 approuter's CSRF token handshake and whose accelerations make a table of
-thousands of rows usable. The details are in the plugin's
+thousands of rows usable. 0.5.0 adds an [MCP endpoint](./agents) through which
+AI agents operate apps as the logged-on user, with an audit log; runs the
+roundtrips of a process one at a time; and keeps the session of a stateful
+ABAP app per user.
+
+**On `main`, not released yet:** a `timeout` for an app's async `main( )`
+(504 after a minute), `purgeDrafts` for a scheduled job, runtime 1.148.0, and
+`client.window_bind_tab( )` / `window_get_row( )` — abap2UI5's windowed table,
+which needs a runtime later than the one `main` pins. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
 
 ## Known limits today
@@ -33,10 +41,20 @@ thousands of rows usable. The details are in the plugin's
 ### Not yet run on BTP
 
 Behind an approuter, the route `cds add approuter` generates should work as it
-is since 0.4.0: the frontend in runtime 1.146.0 does the `X-CSRF-Token`
-handshake the approuter asks for. That is read from both sides' code, not yet
-run end to end against XSUAA or IAS — see
-[Deployment](../reference/deployment#the-approuter-and-its-csrf-token).
+is since 0.4.0: the frontend in its runtime, and in every later one, does the
+`X-CSRF-Token` handshake the approuter asks for. That is read from both sides'
+code, not yet run end to end against XSUAA or IAS — see
+[Deployment](../reference/deployment#the-approuter-and-its-csrf-token). The
+same goes for the [agent endpoint](./agents): tested in the plugin's suite,
+not run on BTP.
+
+### One roundtrip at a time per process
+
+Since 0.5.0. A roundtrip costs milliseconds, so it is rarely felt — but an
+app whose `main( )` awaits something slow holds everybody on that instance,
+and the bound on it (`timeout`) is not released yet. A stateful ABAP app
+keeps its session in the process and needs sticky routing. See
+[Deployment](../reference/deployment#scaling).
 
 ### The apps are JavaScript, and so are the errors
 
@@ -52,8 +70,9 @@ unannotated app.
 
 `npx --no-install cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written
 in and refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file,
-row and column. What it refuses you translate by hand. Of abap2UI5's 129
-samples, it translates 69 today.
+row and column. What it refuses you translate by hand. Of abap2UI5's 138
+samples, 76 are in `@cap2ui5/samples` 0.3.0 — 73 translated by `abap2js`,
+three ported by hand.
 
 ### UI5 comes from the CDN, and only from the CDN
 

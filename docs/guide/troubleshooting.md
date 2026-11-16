@@ -110,7 +110,8 @@ scratch on every interaction.
   A draft id from someone else's session, or from before you logged in as
   someone else, will not load.
 - **The row expired.** Drafts older than `draft_exp_time_in_hours` (4 hours by
-  default) are deleted on the next roundtrip. Raise it in your
+  default) are no longer resumed, and are deleted the next time somebody opens
+  an app. Raise it in your
   [user exit](./user-exit#onroundtrip) while debugging — the cleanup follows
   the same number, so the rows stay as long as the framework will resume them.
 - **The app class is gone.** Restoring revives the app named in the row; if
@@ -189,6 +190,37 @@ the frontend in the runtime 0.3.x pins sends none. Upgrade to
 0.4.0, or give the roundtrip path a route of its own — see
 [Deployment](../reference/deployment#the-approuter-and-its-csrf-token).
 
+## 504 on the roundtrip
+
+::: info Not released yet
+The 504 and the warning below are on cap2UI5's `main`, after 0.5.0. In 0.5.0 a
+`main( )` that never settles holds the process's roundtrips with no limit.
+:::
+
+The response is `roundtrip timed out (<id>)`, and the log has the same id:
+
+```
+defineApp ZCL_X: main( ) did not finish within 60000 ms (cds.requires.cap2ui5.timeout) - the roundtrip is given up so that the others waiting behind it can run
+```
+
+An app's **async** `main( )` took longer than `cds.requires.cap2ui5.timeout`,
+a minute unless set. Roundtrips run one at a time per process, so the plugin
+gives that one up rather than let it hold everybody else.
+
+- **Find what it awaited.** A query without a `where`, a remote service that
+  did not answer. The app named in the log line is where to look.
+- **The roundtrip's draft was not written.** The tab still holds the previous
+  state; the click can simply be repeated once the cause is gone.
+- **It legitimately takes that long.** Raise `timeout`, or set it to `0` for
+  no limit — and know that everybody on that instance waits behind it.
+- **If the 504 has another body**, it is not the plugin's: a proxy or the
+  approuter in front gave up first.
+
+A log line `a roundtrip waited … ms behind … other(s)` is the earlier sign of
+the same thing: nothing failed, but somebody's roundtrip stood in the queue
+for a second or more. See
+[Configuration](../reference/configuration#one-roundtrip-at-a-time).
+
 ## Two users see each other's state
 
 Almost always one cause: **`cds.requires.cap2ui5.roles` is `any` or `null`.** Every caller is
@@ -207,6 +239,11 @@ SELECT id, owner FROM cap2ui5_Drafts ORDER BY createdAt DESC LIMIT 5;
 
 An `owner` reading `anonymous` where you expected a user name means the caller
 was not authenticated, not that the binding failed.
+
+One more cause, **before 0.5.0 only**: a transpiled ABAP app that called
+`set_session_stateful( )` answered every later request of every user. Since
+0.5.0 such a session belongs to the CAP user who opened it — see
+[Deployment](../reference/deployment#scaling).
 
 ## Still stuck
 

@@ -27,13 +27,14 @@ abap2UI5 builds itself.
 
 | | |
 |---|---|
-| `@cap2ui5/cds-plugin` | the plugin — about 640 lines of code. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call |
+| `@cap2ui5/cds-plugin` | the plugin — about 4,800 lines of code on `main` (counted without comments and blank lines), some 2,000 of them the ABAP translator `abap2js`, plus about 1,950 vendored unchanged from abap2UI5's MCP server for the agent endpoint. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call, and serves the [agent endpoint](./agents) |
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.4.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
-`@abap2ui5/node-runtime` 1.146.0 (Node ≥ 22), which the plugin pins exactly,
-and `@cap2ui5/samples` 0.2.0, which needs plugin 0.4. `npm add @cap2ui5/cds-plugin` installs the first two — see the
+All three are on npm: `@cap2ui5/cds-plugin` 0.5.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+`@abap2ui5/node-runtime`, of which the plugin pins one release exactly —
+`1.147.0` in 0.5.0, `1.148.0` on `main`, which is not released yet —
+and `@cap2ui5/samples` 0.3.0, which needs plugin 0.5. `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder that
 installs nothing usable; its `cap2ui5` command prints where to go instead.
@@ -42,7 +43,10 @@ installs nothing usable; its `cap2ui5` command prints where to go instead.
 
 **Owns:** the CAP route and its authentication guard, `cap2ui5.Drafts` and the
 draft store over it, `defineApp` and the client that maps a JavaScript app
-onto `z2ui5_if_client`, the two ABI gates.
+onto `z2ui5_if_client`, the two ABI gates, and — since 0.5.0 — the agent
+endpoint's policy and audit log (`cap2ui5.AgentLog`), the queue that runs
+roundtrips one at a time, and the per-user session layer for stateful ABAP
+apps.
 
 **Does not own:** views, the wire format, the model service, the lifecycle, the
 UI5 shell, the frontend actions — all upstream's, running unmodified. The plugin

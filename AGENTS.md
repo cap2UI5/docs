@@ -62,13 +62,31 @@ against the repos, don't guess):
 | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
-On npm: `@cap2ui5/cds-plugin@0.4.0` (since 2026-09-30; Node ≥ 22, peer
+On npm: `@cap2ui5/cds-plugin@0.5.0` (since 2026-10-14; Node ≥ 22, peer
 `@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
-`@cap2ui5/samples@0.2.0` (peer `^0.4.0`). The plugin pins
-`@abap2ui5/node-runtime@1.146.0` **exactly**, the first runtime whose frontend
-does the approuter's `X-CSRF-Token` handshake and has `accelerate( )`.
-verify-refs reads that pin from `plugin/package.json`, not from the stand-in
-`runtime/package.json`. Up to 0.2.0 the plugin was the unscoped
+`@cap2ui5/samples@0.3.0` (peer `^0.5.0`; 76 of abap2UI5's 138 samples). The
+plugin pins one `@abap2ui5/node-runtime` release **exactly**: 0.4.0 pinned
+1.146.0 (the first runtime whose frontend does the approuter's `X-CSRF-Token`
+handshake and has `accelerate( )`), 0.5.0 pins 1.147.0, and cap2UI5's `main`
+pins 1.148.0.
+
+**The site describes two things, and says which is which.** verify-refs
+compares against cap2UI5's `main`, so `main`'s pin is the number it accepts
+(read from `plugin/package.json`, not from the stand-in
+`runtime/package.json`), and a reader installs the newest release on npm. What
+is on `main` under the CHANGELOG's "Unreleased" — at the time of writing
+`cds.requires.cap2ui5.timeout`, `purgeDrafts`, the queue warning, and
+`client.window_bind_tab( )` / `window_get_row( )`, which also need a runtime
+after 1.148.0 — is documented, and marked **not released yet** wherever it
+appears. Move the mark when the release happens; do not present an unreleased
+thing as installable. Older pins are named only with the plugin version they
+belong to, and are in `docs/.verify-refs-ignore` for that reason.
+
+Since 0.5.0 the plugin also serves an MCP endpoint for AI agents
+(`cds.requires.cap2ui5.agent`, off by default; `plugin/lib/agent/`, ADR-009),
+adds a second entity, `cap2ui5.AgentLog`, runs the roundtrips of a process one
+at a time, and keeps a stateful ABAP app's session per CAP user in the process
+(`plugin/lib/sessions.js`). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder,
 `cap2ui5@0.0.1-placeholder` (since 2026-09-30, cap2UI5/cap2UI5#97): no `main`,
 and a `cap2ui5` bin that prints where to go and exits 1. It installs nothing an
@@ -93,20 +111,27 @@ the roundtrip route answers a GET with embeds the whole UI5 component, so the
 plugin serves no frontend files (`/z2ui5/webapp/index.html` answers 404, and
 cap2UI5's `scripts/consumer-test.mjs` asserts it). `plugin/package.json`
 defines `apps`, `roles` and `routes` under `cds.requires.cap2ui5` (next to
-CAP's own `model`); the plugin also reads `body_parser.limit`, which has no
-default there. 0.1.0's top-level `cds.cap2ui5`, with `requires` for the
+CAP's own `model`); the plugin also reads `body_parser.limit`, `compression`,
+`accelerate`, `timeout` and `agent`, which have no default there — their
+defaults are in `plugin/lib/config.js`, and verify-refs, which reads the
+option names from `package.json`, needs the ones the site writes as
+`cds.requires.cap2ui5.<option>` listed in `docs/.verify-refs-ignore`. 0.1.0's top-level `cds.cap2ui5`, with `requires` for the
 roles, is still read with a deprecation warning — the site teaches only the
 new place.
 
 Path conventions inside cap2UI5:
 
 - `plugin/` — the package: `cds-plugin.js` (the route, the auth guard, the
-  startup lines naming each app's address), `index.cds` (the `cap2ui5.Drafts`
-  entity), `index.js` (what `import`/`require` of `@cap2ui5/cds-plugin`
+  startup lines naming each app's address, the queue that runs roundtrips one
+  at a time), `index.cds` (the `cap2ui5.Drafts` and `cap2ui5.AgentLog`
+  entities), `index.js` (what `import`/`require` of `@cap2ui5/cds-plugin`
   returns), `index.d.ts` (its TypeScript declarations), `bin/cap2ui5.js`
-  (`npx --no-install cap2ui5 abap2js`) and `lib/` (`abap2js.js`, `add.js`,
-  `config.js`, `define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
-  `runtime.js`, `view-builder.js`)
+  (`npx --no-install cap2ui5 abap2js`) and `lib/` (`abap2js.js`,
+  `abaplint-core.js`, `add.js`, `compression.js`, `config.js`,
+  `define-app.js`, `define-exit.js`, `draft-store.js`, `hints.js`,
+  `module-format.js`, `runtime.js`, `sessions.js`, `view-builder.js`, and
+  `agent/` — the MCP endpoint: `mcp.js`, `index.js`, `policy.js`, `audit.js`
+  and `vendor/`, abap2UI5's MCP server code copied unchanged)
 - `examples/bookshop/` — a CAP project using it, with the test suite. Its apps
   are in `examples/bookshop/srv/apps/`
 - `runtime/` — a stand-in for `@abap2ui5/node-runtime`. Only `package.json`
