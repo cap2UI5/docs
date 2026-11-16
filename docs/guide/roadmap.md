@@ -31,9 +31,9 @@ roundtrips of a process one at a time; and keeps the session of a stateful
 ABAP app per user.
 
 **On `main`, not released yet:** a `timeout` for an app's async `main( )`
-(504 after a minute), `purgeDrafts` for a scheduled job, runtime 1.148.0, and
-`client.window_bind_tab( )` / `window_get_row( )` — abap2UI5's windowed table,
-which needs a runtime later than the one `main` pins. The details are in the plugin's
+(504 after a minute), `purgeDrafts` for a scheduled job, and runtime 1.149.0
+with `client.window_bind_tab( )` / `window_get_row( )` — abap2UI5's windowed
+table. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
 
 ## Known limits today

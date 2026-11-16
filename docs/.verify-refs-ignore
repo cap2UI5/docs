@@ -40,7 +40,7 @@ cap2ui5.timeout         # the ms an async main( ) may take — config.js timeout
 cap2ui5.agent           # the MCP endpoint's switch and settings — config.js / lib/agent/policy.js agentConfig( ), since 0.5.0
 
 # --- release numbers that are NOT the pinned runtime release ----------------
-# The pin itself (1.148.0 today, on cap2UI5's main) is read from the checkout
+# The pin itself (whatever cap2UI5's main pins) is read from the checkout
 # and never listed here — listing it would keep the old number green after a
 # pin move, which is the one defect the release check exists to catch.
 #

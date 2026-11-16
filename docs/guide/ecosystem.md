@@ -33,7 +33,7 @@ abap2UI5 builds itself.
 
 All three are on npm: `@cap2ui5/cds-plugin` 0.5.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
 `@abap2ui5/node-runtime`, of which the plugin pins one release exactly —
-`1.147.0` in 0.5.0, `1.148.0` on `main`, which is not released yet —
+`1.147.0` in 0.5.0, `1.149.0` on `main`, which is not released yet —
 and `@cap2ui5/samples` 0.3.0, which needs plugin 0.5. `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder that
