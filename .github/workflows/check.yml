@@ -10,10 +10,21 @@
 # to run locally, so a green machine and a green CI mean the same thing.
 name: check
 
+# The schedule is for the drift nobody here causes. Every reference check
+# compares this site with cap2UI5's main, and that moves without a push to
+# this repository: a plugin release, a runtime pin, a renamed file. Without
+# it the site went stale in silence - eleven references, when plugin 0.5.0
+# and a runtime pin had landed over there - and the next pull request here,
+# whatever it was about, would have been the one to go red. Once a week the
+# job says so by itself, and workflow_dispatch runs it on demand, right
+# after a plugin release for one.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '17 5 * * 1'   # Mondays 05:17 UTC - off the hour, when Actions is less busy
+  workflow_dispatch:
 
 concurrency:
   group: check-${{ github.ref }}
