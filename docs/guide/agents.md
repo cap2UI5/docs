@@ -13,9 +13,24 @@ addon. The decision record is
 [ADR-009](https://github.com/cap2UI5/cap2UI5/blob/main/docs/adr/adr-009-agent-endpoint.md).
 
 ::: warning What is verified here
-This page is written from the plugin's code and its test suite
-(`examples/bookshop/test/agent.test.mjs` and its siblings in cap2UI5). The
-endpoint has not been run on BTP, and not behind an approuter.
+**Measured**, with the published plugin 0.5.0 in a project of its own, on
+localhost with CAP's mocked users: every status in the table
+[below](#what-the-endpoint-answers-before-any-tool-runs) except the user
+without an id; the four tools; opting in and the refusal for an app that did
+not; the `"policy"` marks, the `confirm` and `forbidden` refusals; pending
+values; the handover link opened in a browser as the same user and as another
+one; another user's and an earlier session id; the rows of
+`cap2ui5.AgentLog`, without the values entered; a session restored after a
+restart; a misspelt setting and a `retention` that is no number failing the
+start.
+
+**Read from the code and the plugin's test suite, not run for this page**
+(`examples/bookshop/test/agent.test.mjs` and its siblings in cap2UI5): the
+hourly retention sweep and `purgeAgentLog`, a user without an id, a
+transpiled ABAP app opted in through `apps`, tables, row actions and selection
+dialogs.
+
+**Not run at all:** on BTP, behind an approuter, with XSUAA or IAS.
 :::
 
 ## Switch it on
