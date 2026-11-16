@@ -32,7 +32,7 @@ Two rules for every method:
 | `client.check_on_event(val)` | whether this roundtrip answers the event `val`; without `val`, whether it answers any event |
 | `client.check_app_prev_stack()` | `true` if there is an app to return to — for a Page's `showNavButton` |
 | `client.get_event()` | the event this roundtrip answers; `""` on an app start |
-| `client.get_event_arg(v)` | the *v*-th event argument, **1-based**, `1` by default. The first 8 are resolved up front; beyond that, `client.raw` |
+| `client.get_event_arg(v)` | the *v*-th event argument, **1-based**, `1` by default, and `""` past the last one, as in ABAP. Up to 0.4.0 only the first 8 could be read |
 | `client.get()` | what the frontend sent with this roundtrip, as plain values under the ABAP component names: `event`, the draft ids (`s_draft`), the browser location (`s_config`), device, focus and scroll information, and `r_event_data` — what a returning app handed over |
 | `client.get_app_prev()` | the app on the other side of the last navigation — inside a called app its caller, back in the caller the app that just returned. A `defineApp` app as its fields' plain values, an ABAP app as the instance |
 | `client.get_app()` | without an id, the running app itself |
@@ -95,6 +95,8 @@ what its `stringify()` answered.
 | | |
 |---|---|
 | `client.view_display(val)` | render the main view. An `mvc:View` |
+| `client.view_display({ val, transition, transition_back })` | … with a page transition — see [Transitions](#transitions) |
+| `client.view_display({ val, switch_default_model_path, switch_default_model_anno_uri })` | `view_display( )`'s other two options, as in ABAP: an OData V2 service as the view's default model |
 | `client.view_destroy()` | remove it |
 | `client.popup_display(val)` | a dialog on top. A `core:FragmentDefinition` |
 | `client.popup_destroy()` | close it |
@@ -114,6 +116,84 @@ client.nest_view_display({
 ```
 
 See [Views](../guide/views) and [Popups](../guide/popups).
+
+### Transitions
+
+Since plugin 0.4.0 — the first whose runtime has them — `view_display( )` can
+bring the new main view in with a page transition:
+
+```js
+if (client.check_on_navigated()) {
+  client.view_display({ val: view, transition: client.cs_transition.slide });
+}
+```
+
+| `client.cs_transition` | |
+|---|---|
+| `slide` | the new page comes in from the right |
+| `base_slide` | the classic full-width slide. UI5 1.74 and newer; an older release plays `slide` |
+| `fade` | the pages cross-fade |
+| `flip` | the page turns over |
+| `show` | no animation, but the old page stays up until the new one is built |
+
+They are the names `sap.m.NavContainer.to( )` takes, and abap2UI5's rules
+apply as they are:
+
+- Without `transition` the view is swapped with no animation, as before.
+- Pass it where the **screen** changes — the `check_on_navigated()` branch —
+  not on every re-render.
+- Going back, the page being left runs the transition it arrived with in
+  reverse, whatever is passed.
+- `transition_back: true` plays the change as a way **back**, for an app that
+  steps back between its own screens — a wizard's Previous button. It is not
+  needed after `nav_app_leave()` or the browser's Back button.
+
+`cs_transition` is read from the runtime, like the other constants. On a
+runtime from before transitions existed — the one plugin 0.3.x pins —
+`client.cs_transition` is `undefined` and a `view_display( )` that sets
+`transition` throws, naming the runtime, instead of silently doing nothing.
+
+## The windowed table
+
+::: warning Not released yet, and not in any pinned runtime
+`client.window_bind_tab( )` and `client.window_get_row( )` are on cap2UI5's
+`main`, after 0.5.0 — and they need an `@abap2ui5/node-runtime` **after**
+`1.148.0`, the release `main` pins. On that runtime and every older one the
+client does not have them, and a call throws:
+
+```
+client.window_bind_tab( ): z2ui5_if_client has no window_bind_tab in the abap2UI5 runtime this project runs on (@abap2ui5/node-runtime 1.148.0) - it came with a later release
+```
+
+What follows is read from the plugin's code and abap2UI5's interface. It has
+not been run for this page.
+:::
+
+They are abap2UI5's windowed table: a **large** table bound to a list control
+goes to the browser a window of rows at a time instead of whole.
+
+| | |
+|---|---|
+| `client.window_bind_tab(name)` | the binding of a table field for a list control's `items` or `rows`, as `_bind( )` answers it |
+| `client.window_bind_tab({ val, window, t_sort, t_filter })` | with its options. `window` is the rows the browser gets at a time, 100 unless set. `t_sort` is `[{ path, descending }]`, `t_filter` is `[{ group, path, operator, value1, value2 }]` — `path` a column of the table |
+| `client.window_get_row({ val, row })` | which row of the table a row of the browser shows. `row` is the position there, **counted from 1** — the index of a binding path an event hands over, plus 1. Answers the row of the table, counted from 1, and `0` past the rows the filter lets through |
+
+- The control asks the framework for the next rows itself as it grows or
+  scrolls — a roundtrip that does **not** run `main( )`.
+- Sorting and filtering happen on the server, over all rows. The window's
+  state is in the model beside the rows, under `/__WINDOW/<path>/` — `TOTAL`,
+  `COUNT` and `SIZE`.
+- `t_sort` and `t_filter` take effect when they differ from the ones the
+  previous `window_bind_tab( )` of that table passed; an empty array clears.
+  The conditions of one filter `group` are ORed, the groups ANDed.
+- An unknown component, a `path` that is no column of the table and a value of
+  the wrong kind are refused.
+- `window_get_row( )` answers for the order the roundtrip **started** with —
+  the one the browser shows. After a `window_bind_tab( )` that passed another
+  sort or filter in the same `main( )`, it is refused: ask before binding the
+  table anew.
+- For a table that is a component of a structure, the binding is a placeholder
+  until `main( )` returns, as with `_bind( )`.
 
 ## Messages
 
@@ -148,7 +228,9 @@ thing a branch does. See [Navigation](../guide/navigation).
 ## Constants
 
 `client.cs_event`, `client.cs_view`, `client.cs_nav_mode`, `client.cs_device`
-are the interface's constant structures. The same are exported as
+and `client.cs_transition` are the interface's constant structures, read from
+the runtime — a constant upstream adds is one the client has. The same are
+exported as
 `z2ui5_if_client`, as an ABAP app reads them:
 
 ```js
@@ -167,8 +249,11 @@ Its methods are the ABAP ones with `~` written as `$`, and they answer ABAP
 values:
 
 ```js
-const ninth = (await client.raw.z2ui5_if_client$get_event_arg({ v: 9, result: 1 })).get();
+const first = (await client.raw.z2ui5_if_client$get_event_arg({ v: 1, result: 1 })).get();
 ```
+
+An app should not need it: since 0.5.0 `client.get_event_arg(v)` answers every
+argument itself.
 
 ## Obsolete and unsupported
 
@@ -177,7 +262,7 @@ const ninth = (await client.raw.z2ui5_if_client$get_event_arg({ v: 9, result: 1 
 | `view_model_update()`, `popup_model_update()`, `popover_model_update()`, `nest_view_model_update()`, `nest2_view_model_update()` | obsolete in `z2ui5_if_client`; they **do nothing**, here as there. Changed bound data is pushed on its own |
 | `_bind_edit()` | obsolete — `_bind()` under another name |
 | `_event_client()` | obsolete — the embedded `follow_up_action()` under another name |
-| `set_session_stateful()` | **not supported**, throws. The app's state is in its fields, which are in the draft |
+| `set_session_stateful()` | **not supported in a JavaScript app**, throws. The app's state is in its fields, which are in the draft. A *transpiled ABAP* app can call it: since 0.5.0 its session is kept per CAP user, in the process — a restart or a second instance without sticky routing loses it. See [Deployment](../reference/deployment#scaling) |
 
 The names of cap2UI5 0.1.0 (`c.isDisplay`, `c.bind()`, `c.navTo()` …) throw
 an error naming the method that replaces each, rather than answering

@@ -88,8 +88,11 @@ than an assumption.
 ## Concurrency
 
 Three users interleaved in one process each get their own answer — one draft
-chain per session, no shared state, nothing to lock. `concurrency.test.mjs`
-drives exactly that.
+chain per session, no shared state. `concurrency.test.mjs` drives exactly
+that. Since 0.5.0 the plugin also runs the roundtrips of a process **one at a
+time**, because the transpiled framework keeps per-request state in statics —
+what that means for a slow `main( )` is on
+[Configuration](../reference/configuration#one-roundtrip-at-a-time).
 
 ## Sessions belong to their user
 
@@ -99,10 +102,14 @@ ownerless row everybody's, are in [Database Model](../reference/database).
 
 ## Retention
 
-Drafts older than four hours are swept on the next roundtrip. A session left
+A draft older than four hours is no longer resumed, and its row is deleted the
+next time **somebody opens an app** — not on every roundtrip. A session left
 open over lunch is fine; one left open overnight starts fresh. Both the sweep
 and the framework's willingness to resume follow the same number, and your
-[user exit](./user-exit#onroundtrip) sets it.
+[user exit](./user-exit#onroundtrip) sets it. Where nobody opens an app for a
+while the expired rows wait; a job of your own can delete them with
+`purgeDrafts` — not released yet, see
+[Database Model](../reference/database#purgedrafts).
 
 ## The database in development
 
@@ -134,8 +141,8 @@ schema is not required. `CatalogService.Books` is defined in
 - **Drafts** are written by the plugin: one row per roundtrip — the app start
   and every click — with the owner (`alice`) and the serialized app instance.
   The `data` column holds your fields as XML, `<COUNT>1</COUNT>` for the
-  quickstart's counter. Rows older than four hours are deleted on each
-  roundtrip ([Retention](#retention)).
+  quickstart's counter. Rows older than four hours are deleted when an app
+  is opened ([Retention](#retention)).
 
 ### See the tables
 

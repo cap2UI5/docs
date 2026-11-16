@@ -113,8 +113,11 @@ camelCase one. A helper method that needs the client gets
 it as in ABAP, `this.client = client` in `main()`, without declaring it as a
 field.
 
-**What is not there.** `client.set_session_stateful()` throws — the app's
-state is in its fields, which are in the draft. The obsolete
+**What is not there.** `client.set_session_stateful()` throws in a JavaScript
+app — the app's state is in its fields, which are in the draft. (An ABAP app
+that runs transpiled, untranslated, can go stateful since 0.5.0; its session
+then lives in the process — see
+[Deployment](../reference/deployment#scaling).) The obsolete
 `*_model_update()` do nothing, as they do in ABAP, and `_bind_edit()` is
 `_bind()`. `client.raw` is the transpiled `z2ui5_if_client` itself,
 asynchronous, for what an app should never need.
@@ -168,8 +171,8 @@ translate. The options and the details of the translation are in the
 plugin's [README](https://github.com/cap2UI5/cap2UI5/tree/main/plugin#an-abap-app-translated-cap2ui5-abap2js).
 
 How far "line for line" goes is measured, not claimed: the
-[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) package is 71 of
-abap2UI5's samples as cap2UI5 apps — 69 of them written by `abap2js`, two
+[`@cap2ui5/samples`](https://github.com/cap2UI5/samples) package is 76 of
+abap2UI5's 138 samples as cap2UI5 apps — 73 of them written by `abap2js`, three
 ported by hand — and a differential test serves each beside its transpiled
 ABAP original and compares every roundtrip. Add it with
 `npm add -D @cap2ui5/samples`, and each sample starts under its ABAP class

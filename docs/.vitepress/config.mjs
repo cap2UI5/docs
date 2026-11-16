@@ -100,6 +100,7 @@ export default defineConfig({
           items: [
             { text: 'Developer Tools',      link: '/guide/devtools' },
             { text: 'The User Exit',        link: '/guide/user-exit' },
+            { text: 'Agents (MCP)',         link: '/guide/agents' },
             { text: 'Troubleshooting',      link: '/guide/troubleshooting' }
           ]
         },

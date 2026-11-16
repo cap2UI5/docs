@@ -1,7 +1,8 @@
 # Database Model
 
-cap2UI5 adds **one entity** to your model. That is the whole persistence
-footprint.
+cap2UI5 adds **two entities** to your model: `cap2ui5.Drafts`, the session
+state, and — since 0.5.0 — `cap2ui5.AgentLog`, the audit log of the
+[agent endpoint](../guide/agents). That is the whole persistence footprint.
 
 ## `cap2ui5.Drafts`
 
@@ -20,7 +21,8 @@ entity Drafts {
 ```
 
 It arrives through the plugin's `package.json#cds.requires`, so `cds deploy`
-creates it beside your own tables — same database, same connection, same
+creates it — and `cap2ui5.AgentLog`, [below](#agentlog) — beside your
+own tables — same database, same connection, same
 transaction, same authorization.
 
 | column | |
@@ -73,22 +75,50 @@ draft entity.
 
 ## Retention
 
-`cleanup()` runs once per roundtrip and deletes drafts older than
-`draft_exp_time_in_hours` — four hours unless your
+The framework calls the store's `cleanup()` **when somebody opens an app** — a
+roundtrip without a draft id that starts an app by its name, or restores one
+from a bookmark — and not on the roundtrips of an app's events. It deletes the drafts older than
+`draft_exp_time_in_hours`, four hours unless your
 [user exit](../guide/user-exit#onroundtrip) says otherwise:
 
 ```sql
 DELETE FROM cap2ui5_Drafts WHERE createdAt < <now - draft_exp_time_in_hours>
 ```
 
+::: info Not on every roundtrip
+This page used to say the sweep runs once per roundtrip. It does not: it runs
+about as often as somebody starts an app. Where nobody does for a while, the
+expired drafts — each a whole app state — stay in the table until somebody
+does.
+:::
+
 It asks the exit the same way the framework's own store does, so raising the
 expiry keeps the rows as long as the framework will resume them. Hard-coding
 the sweep at four hours made the two disagree: a 20-hour-old draft the
 framework was willing to restore had already been deleted.
 
-It never raises — a failed sweep must not fail a roundtrip. It is not scoped by
+It never raises — a failed sweep must not fail an app start. It is not scoped by
 owner, because it is a retention policy rather than an access decision; in a
 multitenant CAP app it is scoped by the tenant like every other `cds.run`.
+
+### `purgeDrafts` — the same sweep from your own job {#purgedrafts}
+
+**Not released yet** — on cap2UI5's `main`, after 0.5.0. For a project that
+does not want expired drafts to wait for the next app start, the package
+exports the same `DELETE`:
+
+```js
+import { purgeDrafts } from "@cap2ui5/cds-plugin";
+
+const deleted = await purgeDrafts();            // the user exit's expiry, else 4 hours
+const older = await purgeDrafts({ hours: 24 }); // another expiry
+```
+
+It deletes the expired drafts of **every** user and answers how many. `hours`
+must be a number above 0; anything else throws. It runs in `cds.context`'s
+transaction where there is one, so a multitenant application calls it once per
+tenant, inside `cds.tx({ tenant }, …)`. cap2UI5 starts no timer of its own —
+when the job runs is your scheduler's business.
 
 ::: warning SQLite: give it a busy timeout
 Every roundtrip writes a draft, so a cap2UI5 app writes to the database far
@@ -111,6 +141,66 @@ five of six suite runs failed without it, six of six passed with it. On HANA
 or Postgres the question does not arise.
 :::
 
+## `cap2ui5.AgentLog` {#agentlog}
+
+Since 0.5.0. One row per tool call of the [agent endpoint](../guide/agents),
+written by the plugin as the user the agent acted as:
+
+```cds
+entity AgentLog {
+  key ID         : UUID;
+      createdAt  : Timestamp;
+      owner      : String(120) not null;
+      userAgent  : String(200);
+      tool       : String(20);
+      app        : String(120);
+      appStart   : String(120);
+      sessionIn  : String(36);
+      sessionOut : String(36);
+      event      : String(255);
+      fields     : String(1000);
+      args       : String(1000);
+      outcome    : String(10);
+      message    : String(1000);
+}
+```
+
+What each column holds is on the
+[agent page](../guide/agents#audit-log). Two things
+matter here:
+
+- **`fields` names the fields an agent filled, never their values.** Longer
+  texts are cut to fit their column.
+- **It is in no service**, like `cap2ui5.Drafts`. To show it, expose it in a
+  service of your own, with a `@restrict` such as `where: 'owner = $user'`.
+
+### The table is there whether the endpoint is on or not
+
+The entity is part of the model the plugin contributes, so the next
+`cds deploy` — or `cds build --production` — creates `cap2ui5_AgentLog` in
+**every** project, also in one that never switches the endpoint on. It is
+written only while the endpoint is on. That is deliberate
+([ADR-009](https://github.com/cap2UI5/cap2UI5/blob/main/docs/adr/adr-009-agent-endpoint.md),
+decision 9):
+
+- the database is built from the model where `cds build` runs, and the
+  endpoint is switched on where the server runs — often by an environment
+  variable the build never sees. A conditional table would be missing exactly
+  there;
+- switching the endpoint off would, on the next deploy, drop the table and
+  with it the record of what agents did.
+
+`"cap2ui5": false` under `cds.requires` still removes both tables with the
+plugin.
+
+### Its retention
+
+Rows older than `agent.retention` days — 90 unless set, `0` or `false` for
+never — are deleted on the way of an agent call, at most once an hour per
+process and tenant. `purgeAgentLog( { days } )`, exported by the package since
+0.5.0, runs the same `DELETE` from a job of your own. Both are described under
+[Retention](../guide/agents#retention) on the agent page.
+
 ## Your own tables
 
 Untouched. The apps read and write them through `cds.ql` exactly like a
@@ -127,4 +217,5 @@ at once, and a row POSTed through OData is found by the app's next search.
 ## Next
 
 - [**Persistence & Sessions**](../guide/persistence) — what this means while writing an app
+- [**Agents: the MCP Endpoint**](../guide/agents) — what writes `cap2ui5.AgentLog`
 - [**Configuration**](./configuration) — the auth default the owner binding depends on

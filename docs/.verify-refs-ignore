@@ -32,9 +32,24 @@ z2ui5_cl_caps_app_002   # cap2UI5/samples-stack's RFC sample, linked from exampl
 # guide/vs-abap2ui5 — but "do not use this" is a recommendation, and this file
 # is only about what exists.
 
+# --- plugin options without a default in the plugin's package.json ---------
+# verify-refs reads the option names from package.json#cds.requires.cap2ui5,
+# which holds apps, roles and routes. These two are read by
+# plugin/lib/config.js, which holds their defaults (60000 ms; off).
+cap2ui5.timeout         # the ms an async main( ) may take — config.js timeoutOf( ); on cap2UI5's main, after 0.5.0
+cap2ui5.agent           # the MCP endpoint's switch and settings — config.js / lib/agent/policy.js agentConfig( ), since 0.5.0
+
 # --- release numbers that are NOT the pinned runtime release ----------------
-# The pin itself (1.145.0 today) is read from the checkout and never listed
-# here — listing it would keep the old number green after a pin move, which
-# is the one defect the release check exists to catch.
+# The pin itself (1.148.0 today, on cap2UI5's main) is read from the checkout
+# and never listed here — listing it would keep the old number green after a
+# pin move, which is the one defect the release check exists to catch.
+#
+# The two below WERE pins. They are listed because the site now says which
+# plugin release pinned which runtime (reference/configuration, "The
+# runtime"), and that stays true whatever main pins. The price: a page that
+# still called one of them the current pin would pass — so name them only
+# together with the plugin version they belong to.
+1.146.0                 # the runtime plugin 0.4.0 pinned — history, in the plugin-to-runtime table
+1.147.0                 # the runtime plugin 0.5.0 pins, the newest release on npm — main has moved to the next one
 1.143.0                 # the upstream release where _bind/_bind_edit merged — history, stays true whatever the pin says
 1.113.0                 # an OpenUI5 release — a UI5 number, not a framework release

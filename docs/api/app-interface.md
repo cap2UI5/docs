@@ -11,6 +11,10 @@ it has [a page of its own](../guide/user-exit).
 The package also exports `z2ui5_cl_ui5_view_builder` — abap2UI5's view
 builder, see [Views](../guide/views) — and `z2ui5_if_client`, the client's
 constants as an ABAP app reads them (`z2ui5_if_client.cs_event.set_title`).
+For a project's own scheduled job there are two more:
+[`purgeAgentLog`](../guide/agents#retention), since 0.5.0, and
+[`purgeDrafts`](../reference/database#purgedrafts),
+which is not released yet.
 
 ## `defineApp(name, class, opts?)`
 
@@ -27,6 +31,7 @@ defineApp("ZCL_HELLO", class {
 | `name` | the app's name **on the wire** — what `?app_start=` takes and `client.nav_app_call()` resolves. Uppercased. The file name is irrelevant |
 | `class` | a plain class with a `main(client)` method and its state as fields |
 | `opts.interfaces` | rarely needed; defaults to `["Z2UI5_IF_APP", "IF_SERIALIZABLE_OBJECT"]` |
+| `opts.agent` | since 0.5.0: whether AI agents may operate the app through the MCP endpoint, and which events they may fire — `true`, `false`, or `{ events, description }`. See [Agents](../guide/agents#an-app-opts-in) |
 
 It returns the wrapped class and registers it, so `defineApp` may be called
 more than once per file.
