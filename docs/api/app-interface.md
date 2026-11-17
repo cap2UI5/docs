@@ -13,8 +13,7 @@ builder, see [Views](../guide/views) — and `z2ui5_if_client`, the client's
 constants as an ABAP app reads them (`z2ui5_if_client.cs_event.set_title`).
 For a project's own scheduled job there are two more:
 [`purgeAgentLog`](../guide/agents#retention), since 0.5.0, and
-[`purgeDrafts`](../reference/database#purgedrafts),
-which is not released yet.
+[`purgeDrafts`](../reference/database#purgedrafts), since 0.6.0.
 
 ## `defineApp(name, class, opts?)`
 

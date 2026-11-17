@@ -108,7 +108,7 @@ open over lunch is fine; one left open overnight starts fresh. Both the sweep
 and the framework's willingness to resume follow the same number, and your
 [user exit](./user-exit#onroundtrip) sets it. Where nobody opens an app for a
 while the expired rows wait; a job of your own can delete them with
-`purgeDrafts` — not released yet, see
+`purgeDrafts`, since 0.6.0 — see
 [Database Model](../reference/database#purgedrafts).
 
 ## The database in development

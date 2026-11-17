@@ -27,14 +27,16 @@ abap2UI5 builds itself.
 
 | | |
 |---|---|
-| `@cap2ui5/cds-plugin` | the plugin — about 4,800 lines of code on `main` (counted without comments and blank lines), some 2,000 of them the ABAP translator `abap2js`, plus about 1,950 vendored unchanged from abap2UI5's MCP server for the agent endpoint. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call, and serves the [agent endpoint](./agents) |
+| `@cap2ui5/cds-plugin` | the plugin — about 4,800 lines of code in 0.6.0 (counted without comments and blank lines), some 2,000 of them the ABAP translator `abap2js`, plus about 1,950 vendored unchanged from abap2UI5's MCP server for the agent endpoint. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call, and serves the [agent endpoint](./agents) |
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.5.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+All three are on npm: `@cap2ui5/cds-plugin` 0.6.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
 `@abap2ui5/node-runtime`, of which the plugin pins one release exactly —
-`1.147.0` in 0.5.0, `1.149.0` on `main`, which is not released yet —
-and `@cap2ui5/samples` 0.3.0, which needs plugin 0.5. `npm add @cap2ui5/cds-plugin` installs the first two — see the
+`1.149.0` in 0.6.0 —
+and `@cap2ui5/samples` 0.3.0, whose peer range is plugin `^0.5.0`: it does not
+install beside plugin 0.6.0 yet (see the [Quickstart](./getting-started#the-samples)).
+`npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder that
 installs nothing usable; its `cap2ui5` command prints where to go instead.

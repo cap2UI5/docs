@@ -192,10 +192,8 @@ the frontend in the runtime 0.3.x pins sends none. Upgrade to
 
 ## 504 on the roundtrip
 
-::: info Not released yet
-The 504 and the warning below are on cap2UI5's `main`, after 0.5.0. In 0.5.0 a
-`main( )` that never settles holds the process's roundtrips with no limit.
-:::
+Since plugin 0.6.0. (In 0.5.0 a `main( )` that never settles holds the
+process's roundtrips with no limit, and nothing answers 504.)
 
 The response is `roundtrip timed out (<id>)`, and the log has the same id:
 

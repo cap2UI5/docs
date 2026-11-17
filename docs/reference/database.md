@@ -103,7 +103,7 @@ multitenant CAP app it is scoped by the tenant like every other `cds.run`.
 
 ### `purgeDrafts` — the same sweep from your own job {#purgedrafts}
 
-**Not released yet** — on cap2UI5's `main`, after 0.5.0. For a project that
+Since 0.6.0 — read from the plugin's code, not run for this page. For a project that
 does not want expired drafts to wait for the next app start, the package
 exports the same `DELETE`:
 

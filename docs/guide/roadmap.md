@@ -30,10 +30,10 @@ AI agents operate apps as the logged-on user, with an audit log; runs the
 roundtrips of a process one at a time; and keeps the session of a stateful
 ABAP app per user.
 
-**On `main`, not released yet:** a `timeout` for an app's async `main( )`
-(504 after a minute), `purgeDrafts` for a scheduled job, and runtime 1.149.0
-with `client.window_bind_tab( )` / `window_get_row( )` — abap2UI5's windowed
-table. The details are in the plugin's
+0.6.0 bounds an app's async `main( )` with a `timeout` (504 after a minute),
+warns when a roundtrip had to wait, adds `purgeDrafts` for a scheduled job,
+and hosts runtime 1.149.0 with `client.window_bind_tab( )` /
+`window_get_row( )` — abap2UI5's windowed table. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
 
 ## Known limits today
@@ -52,7 +52,8 @@ not run on BTP.
 
 Since 0.5.0. A roundtrip costs milliseconds, so it is rarely felt — but an
 app whose `main( )` awaits something slow holds everybody on that instance,
-and the bound on it (`timeout`) is not released yet. A stateful ABAP app
+until 0.6.0's `timeout` gives that roundtrip up — a minute unless set. A
+synchronous `main( )` is not bounded at all. A stateful ABAP app
 keeps its session in the process and needs sticky routing. See
 [Deployment](../reference/deployment#scaling).
 

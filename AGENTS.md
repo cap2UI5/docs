@@ -62,27 +62,35 @@ against the repos, don't guess):
 | [abap2UI5/abap2UI5](https://github.com/abap2UI5/abap2UI5) | the framework itself, in ABAP. Downported and transpiled, it is published as `@abap2ui5/node-runtime` |
 | [cap2UI5/docs](https://github.com/cap2UI5/docs) | this site |
 
-On npm: `@cap2ui5/cds-plugin@0.5.0` (since 2026-10-14; Node ≥ 22, peer
+On npm: `@cap2ui5/cds-plugin@0.6.0` (since 2026-11-16; Node ≥ 22, peer
 `@sap/cds` ≥ 9), published by the npm organisation `cap2ui5`, and
-`@cap2ui5/samples@0.3.0` (peer `^0.5.0`; 76 of abap2UI5's 138 samples). The
+`@cap2ui5/samples@0.3.0` (76 of abap2UI5's 138 samples). The samples' peer
+range is `^0.5.0`, which does **not** reach plugin 0.6.0: `npm add -D
+@cap2ui5/samples` beside 0.6.0 fails with ERESOLVE (measured), and the
+Quickstart says so until a samples release names 0.6. The
 plugin pins one `@abap2ui5/node-runtime` release **exactly**: 0.4.0 pinned
 1.146.0 (the first runtime whose frontend does the approuter's `X-CSRF-Token`
-handshake and has `accelerate( )`), 0.5.0 pins 1.147.0, and cap2UI5's `main`
-pins a later one — read it from `plugin/package.json` there; it moved twice
-within a day of this being written, and the weekly check run exists to say
-when it moves again.
+handshake and has `accelerate( )`), 0.5.0 pinned 1.147.0, and 0.6.0 pins the
+one cap2UI5's `main` names in `plugin/package.json` — 1.148.0, in between, was
+only ever `main`'s pin.
 
 **The site describes two things, and says which is which.** verify-refs
 compares against cap2UI5's `main`, so `main`'s pin is the number it accepts
 (read from `plugin/package.json`, not from the stand-in
-`runtime/package.json`), and a reader installs the newest release on npm. What
-is on `main` under the CHANGELOG's "Unreleased" — at the time of writing
-`cds.requires.cap2ui5.timeout`, `purgeDrafts`, the queue warning, and
-`client.window_bind_tab( )` / `window_get_row( )`, which come with the
-runtime `main` pins — is documented, and marked **not released yet** wherever it
-appears. Move the mark when the release happens; do not present an unreleased
-thing as installable. Older pins are named only with the plugin version they
-belong to, and are in `docs/.verify-refs-ignore` for that reason.
+`runtime/package.json`), and a reader installs the newest release on npm.
+What is on `main` under the CHANGELOG's "Unreleased" — nothing, right after
+0.6.0 — is documented when it appears, and marked **not released yet**
+wherever it stands. Move the mark when the release happens; do not present an
+unreleased thing as installable. `main` can move within hours: its pin went
+from 1.148.0 to 1.149.0 and 0.6.0 was released on the day this site caught up
+with 0.5.0, which is what the weekly check run is for. Older pins are named
+only with the plugin version they belong to, and are in
+`docs/.verify-refs-ignore` for that reason.
+
+0.6.0 added `cds.requires.cap2ui5.timeout` (an async `main( )` is given up
+with a 504 after a minute), the warning when a roundtrip had to wait,
+`purgeDrafts`, and `client.window_bind_tab( )` / `window_get_row( )`, which
+need its runtime.
 
 Since 0.5.0 the plugin also serves an MCP endpoint for AI agents
 (`cds.requires.cap2ui5.agent`, off by default; `plugin/lib/agent/`, ADR-009),

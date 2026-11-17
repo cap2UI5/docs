@@ -155,19 +155,27 @@ runtime from before transitions existed — the one plugin 0.3.x pins —
 
 ## The windowed table
 
-::: warning Not released yet
-`client.window_bind_tab( )` and `client.window_get_row( )` are on cap2UI5's
-`main`, after 0.5.0. They come with `@abap2ui5/node-runtime` `1.149.0`, the
-release `main` pins; plugin 0.5.0 and its runtime have neither. On an older
-runtime the client does not have the two methods, and a call throws, naming
-the runtime in use:
+Since plugin 0.6.0, whose runtime — `@abap2ui5/node-runtime` `1.149.0` — is
+the first that has it. On an older runtime (an `overrides` to the one before,
+say) the client does not have the two methods. A call throws, naming the
+runtime in use, and the app's roundtrip fails with a 500:
 
 ```
 client.window_bind_tab( ): z2ui5_if_client has no window_bind_tab in the abap2UI5 runtime this project runs on (@abap2ui5/node-runtime <version>) - it came with a later release
 ```
 
-What follows is read from the plugin's code and abap2UI5's interface. It has
-not been run for this page.
+::: info What is measured here
+With plugin 0.6.0 and the example app in cap2UI5
+(`examples/bookshop/srv/apps/window.js` — 300 rows, a window of 50), on the
+wire and in a headless browser: the first answer with 50 rows and the window's
+state; the next window without `main( )` running; sorting and filtering from
+the list and from the app; `window_get_row( )`; an edit in a sorted window
+landing in its own row; a table inside a structure; the refusals; and the
+error above on the older runtime. In the browser a growing `sap.m.Table` was
+used — a scrolling `sap.ui.table.Table` was not run. One thing looked off
+there: after the app's own filter cut the total from 300 to 100, the list's
+counter still read `[ 100 / 300 ]`, though the server had answered a `TOTAL`
+of 100. Whether that is the frontend or stale text was not followed up.
 :::
 
 They are abap2UI5's windowed table: a **large** table bound to a list control

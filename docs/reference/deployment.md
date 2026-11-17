@@ -37,7 +37,7 @@ then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
 | **The entities** | `cap2ui5.Drafts` and, since 0.5.0, `cap2ui5.AgentLog` deploy through your normal `db` module, HDI container included. Nothing special — but an upgrade to 0.5.0 adds a table, so it needs a deploy |
 | **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
 | **Scaling** | a JavaScript app's state is in the database, not in memory, so a second instance is a second instance: no sticky sessions, no shared cache. Two things to know — see [Scaling](#scaling) |
-| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.147.0` for 0.5.0; the [table](./configuration#the-runtime) has the others). Commit your `package-lock.json` and a redeploy installs the same release |
+| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.149.0` for 0.6.0; the [table](./configuration#the-runtime) has the others). Commit your `package-lock.json` and a redeploy installs the same release |
 
 ## Scaling
 
@@ -70,7 +70,7 @@ later request of every user; that is fixed, not a behaviour to plan for.
 ## Pin the plugin
 
 ```json
-{ "dependencies": { "@cap2ui5/cds-plugin": "^0.5.0" } }
+{ "dependencies": { "@cap2ui5/cds-plugin": "^0.6.0" } }
 ```
 
 `@cap2ui5/cds-plugin` is on npm, and it depends on one exact `@abap2ui5/node-runtime`

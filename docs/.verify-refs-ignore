@@ -36,7 +36,7 @@ z2ui5_cl_caps_app_002   # cap2UI5/samples-stack's RFC sample, linked from exampl
 # verify-refs reads the option names from package.json#cds.requires.cap2ui5,
 # which holds apps, roles and routes. These two are read by
 # plugin/lib/config.js, which holds their defaults (60000 ms; off).
-cap2ui5.timeout         # the ms an async main( ) may take — config.js timeoutOf( ); on cap2UI5's main, after 0.5.0
+cap2ui5.timeout         # the ms an async main( ) may take — config.js timeoutOf( ); since 0.6.0
 cap2ui5.agent           # the MCP endpoint's switch and settings — config.js / lib/agent/policy.js agentConfig( ), since 0.5.0
 
 # --- release numbers that are NOT the pinned runtime release ----------------
@@ -50,6 +50,6 @@ cap2ui5.agent           # the MCP endpoint's switch and settings — config.js /
 # still called one of them the current pin would pass — so name them only
 # together with the plugin version they belong to.
 1.146.0                 # the runtime plugin 0.4.0 pinned — history, in the plugin-to-runtime table
-1.147.0                 # the runtime plugin 0.5.0 pins, the newest release on npm — main has moved to the next one
+1.147.0                 # the runtime plugin 0.5.0 pinned — history, in the plugin-to-runtime table
 1.143.0                 # the upstream release where _bind/_bind_edit merged — history, stays true whatever the pin says
 1.113.0                 # an OpenUI5 release — a UI5 number, not a framework release
