@@ -31,7 +31,7 @@ These ship in the plugin's own `package.json` and apply until you override one:
 | `body_parser.limit` | the largest roundtrip body, a larger one gets 413. No default of its own: CAP's `cds.server.body_parser.limit` applies, else `10mb`. A roundtrip carries the app's whole model, so a table of a few thousand rows is an ordinary request |
 | `compression` | `true`: the page and every roundtrip of 1 kB or more are gzipped where the browser accepts gzip — the page, which carries the whole UI5 frontend, goes out as 83 kB instead of 358 kB. Nothing is compressed twice behind an approuter or ingress that compresses too; `false` leaves the work to it |
 | `accelerate` | `true`: the plugin calls the runtime's `accelerate( )` when the server starts, where the runtime has one (every runtime since plugin 0.4.0 does), and logs `runtime accelerations active`. `false` runs the runtime's own code — see [Performance](#performance) |
-| `timeout` | **not released yet** — on cap2UI5's `main`, after 0.5.0. The milliseconds an app's async `main( )` may take: `60000` unless set, `0` or `false` for no limit. See [One roundtrip at a time](#one-roundtrip-at-a-time) |
+| `timeout` | since 0.6.0. The milliseconds an app's async `main( )` may take: `60000` unless set, `0` or `false` for no limit. See [One roundtrip at a time](#one-roundtrip-at-a-time) |
 | `agent` | since 0.5.0. Off unless set: `true`, or `{ path, apps, confirm, forbidden, retention }`, switches on the MCP endpoint AI agents operate apps through — see [Agents](../guide/agents) |
 
 The first three have their defaults in the plugin's `package.json`; the rest
@@ -118,7 +118,7 @@ There is nothing to add to your own `package.json`.
 |---|---|---|
 | 0.4.0 | `1.146.0` | the frontend's `X-CSRF-Token` handshake with the approuter, `accelerate( )`, `view_display`'s transitions |
 | 0.5.0 | `1.147.0` | flat tables written to JSON directly, the draft kept as a digest, the developer tools as a bundle of their own |
-| `main`, not released yet | `1.149.0` | the windowed table behind `client.window_bind_tab( )` and `window_get_row( )` — see [`client`](../api/client#the-windowed-table). The eight obsolete invisible custom controls (`z2ui5.cc.Timer`, `Focus`, `Scrolling`, `Title`, `LPTitle`, `Favicon`, `History`, `Info`) are gone from the frontend: a view that still names one fails to load |
+| 0.6.0 | `1.149.0` | the windowed table behind `client.window_bind_tab( )` and `window_get_row( )` — see [`client`](../api/client#the-windowed-table). The eight obsolete invisible custom controls (`z2ui5.cc.Timer`, `Focus`, `Scrolling`, `Title`, `LPTitle`, `Favicon`, `History`, `Info`) are gone from the frontend: a view that still names one fails to load |
 
 The plugin's [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md)
 has the full list per release. No plugin release pinned the runtime between
@@ -126,7 +126,7 @@ the last two rows.
 
 The runtime resolves as the plugin's own dependency, at the pinned version.
 To load another release, use npm `overrides` in your `package.json`. The log
-names what was loaded at startup — for a checkout of `main`:
+names what was loaded at startup — with plugin 0.6.0:
 
 ```
 [cap2ui5] - @abap2ui5/node-runtime 1.149.0 from …/node_modules/@abap2ui5/node-runtime
@@ -169,8 +169,8 @@ answer holds **every other user's** roundtrip for as long. So keep the I/O in
 `main( )` short, and scale with instances — see
 [Deployment](./deployment#what-changes-in-production-and-what-does-not).
 
-Two things on cap2UI5's `main` make that visible and bounded. They are **not
-released yet** — 0.5.0 has the queue without them:
+Since 0.6.0 two things make that visible and bounded — 0.5.0 has the queue
+without them. Both are measured, with plugin 0.6.0 on localhost:
 
 - **`timeout`.** An async `main( )` that takes longer than
   `cds.requires.cap2ui5.timeout` milliseconds — a minute unless set — has its
@@ -178,19 +178,22 @@ released yet** — 0.5.0 has the queue without them:
   `roundtrip timed out (<id>)`, the draft of that roundtrip is not written,
   and the next roundtrip runs. `0` or `false` is no limit. A synchronous
   `main( )` cannot be interrupted and is not timed, and neither is a
-  transpiled ABAP app.
+  transpiled ABAP app. Measured: with the limit at 1500 ms, a `main( )` that
+  waited 20 seconds was answered 504 after 1525 ms, the roundtrip of another
+  user queued behind it got its 200 right after, and the same user carried on
+  from the draft id they had. With the default, the 504 came after 60 seconds.
+  A synchronous `main( )` that spun for 3 seconds was not cut off.
 - **A warning.** A roundtrip that waited a second or more for its turn is
   logged, with the wait and how many were ahead of it — at most once every ten
   seconds:
 
   ```
-  [cap2ui5] - a roundtrip waited 1840 ms behind 3 other(s): roundtrips run one at a time per process, so a slow main( ) holds everyone - look for the app that awaits, or run more instances
+  [cap2ui5] - a roundtrip waited 1213 ms behind 1 other(s): roundtrips run one at a time per process, so a slow main( ) holds everyone - look for the app that awaits, or run more instances
   ```
 
-::: warning Upgrading past 0.5.0
-An app whose async `main( )` legitimately takes longer than a minute will fail
-with 504 once `timeout` is released. Raise the setting, or set it to `0`, for
-that project.
+::: warning Upgrading from 0.5.0
+An app whose async `main( )` legitimately takes longer than a minute fails
+with 504 from 0.6.0 on. Raise the setting, or set it to `0`, for that project.
 :::
 
 ## What the plugin does not configure
@@ -219,7 +222,7 @@ An unhandled error in the roundtrip answers `500` with
 0.5.0, to letters, digits and `. _ : -`, because CAP takes that id from a
 request header when there is one. A `main( )` that ran out of
 [time](#one-roundtrip-at-a-time) answers `504` with
-`roundtrip timed out (<id>)` instead (not released yet). The detail — the stack, the SQL, the entity names —
+`roundtrip timed out (<id>)` instead (since 0.6.0). The detail — the stack, the SQL, the entity names —
 goes to the server log under the same id. That is deliberate: CDS and driver
 messages carry entity names, SQL fragments and deployment paths, and none of it
 belongs in an HTTP response.

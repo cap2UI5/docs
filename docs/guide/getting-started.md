@@ -299,6 +299,16 @@ npm add -D @cap2ui5/samples
 cds watch
 ```
 
+::: warning With plugin 0.6.0 this install fails today
+`@cap2ui5/samples` 0.3.0 names plugin `^0.5.0` as its peer, and a caret range
+below 1.0 does not reach 0.6.0. Measured in a project with plugin 0.6.0:
+`npm add -D @cap2ui5/samples` stops with `ERESOLVE … peer
+@cap2ui5/cds-plugin@"^0.5.0" from @cap2ui5/samples@0.3.0`. Until a samples
+release names 0.6, either stay on plugin 0.5.0 for the samples or look at them
+in their [repository](https://github.com/cap2UI5/samples). Forcing the install
+with `--legacy-peer-deps` has not been tried here.
+:::
+
 The startup lines gain one line for the package, below `HELLO` and `BOOKS`:
 
 ```
