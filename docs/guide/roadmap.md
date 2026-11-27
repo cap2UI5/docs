@@ -32,8 +32,19 @@ ABAP app per user.
 
 0.6.0 bounds an app's async `main( )` with a `timeout` (504 after a minute),
 warns when a roundtrip had to wait, adds `purgeDrafts` for a scheduled job,
-and hosts runtime 1.149.0 with `client.window_bind_tab( )` /
-`window_get_row( )` — abap2UI5's windowed table. The details are in the plugin's
+and hosts the first runtime with abap2UI5's windowed table,
+`client.window_bind_tab( )`. 0.7.0 adds `t.ref( )`, a field
+`TYPE REF TO data`.
+
+0.8.0 — prepared, **not released yet** — hosts runtime 1.151.0. That runtime
+breaks the wire (protocol 3) and makes the windowed table the app's: the app
+loads, sorts, filters and counts, and `window_get_row( )` is gone, as are
+`_bind_edit( )` and the `*_model_update( )` no-ops. The client gains
+`timer_set( )`, `check_on_nav_back( )` and `get_nav_tag( )`,
+`check_nav_pending( )` and `get_start_param( )`; a change made in place to a
+table or a structure field is kept; the draft store prunes a chain of drafts
+to two rows; and booting, queueing, sessions and gzip are the runtime
+package's own instead of copies in the plugin. The details are in the plugin's
 [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md).
 
 ## Known limits today
@@ -72,12 +83,13 @@ unannotated app.
 `npx --no-install cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written
 in and refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file,
 row and column. What it refuses you translate by hand. Of abap2UI5's 138
-samples, 76 are in `@cap2ui5/samples` 0.3.0 — 73 translated by `abap2js`,
-three ported by hand.
+samples, 76 are in `@cap2ui5/samples` 0.4.0 — 73 translated by `abap2js`,
+three ported by hand. Samples 0.5.0, not released yet, follows abap2UI5's
+samples at 1.151.0: 76 of 145, 72 translated and four ported by hand.
 
 ### UI5 comes from the CDN, and only from the CDN
 
-The page embeds the abap2UI5 frontend, not UI5 itself: it bootstraps from
+The route serves the abap2UI5 frontend, not UI5 itself: the page bootstraps from
 `sdk.openui5.org`, and there is no local `/resources` route to fall back to. A
 server without outbound internet access renders nothing until you host a UI5
 distribution yourself and point `cfg.src` at it in a

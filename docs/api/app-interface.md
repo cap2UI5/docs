@@ -61,7 +61,7 @@ The wrapper awaits it either way.
 
 Every field with an initial value is kept in the draft and survives the
 roundtrip. It reaches the browser only once the app **binds** it —
-`_bind()`, `_bind_edit()`, `_bind_path()`, a component or a cell — and from
+`_bind()`, `_bind_path()`, `window_bind_tab()`, a component or a cell — and from
 then on it stays bound, as the framework does for an ABAP app. So a field no
 view shows is neither sent to the browser nor taken back from it; there is no
 `PROTECTED SECTION` to hide it, and none is needed. A field the plugin cannot
@@ -82,7 +82,11 @@ instead:
   what every roundtrip runs.
 
 Inside `main` and inside any method it calls, fields read and write as plain
-values. A helper method that needs the client gets it as an ABAP app does —
+values. Since 0.8.0 (**not released yet**) a table or a structure field is read
+once per `main( )` and written back when it returns, so a change made in place
+— `this.rows.push(row)`, `this.rows[0].done = true`,
+`this.order.lines = [ … ]` — is kept. Up to 0.7.0 only an assignment to the
+field itself was; see [Data Binding](../guide/data-binding#tables). A helper method that needs the client gets it as an ABAP app does —
 `this.client = client` in `main`. Assigned there rather than declared as a
 field, it is not part of the model or the draft:
 
@@ -130,6 +134,7 @@ is not, declare it:
 | `t.time()` | ABAP's `T`, `HHMMSS`. A string |
 | `t.struct({…})` | a structure. A plain object literal is one implicitly |
 | `t.table(row)` | a table; the argument is one **row**, the initial value is empty |
+| `t.ref(target)` | since 0.7.0: a data reference, `TYPE REF TO data`, to a value of the type given — see [below](#a-data-reference) |
 
 ```js
 price = t.packed(9, 2);
@@ -149,6 +154,18 @@ is a table typed from its first row, starting with those rows.
 Structures and tables nest, to a depth of 8 — a cycle guard rather than a
 judgement. Component names are UPPERCASE in the model. See
 [Data Binding](../guide/data-binding).
+
+### A data reference
+
+Since 0.7.0. A field `TYPE REF TO data` is `t.ref( … )` of the type it points
+to — `mr_tab = t.ref(t.table({ id: 0, text: "" }))`, or `t.ref("start")` with
+an initial value. The constructor creates the data, and inside `main( )` the
+field reads and writes as that data, ABAP's `mr_tab->*`. It is bound
+dereferenced, as `_bind( mr_tab->* )` binds it: `client._bind("mr_tab->*")`
+answers `{/MR_TAB/*}`, and `window_bind_tab( )` takes `"mr_tab->*"` as `val`.
+The browser's edits come back at that node, and the draft keeps the data
+behind the reference. A reference bound without `->*`, and a component of the
+data behind one, are refused.
 
 ## `defineExit(exit)`
 

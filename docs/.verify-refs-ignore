@@ -25,17 +25,19 @@ z2ui5_cl_smp_app_493    # abap2UI5's hello-world sample: a class in abap2UI5/sam
 z2ui5_cl_caps_app_001   # cap2UI5/samples-stack's OData sample, linked from examples/external-odata
 z2ui5_cl_caps_app_002   # cap2UI5/samples-stack's RFC sample, linked from examples/external-odata
 
-# Upstream's frozen src/99 needs no entries any more: the plugin hosts
-# upstream's whole transpiled runtime, so z2ui5_cl_xml_view and its siblings
-# ARE in it (measured in the assembled output) and resolve like any other
-# class. They are still not what to write new code against — see
-# guide/vs-abap2ui5 — but "do not use this" is a recommendation, and this file
-# is only about what exists.
+# Upstream's src/99 is gone with abap2UI5 1.151.0: z2ui5_cl_xml_view, the
+# z2ui5_cl_pop_* popups and the legacy utilities moved to abap2UI5/abap2UI5-ext
+# and are in neither abap2UI5's src nor the published runtime 1.151.0 (looked
+# for in the package's output/). The site names none of them as existing, so
+# there is nothing to list here — a page that names one again is flagged, and
+# rightly.
 
 # --- plugin options without a default in the plugin's package.json ---------
 # verify-refs reads the option names from package.json#cds.requires.cap2ui5,
 # which holds apps, roles and routes. These two are read by
 # plugin/lib/config.js, which holds their defaults (60000 ms; off).
+# (`accelerate`, removed with 0.8.0, is deliberately NOT here: the site names
+# it only as the key that went, never as cds.requires.cap2ui5.<option>.)
 cap2ui5.timeout         # the ms an async main( ) may take — config.js timeoutOf( ); since 0.6.0
 cap2ui5.agent           # the MCP endpoint's switch and settings — config.js / lib/agent/policy.js agentConfig( ), since 0.5.0
 
@@ -51,5 +53,5 @@ cap2ui5.agent           # the MCP endpoint's switch and settings — config.js /
 # together with the plugin version they belong to.
 1.146.0                 # the runtime plugin 0.4.0 pinned — history, in the plugin-to-runtime table
 1.147.0                 # the runtime plugin 0.5.0 pinned — history, in the plugin-to-runtime table
-1.143.0                 # the upstream release where _bind/_bind_edit merged — history, stays true whatever the pin says
+1.149.0                 # the runtime plugins 0.6.0 and 0.7.0 pinned — history, and until 0.8.0 is released the runtime of the newest plugin on npm, which the site says wherever it names the number
 1.113.0                 # an OpenUI5 release — a UI5 number, not a framework release

@@ -93,6 +93,30 @@ if (client.check_on_navigated()) {
 so a JavaScript caller gets the object back with its keys lowercase, as ABAP
 names components.
 
+### Which call came back: `tag` and `check_on_nav_back()`
+
+Since plugin 0.8.0 — **not released yet** — the caller can say why it calls,
+and read that on the one roundtrip the called app comes back on:
+
+```js
+if (client.check_on_nav_back()) {
+  // true only on the roundtrip the screen comes back from an app this one called
+  if (client.get_nav_tag() === "detail") { /* … */ }
+}
+if (client.check_on_event("OPEN")) {
+  client.nav_app_call({ app: "ZCL_JS_DETAIL", tag: "detail" });
+}
+```
+
+The tag is the caller's: the called app never sees it. `check_nav_pending()`
+answers whether this `main( )` has already called `nav_app_call()` or
+`nav_app_leave()` — for a helper that must not prepare a screen the app is
+about to give away. `keep_messages: true`, on either navigation, shows the
+toasts and boxes queued in this roundtrip after the target app has rendered
+instead of dropping them. The first three are measured on the wire with
+cap2UI5's `nav.test.mjs`; `keep_messages` is abap2UI5's description and was
+not run for this page.
+
 ::: danger This is where `check_on_navigated()` earns its name
 When the callee leaves, the caller's `main` runs again with
 **`check_on_navigated()` true and `check_on_init()` false**. An app that renders
@@ -127,6 +151,12 @@ reading one throws and points to `client.get_app_prev()`. Without an id,
 | `client.hash_replace("/detail/2")` | rewrite the hash without a history entry |
 | `client.app_state_set_active()` | keep this app's state id in the URL |
 | `client.app_state_get_href()` | the absolute link to this app's current state |
+| `client.get_start_param("name")` | since 0.8.0 (not released yet): one start parameter of the page — the URL query, the launchpad's startupParameters or the intent's query; `""` when there is none |
+
+From 0.8.0 on `hash_set( )` and `hash_replace( )` write the URL only for an app
+that owns the hash — one whose view registered a listener with
+`client.cs_event.hash_attach_changed`. Without it nothing is written; see
+[`client`](../api/client#hash-and-app-state).
 
 ## The stack is in the database
 

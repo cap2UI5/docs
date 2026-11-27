@@ -122,8 +122,10 @@ characters. Within an app's `events`, an exact name is looked up before a
 pattern.
 
 A setting written `"APP:EVENT"` covers the app on the screen **and** the app
-the session was started with. So a framework popup an app calls —
-`z2ui5_cl_pop_to_confirm`, say — is covered by the rules for that app.
+the session was started with. So a popup app an app calls — a confirmation
+dialog, say — is covered by the rules for that app. (abap2UI5's own popup
+classes left the core, and with it the runtime, in `1.151.0`: they ship from
+abap2UI5/abap2UI5-ext now.)
 
 In the snapshot an agent reads, an action that is not `allowed` carries
 `"policy": "confirm"` or `"policy": "forbidden"`, so the agent knows before it

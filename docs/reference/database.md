@@ -28,7 +28,7 @@ transaction, same authorization.
 | column | |
 |---|---|
 | `id` | the draft's uuid; the frontend carries it and sends it back on the next roundtrip |
-| `id_prev` | the draft this one continues — the chain that makes back-navigation work |
+| `id_prev` | the draft this one continues — the chain of an app session |
 | `id_prev_app`, `id_prev_app_stk` | the app stack: who called whom, and who gets the screen back |
 | `owner` | who created it. `not null`, and the reason is below |
 | `createdAt` | when, for the retention sweep |
@@ -74,6 +74,32 @@ OData service would be the worst kind of surprise: in `coexistence.test.mjs`,
 draft entity.
 
 ## Retention
+
+### A chain is pruned to two rows
+
+Since plugin 0.8.0 — **not released yet**. abap2UI5 `1.151.0` adds two methods
+to `z2ui5_if_ui5_draft_store`, `prune_chain( )` and `touch( )`, and the CDS
+draft store implements both, following the shipped store step for step:
+
+- **`prune_chain( )`** runs after every save and deletes the one draft that
+  fell out of the window — the user exit's `draft_keep_per_chain`, 2 by
+  default; `0` switches it off. It walks `id_prev` from the draft just saved
+  and never deletes, or walks past, the drafts of the app stack
+  (`id_prev_app`, `id_prev_app_stk`), a draft any draft of the user still
+  names as the app to return to, or a draft the framework protects — the one
+  an app handed out a link to with `app_state_get_href( )`. It is scoped to
+  the owner.
+- **`touch( )`** renews `createdAt` of a draft a roundtrip answered again
+  instead of writing a new one — an unchanged timer tick — so the sweep below
+  counts its age from then.
+
+Neither raises: a draft that is not pruned lives until the sweep takes it by
+age. Measured with cap2UI5's `drafts.test.mjs` on runtime `1.151.0`: six
+roundtrips of one app session left two rows, the newest two, and a draft
+whose link the app had handed out stayed. Up to 0.7.0 `cap2ui5.Drafts` grew
+by one row per roundtrip until the expiry.
+
+### Expired drafts are swept
 
 The framework calls the store's `cleanup()` **when somebody opens an app** — a
 roundtrip without a draft id that starts an app by its name, or restores one
@@ -121,7 +147,7 @@ tenant, inside `cds.tx({ tenant }, …)`. cap2UI5 starts no timer of its own —
 when the job runs is your scheduler's business.
 
 ::: warning SQLite: give it a busy timeout
-Every roundtrip writes a draft, so a cap2UI5 app writes to the database far
+Every roundtrip writes a draft — and from 0.8.0 on deletes one — so a cap2UI5 app writes to the database far
 more often than a typical OData service. On a **file-backed SQLite** with more
 than one process — a second worker, a test suite, a second `cds watch` —
 `@cap-js/sqlite` 3 (which uses node's built-in `node:sqlite`) fails the write

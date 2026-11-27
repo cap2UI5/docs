@@ -64,10 +64,11 @@ defineApp("ZCL_JS_BOOKS", class {
 `t.packed(9, 2)` makes `price` a decimal. An empty array carries no type, so a
 bare `books = []` would be left out of the model and named in a warning.
 
-**Assign the whole array.** `this.books = await SELECT…` replaces the table and
-the plugin rebuilds the rows — and pushes them to the view without a
-re-render. Mutating the array you read back does not write
-through.
+**Assigning the array replaces the table.** `this.books = await SELECT…`
+replaces the rows and pushes them to the view without a re-render. Since
+plugin 0.8.0 (not released yet) a change in place — `this.books.push(row)`,
+`this.books[0].price = 9.5` — is kept as well; up to 0.7.0 it was lost, and
+only the assignment was written. See [Data Binding](../guide/data-binding#tables).
 
 ## Row fields are uppercase
 

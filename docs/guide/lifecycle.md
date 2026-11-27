@@ -64,11 +64,12 @@ every method with its parameters:
 
 | | |
 |---|---|
-| **lifecycle** | `check_on_init()`, `check_on_navigated()`, `check_app_prev_stack()`, `get_event()`, `check_on_event(name)`, `get_event_arg(i)`, `get_app_prev()`, `get()` |
-| **binding** | `_bind(field)`, `_event(name)`, `_event_nav_app_leave()`, `follow_up_action(…)` |
+| **lifecycle** | `check_on_init()`, `check_on_navigated()`, `check_app_prev_stack()`, `get_event()`, `check_on_event(name)`, `get_event_arg(i)`, `get_app_prev()`, `get()`; since 0.8.0 (not released yet) `check_on_nav_back()`, `check_nav_pending()`, `get_start_param(name)` |
+| **binding** | `_bind(field)`, `window_bind_tab({ … })`, `_event(name)`, `_event_nav_app_leave()`, `follow_up_action(…)` |
 | **screen** | `view_display(xml)`, `popup_display(xml)` / `popup_destroy()`, `popover_display({ xml, by_id })`, `nest_view_display({ … })` / `nest_view_destroy()`, `nest2_*` |
 | **messages** | `message_box_display(text)`, `message_toast_display(text)` |
-| **navigation** | `nav_app_call(app)`, `nav_app_leave({ event, r_data })`, `get_app(id)`, `hash_set()`, `app_state_set_active()` |
+| **navigation** | `nav_app_call(app)`, `nav_app_leave({ event, r_data })`, `get_app(id)`, `hash_set()`, `app_state_set_active()`; since 0.8.0 `get_nav_tag()` |
+| **timer** | since 0.8.0: `timer_set({ event, delay_ms })`, `timer_stop()` |
 | **escape hatch** | `raw` — the transpiled `z2ui5_if_client` itself, asynchronous |
 
 ## A typical app
@@ -136,7 +137,7 @@ every roundtrip and the app would never render:
 | `client.isFirstRun`, `client.isDisplay`, `client.eventName`, `client.bind(…)`, … | the pre-0.2.0 names. The error names the `z2ui5_if_client` method that replaces each |
 | `client.isInitial` | it was wired to `check_on_navigated()` and named after `check_on_init()`. Use `check_on_navigated()` to render, `check_on_init()` to seed |
 | `client.set_session_stateful()` | not supported in a JavaScript app: the app's state is in its fields, which are in the draft |
-| `view_model_update()` and the other `*_model_update()` | obsolete in `z2ui5_if_client`, and they **do nothing**, as in ABAP. Changed bound data is pushed automatically — to an open popup, popover and nested view too |
+| `view_model_update()` and the other `*_model_update()`, `_bind_edit()`, `window_get_row()` | gone with plugin 0.8.0 (not released yet), as they left `z2ui5_if_client` in abap2UI5 `1.151.0` — see [`client`](../api/client#removed-with-0-8-0). Changed bound data is pushed automatically — to an open popup, popover and nested view too — and `_bind()` is the one binding |
 
 ## Next
 

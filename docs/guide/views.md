@@ -78,9 +78,10 @@ escape it yourself first — or build the view with the view builder, whose
 - **changed view structure** — a column appears, a button becomes visible → call
   `client.view_display()` again.
 
-`client.view_model_update()` and the other `*_model_update()` methods are
-declared obsolete in `z2ui5_if_client` and do nothing, here as in ABAP: an app
-that calls one ports unchanged, and loses nothing by dropping the call.
+There is no call for it. `client.view_model_update()` and the other
+`*_model_update()` methods did nothing, and abap2UI5 `1.151.0` removed them
+from `z2ui5_if_client` — so with plugin 0.8.0 (not released yet) the client
+does not have them, and a call that is left in fails. Delete it.
 
 ## The view builder
 
@@ -185,7 +186,7 @@ CLASS zcl_my_app IMPLEMENTATION.
               )->ele( `Page`
                   )->a( n = `title`  v = `My ABAP app`
                   )->tag( `Input`
-                      )->a( n = `value`  v = client->_bind_edit( name )
+                      )->a( n = `value`  v = client->_bind( name )
                   )->tag( `Button`
                       )->a( n = `text`   v = `Post`
                       )->a( n = `press`  v = client->_event( `POST` ) ).

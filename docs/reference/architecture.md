@@ -23,12 +23,16 @@ project used to be — see [Where cap2UI5 Comes From](../guide/where-it-comes-fr
       │       ├── define-exit.js   the user exit, registered
       │       ├── view-builder.js  records a view builder chain for upstream's class
       │       ├── draft-store.js   the draft store, over a CDS entity
-      │       ├── runtime.js       locate and boot the runtime
+      │       ├── runtime.js       locate the runtime and boot it through
+      │       │                    its own entry point
       │       └── abap2js.js       npx --no-install cap2ui5 abap2js
       └── @abap2ui5/node-runtime  abap2UI5 itself, one exact release
+          ├── srv/               the entry point a Node host boots through:
+          │                      initialize( ), exclusive( ), withSession( ),
+          │                      compress( )
           ├── output/            upstream's ABAP, downported + transpiled —
-          │                      the GET page embeds the UI5 frontend, from
-          │                      the same commit
+          │                      it serves the page and the UI5 frontend
+          │                      bundle, from the same commit
           └── setup/             the one hook output/ imports
 ```
 
