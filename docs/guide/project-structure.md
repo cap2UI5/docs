@@ -32,7 +32,7 @@ that gives you:
 
 | | where it comes from |
 |---|---|
-| `/sap/bc/z2ui5`, `/rest/root/z2ui5` | the roundtrip route, mounted behind CAP's own middleware chain. A GET on it answers with a page that embeds the whole UI5 frontend, so there are no frontend files to serve, copy or maintain |
+| `/sap/bc/z2ui5`, `/rest/root/z2ui5` | the roundtrip route, mounted behind CAP's own middleware chain. A GET on it answers with the page, and the UI5 frontend that page runs comes from the same route, so there are no frontend files to serve, copy or maintain |
 | `cap2ui5.Drafts` | a CDS entity contributed through `package.json#cds.requires`, so `cds deploy` creates it next to your own tables |
 
 None of this appears in your working tree. There is nothing to regenerate, no
@@ -86,9 +86,14 @@ same one:
 ```json
 {
   "cap2ui5": { "apps": "srv/apps" },
-  "peerDependencies": { "@cap2ui5/cds-plugin": "^0.6.0" }
+  "peerDependencies": { "@cap2ui5/cds-plugin": "^0.8.0" }
 }
 ```
+
+The range names one minor of the plugin, and a package with apps publishes a
+release for each: while the plugin is 0.x a minor release may break the API an
+app is written against. `^0.8.0` is the plugin this site describes, which is
+**not released yet**; the newest on npm is 0.7.0.
 
 The plugin finds such packages the way CAP finds its plugins: among the
 project's `dependencies`, and outside production among its `devDependencies`
@@ -104,7 +109,7 @@ In `node_modules`, in two packages, and you own neither:
 | | |
 |---|---|
 | `@cap2ui5/cds-plugin` | the plugin — about 1,050 lines in 0.1.0, of which about 640 are code. `cds-plugin.js`, `index.cds`, `index.js`, `lib/` |
-| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with. The plugin pins one exact release |
+| `@abap2ui5/node-runtime` | abap2UI5 itself: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend its route serves. The plugin pins one exact release |
 
 That split is the whole design. The plugin is a **host**: it mounts a route,
 implements the draft store over a CDS entity, and turns a JavaScript class into

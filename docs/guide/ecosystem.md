@@ -27,15 +27,17 @@ abap2UI5 builds itself.
 
 | | |
 |---|---|
-| `@cap2ui5/cds-plugin` | the plugin — about 4,800 lines of code in 0.6.0 (counted without comments and blank lines), some 2,000 of them the ABAP translator `abap2js`, plus about 1,950 vendored unchanged from abap2UI5's MCP server for the agent endpoint. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call, and serves the [agent endpoint](./agents) |
-| `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend embedded in the page its GET answers with — backend and frontend from one commit |
+| `@cap2ui5/cds-plugin` | the plugin — about 4,600 lines of code in 0.8.0 (counted without comments and blank lines), some 2,000 of them the ABAP translator `abap2js`, plus about 2,500 vendored unchanged from abap2UI5's MCP server for the agent endpoint. Mounts the route, implements the draft store over a CDS entity, turns a JS class into something the runtime can call, and serves the [agent endpoint](./agents) |
+| `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend, which the page its GET answers with loads from the same route — backend and frontend from one commit. Since 0.8.0 it also brings what a Node host needs: the plugin boots it, queues the roundtrips, keeps stateful sessions and gzips through the package's own entry point |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.6.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
-`@abap2ui5/node-runtime`, of which the plugin pins one release exactly —
-`1.149.0` in 0.6.0 —
-and `@cap2ui5/samples` 0.3.0, whose peer range is plugin `^0.5.0`: it does not
-install beside plugin 0.6.0 yet (see the [Quickstart](./getting-started#the-samples)).
+All three are on npm: `@cap2ui5/cds-plugin` 0.7.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
+`@abap2ui5/node-runtime`, of which the plugin pins one release exactly,
+and `@cap2ui5/samples` 0.4.0, whose peer range is plugin `^0.6.0`: it does not
+install beside plugin 0.7.0 (see the [Quickstart](./getting-started#the-samples)).
+Prepared and **not released yet**: plugin 0.8.0, which pins runtime `1.151.0`
+— the version this site describes — and samples 0.5.0, whose peer range is
+plugin `^0.8.0`.
 `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder that
@@ -46,9 +48,11 @@ installs nothing usable; its `cap2ui5` command prints where to go instead.
 **Owns:** the CAP route and its authentication guard, `cap2ui5.Drafts` and the
 draft store over it, `defineApp` and the client that maps a JavaScript app
 onto `z2ui5_if_client`, the two ABI gates, and — since 0.5.0 — the agent
-endpoint's policy and audit log (`cap2ui5.AgentLog`), the queue that runs
-roundtrips one at a time, and the per-user session layer for stateful ABAP
-apps.
+endpoint's policy and audit log (`cap2ui5.AgentLog`). The queue that runs
+roundtrips one at a time and the per-user session layer for stateful ABAP
+apps were the plugin's in 0.5.0 to 0.7.0; from 0.8.0 on they are the runtime
+package's own (`exclusive( )`, `withSession( )`), which the plugin calls, and
+so is the gzip (`compress( )`).
 
 **Does not own:** views, the wire format, the model service, the lifecycle, the
 UI5 shell, the frontend actions — all upstream's, running unmodified. The plugin

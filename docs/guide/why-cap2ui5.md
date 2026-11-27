@@ -46,7 +46,7 @@ my-cap-project/
 ```
 
 Nothing else. No service definition to extend, no `server.js` to touch, no
-frontend folder: the route — whose page embeds the UI5 frontend — and the
+frontend folder: the route — which serves the UI5 frontend as well — and the
 draft entity arrive with the plugin, and `cds deploy` creates the table next to your own.
 
 A new UI = **a new JS file in `srv/apps/`**. Available immediately via `?app_start=ZCL_MY_APP` — the name you gave `defineApp`.

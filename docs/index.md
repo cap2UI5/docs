@@ -23,8 +23,8 @@ features:
   - title: One dependency, no scaffolding
     icon: 🔌
     details: >-
-      npm add @cap2ui5/cds-plugin is the whole installation. The roundtrip route, whose
-      page embeds the UI5 frontend, and the cap2ui5.Drafts entity arrive
+      npm add @cap2ui5/cds-plugin is the whole installation. The roundtrip route, which
+      serves the UI5 frontend as well, and the cap2ui5.Drafts entity arrive
       through cds-plugin.js — your
       own server.js is untouched, and nothing is generated into your repository.
   - title: Apps are plain JavaScript

@@ -33,11 +33,11 @@ then `cds deploy` once. `cap2ui5.Drafts` is created along with your own tables.
 
 | | |
 |---|---|
-| **The frontend** | there are no frontend files. The page the roundtrip route answers a GET with embeds the whole UI5 component, so there is no separate frontend project to build, no HTML5 module to push, no UI5 tooling in the pipeline |
+| **The frontend** | there are no frontend files. The roundtrip route serves the page and the whole UI5 component itself, so there is no separate frontend project to build, no HTML5 module to push, no UI5 tooling in the pipeline |
 | **The entities** | `cap2ui5.Drafts` and, since 0.5.0, `cap2ui5.AgentLog` deploy through your normal `db` module, HDI container included. Nothing special — but an upgrade to 0.5.0 adds a table, so it needs a deploy |
 | **Authentication** | whatever `cds.requires.auth` is — the route runs behind CAP's own chain. Verified for `jwt`, `xsuaa` and `ias`, not only for the development kinds |
 | **Scaling** | a JavaScript app's state is in the database, not in memory, so a second instance is a second instance: no sticky sessions, no shared cache. Two things to know — see [Scaling](#scaling) |
-| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.149.0` for 0.6.0; the [table](./configuration#the-runtime) has the others). Commit your `package-lock.json` and a redeploy installs the same release |
+| **The runtime** | `@cap2ui5/cds-plugin` pins `@abap2ui5/node-runtime` exactly (`1.151.0` for 0.8.0, which is not released yet; the [table](./configuration#the-runtime) has the others). Commit your `package-lock.json` and a redeploy installs the same release |
 
 ## Scaling
 
@@ -55,7 +55,8 @@ Two limits, both since 0.5.0:
 - **A stateful ABAP app does not scale out.** A *transpiled ABAP* app that
   calls `set_session_stateful( )` is kept in memory between its requests, as
   on an SAP system. The plugin keeps such a session per CAP user, **in the
-  process**: a session id it issues travels as `sap-contextid`, only that
+  process** (from 0.8.0 on through the runtime package's own
+  `withSession( )`, with the same behaviour): a session id it issues travels as `sap-contextid`, only that
   user's requests naming it get the session, and `set_session_stateful(
   abap_false )`, the frontend's terminate ping or 30 idle minutes end it. So
   with more than one instance such an app needs **sticky routing**, and a
@@ -70,8 +71,13 @@ later request of every user; that is fixed, not a behaviour to plan for.
 ## Pin the plugin
 
 ```json
-{ "dependencies": { "@cap2ui5/cds-plugin": "^0.6.0" } }
+{ "dependencies": { "@cap2ui5/cds-plugin": "^0.8.0" } }
 ```
+
+0.8.0 is **not released yet** — until it is, the range to write is `^0.7.0`,
+the newest on npm. While the version starts with 0 a caret range stays within
+one minor, which is the point: a minor release may break the API, and 0.8.0
+does ([Configuration](./configuration#the-runtime)).
 
 `@cap2ui5/cds-plugin` is on npm, and it depends on one exact `@abap2ui5/node-runtime`
 release, so backend, UI5 frontend and wire version move only when the plugin
@@ -109,7 +115,7 @@ resources:
 ```
 
 There is **no HTML5 module for the frontend** and no app-repo push, because
-the frontend is embedded in the page the service itself answers with.
+the service itself serves the frontend, from the roundtrip route.
 
 ### The approuter and its CSRF token
 

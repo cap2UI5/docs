@@ -155,7 +155,7 @@ And what it costs, plainly:
 |---|---|---|
 | The framework (handler, views, persistence) | `@abap2ui5/node-runtime` — upstream's own ABAP, transpiled | nobody: it is a dependency |
 | Your apps | `srv/apps/` or a folder you configure | **you** — this is where you work |
-| The UI5 frontend | embedded in the page the roundtrip route answers a GET with, from the same `@abap2ui5/node-runtime` package — there are no static frontend files | nobody — it ships with the framework |
+| The UI5 frontend | served by the roundtrip route itself, from the same `@abap2ui5/node-runtime` package — there are no static frontend files | nobody — it ships with the framework |
 | UI5 itself | the OpenUI5 CDN, unless your [user exit](./user-exit#onpage) points elsewhere | you, if your server has no internet access |
 
 The frontend is not merely *compatible* with abap2UI5's — it **is** abap2UI5's, shipped in the same package as the backend that answers it, from the same upstream commit. The browser cannot tell whether ABAP or Node.js is on the other side, and backend and frontend cannot drift apart. See [Where cap2UI5 Comes From](./where-it-comes-from).

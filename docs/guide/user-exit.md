@@ -98,7 +98,7 @@ load, not once per roundtrip.
 | `title` | `""` | **no longer read.** The page carries a constant `<title>`; an app sets the tab title itself, with `cs_event-set_title`. The field stays because it is part of the published contract — assigning it compiles, runs, and does nothing |
 
 ::: warning UI5 comes from the CDN
-The page the roundtrip route answers a GET with embeds the abap2UI5 frontend,
+The roundtrip route serves the abap2UI5 frontend,
 not UI5 itself — the plugin serves no static files and has no `/resources` route, and `src` points at `sdk.openui5.org` out of
 the box. **A server without outbound internet access renders nothing.** If
 that is your deployment, host a UI5 distribution yourself and point `src` at
@@ -107,19 +107,23 @@ it; the CSP has to allow that origin too.
 
 ### Content-Security-Policy
 
-The default allows `'unsafe-eval'` for one specific reason: the OpenUI5
-`ui5loader` evaluates module source as a string, and without it the bootstrap
-fails with a CSP `EvalError`. It allow-lists the SAP and OpenUI5 hosts,
-permits `data:` and `blob:`, and closes `object-src` and `base-uri`.
-
-If you pin a UI5 release that does not need `eval`, tighten it:
+The default allow-lists the SAP and OpenUI5 hosts, permits `data:` and
+`blob:`, and closes `object-src` and `base-uri`. Measured on runtime
+`1.151.0`: its `script-src` is `'self' 'wasm-unsafe-eval'` and those hosts —
+**no `'unsafe-eval'`**, which this page used to say the default allowed. A
+UI5 build that evaluates module source as a string — the 1.71 `ui5loader`, a
+preload of an old distribution — fails under it with a CSP `EvalError`. If
+you pin such a release, allow it:
 
 ```js
 onPage(cfg) {
   cfg.content_security_policy =
-    cfg.content_security_policy.replace(" 'unsafe-eval'", "");
+    cfg.content_security_policy.replace("script-src 'self'", "script-src 'self' 'unsafe-eval'");
 }
 ```
+
+That replacement is not run for this page; check the tag the page carries
+afterwards.
 
 Serving UI5 yourself? Then the CDN hosts can go too — build the tag rather
 than patching it, so what the page carries is what you wrote.
@@ -149,6 +153,7 @@ onPage(cfg) {
 | Field | Default | Effect |
 |---|---|---|
 | `draft_exp_time_in_hours` | `4` | how long a draft stays resumable |
+| `draft_keep_per_chain` | `2` | since 0.8.0 (not released yet): how many drafts of an app session's chain are kept — the newest. `0` keeps every draft until its expiry. See [Persistence](./persistence#retention) |
 | `check_csrf_active` | `true` | the cross-origin POST gate |
 | `check_trust_forwarded_host` | `true` | whether `X-Forwarded-Host` is trusted when the gate compares origins |
 | `check_hide_error_details` | `false` | answer framework errors with a generic 500 instead of the exception text |

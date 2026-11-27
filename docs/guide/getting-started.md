@@ -65,11 +65,21 @@ release it pins — and on the next `cds watch` these exist that did not before:
 
 | | |
 |---|---|
-| the roundtrip route | `/sap/bc/z2ui5` and `/rest/root/z2ui5` — a GET on it answers with the page that embeds the whole UI5 frontend |
+| the roundtrip route | `/sap/bc/z2ui5` and `/rest/root/z2ui5` — a GET on it answers with the page, and the route serves the UI5 frontend that page runs as well |
 | `cap2ui5.Drafts` | a CDS entity for session state, created by `cds deploy` next to your own |
 
 Your own `server.js`, if you have one, is not touched. Nothing is generated
 into your repository, and there are no frontend files to serve.
+
+::: info Which version this site describes
+`npm add @cap2ui5/cds-plugin` installs **0.7.0** today, on runtime
+`@abap2ui5/node-runtime` 1.149.0. The site describes **0.8.0** on runtime
+`1.151.0`, which is on cap2UI5's `main` but **not released yet**. This
+Quickstart runs the same on both; where a page describes something that
+differs — the windowed table, the methods 0.8.0 removes from the client, the
+wire — it says so. The differences are listed under
+[Configuration](../reference/configuration#the-runtime).
+:::
 
 ::: info Coming from the package `cap2ui5`
 Up to 0.2.0 the plugin was the unscoped package `cap2ui5`. On npm that name is
@@ -191,8 +201,9 @@ next to your CDS services — so the app is one click away from there too.
 Neither the lines nor the list appear in production.
 
 The address is the **roundtrip route**, not a static page: the framework
-answers a GET on it with a page that embeds the whole UI5 component — every
-module, view and stylesheet — and starts the app named in `app_start`.
+answers a GET on it with a page that brings the whole UI5 component with it —
+embedded in the page up to 0.7.0, loaded as a bundle from the same route from
+0.8.0 on — and starts the app named in `app_start`.
 `/rest/root/z2ui5?app_start=HELLO` is the same door under its other name.
 
 You are asked to log in because the plugin requires an authenticated user by
@@ -299,14 +310,18 @@ npm add -D @cap2ui5/samples
 cds watch
 ```
 
-::: warning With plugin 0.6.0 this install fails today
-`@cap2ui5/samples` 0.3.0 names plugin `^0.5.0` as its peer, and a caret range
-below 1.0 does not reach 0.6.0. Measured in a project with plugin 0.6.0:
-`npm add -D @cap2ui5/samples` stops with `ERESOLVE … peer
-@cap2ui5/cds-plugin@"^0.5.0" from @cap2ui5/samples@0.3.0`. Until a samples
-release names 0.6, either stay on plugin 0.5.0 for the samples or look at them
-in their [repository](https://github.com/cap2UI5/samples). Forcing the install
-with `--legacy-peer-deps` has not been tried here.
+::: warning With plugin 0.7.0 this install fails today
+`@cap2ui5/samples` 0.4.0, the newest on npm, names plugin `^0.6.0` as its
+peer, and a caret range below 1.0 does not reach 0.7.0. Measured on
+2026-11-27 in a project with plugin 0.7.0: `npm add -D @cap2ui5/samples` stops
+with `ERESOLVE … peer @cap2ui5/cds-plugin@"^0.6.0" from
+@cap2ui5/samples@0.4.0`. Either stay on plugin 0.6.0 for the samples or look
+at them in their [repository](https://github.com/cap2UI5/samples). Forcing the
+install with `--legacy-peer-deps` has not been tried here.
+
+`@cap2ui5/samples` 0.5.0, which follows abap2UI5's samples at 1.151.0 and
+names plugin `^0.8.0`, is prepared beside plugin 0.8.0 and, like it, **not
+released yet**.
 :::
 
 The startup lines gain one line for the package, below `HELLO` and `BOOKS`:
@@ -328,7 +343,7 @@ repository.
 start — the log says `connect to db > sqlite { url: ':memory:' }`. The tables
 come from every `.cds` file CAP loads, your `srv/cat-service.cds` and the
 plugin's model, which brings `cap2ui5.Drafts`. The books are loaded from the
-CSV file; the drafts are written by the plugin, one row per roundtrip.
+CSV file; the drafts are written by the plugin after every roundtrip.
 
 That is also why a restart forgets everything. How to list the tables, look
 inside them while the app runs, and keep the data across restarts with a

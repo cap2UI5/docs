@@ -128,8 +128,8 @@ The bootstrap HTML arrived but UI5 never started.
 
 - **Open the browser console first** — a CSP violation or a failed load of
   `sap-ui-core.js` shows there immediately.
-- **The server has no outbound internet access.** The page embeds the
-  abap2UI5 frontend, not UI5 itself: it bootstraps from
+- **The server has no outbound internet access.** The route serves the
+  abap2UI5 frontend, not UI5 itself: the page bootstraps from
   `https://sdk.openui5.org/…/sap-ui-core.js`, and there is no `/resources`
   route to fall back to. In an air-gapped or egress-restricted deployment,
   host a UI5 distribution yourself and point `cfg.src` at it in your
@@ -143,7 +143,8 @@ The bootstrap HTML arrived but UI5 never started.
   `sap.ui.comp` needs the SAPUI5 CDN — point `cfg.src` at it in your
   [user exit](./user-exit#onpage).
 - **A CSP `EvalError` on old UI5.** The 1.71 `ui5loader` needs
-  `'unsafe-eval'`; if you tightened the policy, that is why.
+  `'unsafe-eval'`, which the default policy does not allow (measured on
+  runtime `1.151.0`) — see the [user exit](./user-exit#content-security-policy).
 
 ## The control is missing or renders wrong
 

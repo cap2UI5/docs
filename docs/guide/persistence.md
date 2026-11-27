@@ -21,9 +21,10 @@ browser  ──POST /rest/root/z2ui5 {id, event, model}──▶  CAP
 ```
 
 Every roundtrip writes a **new** draft with a fresh uuid and a pointer to the
-previous one. Nothing is mutated in place, which is why the browser's back
-button and a restored bookmark land on a consistent state rather than a
-half-updated one.
+previous one. No draft is rewritten once it is stored, which is why a retried
+request and a restored bookmark land on a consistent state rather than a
+half-updated one. How many of those rows stay is under
+[Retention](#retention).
 
 ## What is persisted
 
@@ -102,7 +103,20 @@ ownerless row everybody's, are in [Database Model](../reference/database).
 
 ## Retention
 
-A draft older than four hours is no longer resumed, and its row is deleted the
+Two things remove drafts: the chain is kept short, and what is left expires.
+
+**A chain is pruned to two rows** — since plugin 0.8.0, which is **not released
+yet**. After every save the framework has the store delete the one draft that
+fell out of the window: the user exit's `draft_keep_per_chain`, 2 by default.
+So an app session holds its newest two drafts however many clicks it took —
+measured: after an app start and six events, two of the seven drafts still
+answered; with `draft_keep_per_chain` at 4, four did, and at `0`, which
+switches the pruning off, all seven. Never pruned: the drafts of the apps to
+return to — the app stack — and a draft the app handed out a link to with
+`app_state_get_href( )`. Up to 0.7.0 nothing was pruned, and every roundtrip
+left a row — a whole app state — until the expiry.
+
+**What is left expires.** A draft older than four hours is no longer resumed, and its row is deleted the
 next time **somebody opens an app** — not on every roundtrip. A session left
 open over lunch is fine; one left open overnight starts fresh. Both the sweep
 and the framework's willingness to resume follow the same number, and your
@@ -141,8 +155,9 @@ schema is not required. `CatalogService.Books` is defined in
 - **Drafts** are written by the plugin: one row per roundtrip — the app start
   and every click — with the owner (`alice`) and the serialized app instance.
   The `data` column holds your fields as XML, `<COUNT>1</COUNT>` for the
-  quickstart's counter. Rows older than four hours are deleted when an app
-  is opened ([Retention](#retention)).
+  quickstart's counter. From 0.8.0 on only the newest two of an app session
+  stay; rows older than four hours are deleted when an app is opened
+  ([Retention](#retention)).
 
 ### See the tables
 
@@ -168,7 +183,7 @@ await SELECT.from("cap2ui5.Drafts").columns("id","owner","createdAt")
 ```
 
 After the start of an app and one click, that answers two rows, both owned by
-`alice`. `.exit` leaves the REPL and stops the server.
+`alice` — and from 0.8.0 on still two after more clicks, the newest two. `.exit` leaves the REPL and stops the server.
 
 ### Keep the data across restarts
 

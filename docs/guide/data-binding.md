@@ -116,9 +116,20 @@ Two things to note:
 - **the model names are UPPERCASE in the view** — `{TITLE}`, `{PRICE}`, and a
   field `name` is `/NAME`. Component names are stored lowercase, as the
   transpiler does, and appear uppercase in the model;
-- **assign the whole array.** `this.books = await SELECT…` replaces the table;
-  the plugin rebuilds the rows. Pushing into the array you read back does not
-  write through.
+- **assigning the array replaces the table.** `this.books = await SELECT…`
+  is all a read from the database needs. A change made **in place** is kept as
+  well — since plugin 0.8.0, which is **not released yet**:
+
+  ```js
+  this.books.push({ ID: 4, title: "new", price: 1 });
+  this.books[0].price = 9.5;
+  this.books.find((b) => b.ID === 2).title = "renamed";
+  ```
+
+  A table or a structure field is read once per `main( )` — the same object
+  answers every later read, in a helper method too — and written back when
+  `main( )` returns. Up to 0.7.0 every read handed out a fresh copy, so such a
+  change was lost without an error and only `this.books = [ … ]` was written.
 
 ## Structures, and nesting
 
@@ -142,7 +153,9 @@ this.order = { ...this.order, customer: { name: "Ada", city: "London" } };
 ```
 
 Assigning a structure is ABAP's `s = VALUE #( … )`: what the new value leaves out
-is initial afterwards.
+is initial afterwards. To change one component and keep the rest, change it in
+place — `this.order.customer.city = "London"`, `this.order.lines = [ … ]` —
+which is kept since 0.8.0 (not released yet), as for [tables](#tables).
 
 The depth limit is **8**, and it is a cycle guard rather than a judgement: an
 object containing itself would otherwise recurse until the stack goes. A field
