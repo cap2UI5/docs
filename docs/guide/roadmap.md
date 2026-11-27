@@ -36,7 +36,7 @@ and hosts the first runtime with abap2UI5's windowed table,
 `client.window_bind_tab( )`. 0.7.0 adds `t.ref( )`, a field
 `TYPE REF TO data`.
 
-0.8.0 — prepared, **not released yet** — hosts runtime 1.151.0. That runtime
+0.8.0 (2026-11-27) hosts runtime 1.151.0. That runtime
 breaks the wire (protocol 3) and makes the windowed table the app's: the app
 loads, sorts, filters and counts, and `window_get_row( )` is gone, as are
 `_bind_edit( )` and the `*_model_update( )` no-ops. The client gains
@@ -82,10 +82,10 @@ unannotated app.
 
 `npx --no-install cap2ui5 abap2js` knows the ABAP an abap2UI5 app is written
 in and refuses the rest — a field-symbol, `SELECT`, a `sy-` field — with file,
-row and column. What it refuses you translate by hand. Of abap2UI5's 138
-samples, 76 are in `@cap2ui5/samples` 0.4.0 — 73 translated by `abap2js`,
-three ported by hand. Samples 0.5.0, not released yet, follows abap2UI5's
-samples at 1.151.0: 76 of 145, 72 translated and four ported by hand.
+row and column. What it refuses you translate by hand. Of abap2UI5's 145
+samples at 1.151.0, 76 are in `@cap2ui5/samples` 0.5.0 — 72 translated by
+`abap2js`, four ported by hand. (0.4.0 had 76 of 138, 73 translated and three
+by hand.)
 
 ### UI5 comes from the CDN, and only from the CDN
 

@@ -80,7 +80,7 @@ escape it yourself first — or build the view with the view builder, whose
 
 There is no call for it. `client.view_model_update()` and the other
 `*_model_update()` methods did nothing, and abap2UI5 `1.151.0` removed them
-from `z2ui5_if_client` — so with plugin 0.8.0 (not released yet) the client
+from `z2ui5_if_client` — so with plugin 0.8.0 the client
 does not have them, and a call that is left in fails. Delete it.
 
 ## The view builder

@@ -105,8 +105,7 @@ ownerless row everybody's, are in [Database Model](../reference/database).
 
 Two things remove drafts: the chain is kept short, and what is left expires.
 
-**A chain is pruned to two rows** — since plugin 0.8.0, which is **not released
-yet**. After every save the framework has the store delete the one draft that
+**A chain is pruned to two rows** — since plugin 0.8.0. After every save the framework has the store delete the one draft that
 fell out of the window: the user exit's `draft_keep_per_chain`, 2 by default.
 So an app session holds its newest two drafts however many clicks it took —
 measured: after an app start and six events, two of the seven drafts still

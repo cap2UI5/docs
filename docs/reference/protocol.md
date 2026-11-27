@@ -12,11 +12,10 @@ the frontend come from one upstream commit. The measurements below are from a
 running server rather than from a specification.
 :::
 
-::: warning This page describes protocol 3 — plugin 0.8.0, not released yet
-abap2UI5 `1.151.0` breaks the wire: its protocol is **3**. Plugin 0.8.0, which
-hosts that runtime, is prepared but **not released yet**; the newest release
-on npm, 0.7.0, hosts runtime 1.149.0 and speaks protocol 2. What differs is
-said where it stands. An app changes nothing for it — a frontend, a test or a
+::: warning This page describes protocol 3 — plugin 0.8.0
+abap2UI5 `1.151.0` breaks the wire: its protocol is **3**. Plugin 0.8.0 hosts
+that runtime; 0.7.0, the release before, hosts runtime 1.149.0 and speaks
+protocol 2. What differs is said where it stands. An app changes nothing for it — a frontend, a test or a
 tool that reads the response does.
 :::
 

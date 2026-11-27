@@ -43,9 +43,9 @@ no `cap2ui5.Drafts` or `cap2ui5.AgentLog` table in the model.
 
 ::: info `accelerate` is gone with 0.8.0
 Up to 0.7.0 there was one more key, `accelerate`, which switched the runtime's
-`accelerate( )` off. Plugin 0.8.0 — not released yet — removes it: the runtime
-it hosts is linear on large tables by itself (see [Performance](#performance)),
-so there is nothing left to switch. A project that still sets the key is not
+`accelerate( )` off. Plugin 0.8.0 removes it: the runtime it hosts is linear
+on large tables by itself (see [Performance](#performance)), so there is
+nothing left to switch. A project that still sets the key is not
 refused; the setting is ignored.
 :::
 
@@ -126,21 +126,18 @@ There is nothing to add to your own `package.json`.
 | 0.4.0 | `1.146.0` | the frontend's `X-CSRF-Token` handshake with the approuter, `accelerate( )`, `view_display`'s transitions |
 | 0.5.0 | `1.147.0` | flat tables written to JSON directly, the draft kept as a digest, the developer tools as a bundle of their own |
 | 0.6.0, 0.7.0 | `1.149.0` | the windowed table in its first, framework-driven form: `client.window_bind_tab( )` with `t_sort` and `t_filter`, and `window_get_row( )`. The eight obsolete invisible custom controls (`z2ui5.cc.Timer`, `Focus`, `Scrolling`, `Title`, `LPTitle`, `Favicon`, `History`, `Info`) are gone from the frontend: a view that still names one fails to load |
-| 0.8.0 — **not released yet** | `1.151.0` | see below |
+| 0.8.0 | `1.151.0` | see below |
 
 The plugin's [CHANGELOG](https://github.com/cap2UI5/cap2UI5/blob/main/plugin/CHANGELOG.md)
 has the full list per release. No plugin release pinned the runtime releases
 in between.
 
-### 0.8.0 and runtime `1.151.0` — not released yet
+### 0.8.0 and runtime `1.151.0`
 
-`npm add @cap2ui5/cds-plugin` installs 0.7.0 today (looked up on 2026-11-27).
-0.8.0 is on cap2UI5's `main` since
-[cap2UI5/cap2UI5#119](https://github.com/cap2UI5/cap2UI5/pull/119) and is
-released once it is tagged and published to npm; this site already describes
-it. While
-the version starts with 0 a minor release may break the API, and this one
-does. What an app has to change:
+`npm add @cap2ui5/cds-plugin` installs 0.8.0, published on 2026-11-27 — the
+release this site describes. While the version starts with 0 a minor release
+may break the API, and this one does. What an app coming from 0.7.0 has to
+change:
 
 - **The windowed table is the app's.**
   `client.window_bind_tab({ val, total, event, window })` binds a result the

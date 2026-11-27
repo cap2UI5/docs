@@ -77,7 +77,7 @@ draft entity.
 
 ### A chain is pruned to two rows
 
-Since plugin 0.8.0 — **not released yet**. abap2UI5 `1.151.0` adds two methods
+Since plugin 0.8.0: abap2UI5 `1.151.0` adds two methods
 to `z2ui5_if_ui5_draft_store`, `prune_chain( )` and `touch( )`, and the CDS
 draft store implements both, following the shipped store step for step:
 

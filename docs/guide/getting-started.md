@@ -72,12 +72,11 @@ Your own `server.js`, if you have one, is not touched. Nothing is generated
 into your repository, and there are no frontend files to serve.
 
 ::: info Which version this site describes
-`npm add @cap2ui5/cds-plugin` installs **0.7.0** today, on runtime
-`@abap2ui5/node-runtime` 1.149.0. The site describes **0.8.0** on runtime
-`1.151.0`, which is on cap2UI5's `main` but **not released yet**. This
-Quickstart runs the same on both; where a page describes something that
-differs — the windowed table, the methods 0.8.0 removes from the client, the
-wire — it says so. The differences are listed under
+`npm add @cap2ui5/cds-plugin` installs **0.8.0**, on runtime
+`@abap2ui5/node-runtime` `1.151.0` — the release this site describes. This
+Quickstart runs the same on 0.7.0 (runtime 1.149.0); where a page describes
+something that differs — the windowed table, the methods 0.8.0 removes from
+the client, the wire — it says so. The differences are listed under
 [Configuration](../reference/configuration#the-runtime).
 :::
 
@@ -310,18 +309,13 @@ npm add -D @cap2ui5/samples
 cds watch
 ```
 
-::: warning With plugin 0.7.0 this install fails today
-`@cap2ui5/samples` 0.4.0, the newest on npm, names plugin `^0.6.0` as its
-peer, and a caret range below 1.0 does not reach 0.7.0. Measured on
-2026-11-27 in a project with plugin 0.7.0: `npm add -D @cap2ui5/samples` stops
-with `ERESOLVE … peer @cap2ui5/cds-plugin@"^0.6.0" from
-@cap2ui5/samples@0.4.0`. Either stay on plugin 0.6.0 for the samples or look
-at them in their [repository](https://github.com/cap2UI5/samples). Forcing the
-install with `--legacy-peer-deps` has not been tried here.
-
-`@cap2ui5/samples` 0.5.0, which follows abap2UI5's samples at 1.151.0 and
-names plugin `^0.8.0`, is prepared beside plugin 0.8.0 and, like it, **not
-released yet**.
+::: warning The samples name one minor of the plugin
+`@cap2ui5/samples` 0.5.0, the newest on npm, follows abap2UI5's samples at
+1.151.0 and names plugin `^0.8.0` as its peer. A caret range below 1.0 stays
+within one minor, so it installs beside plugin 0.8.0 and not beside 0.7.0,
+where npm stops with `ERESOLVE`. No samples release names 0.7.0 — 0.4.0, the
+one before, names plugin `^0.6.0` — so a project on 0.7.0 updates the plugin
+first.
 :::
 
 The startup lines gain one line for the package, below `HELLO` and `BOOKS`:

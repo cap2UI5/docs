@@ -82,7 +82,7 @@ instead:
   what every roundtrip runs.
 
 Inside `main` and inside any method it calls, fields read and write as plain
-values. Since 0.8.0 (**not released yet**) a table or a structure field is read
+values. Since 0.8.0 a table or a structure field is read
 once per `main( )` and written back when it returns, so a change made in place
 — `this.rows.push(row)`, `this.rows[0].done = true`,
 `this.order.lines = [ … ]` — is kept. Up to 0.7.0 only an assignment to the
