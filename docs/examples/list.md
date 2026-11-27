@@ -66,7 +66,7 @@ bare `books = []` would be left out of the model and named in a warning.
 
 **Assigning the array replaces the table.** `this.books = await SELECT…`
 replaces the rows and pushes them to the view without a re-render. Since
-plugin 0.8.0 (not released yet) a change in place — `this.books.push(row)`,
+plugin 0.8.0 a change in place — `this.books.push(row)`,
 `this.books[0].price = 9.5` — is kept as well; up to 0.7.0 it was lost, and
 only the assignment was written. See [Data Binding](../guide/data-binding#tables).
 

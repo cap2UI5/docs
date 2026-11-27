@@ -92,8 +92,8 @@ same one:
 
 The range names one minor of the plugin, and a package with apps publishes a
 release for each: while the plugin is 0.x a minor release may break the API an
-app is written against. `^0.8.0` is the plugin this site describes, which is
-**not released yet**; the newest on npm is 0.7.0.
+app is written against. `^0.8.0` is the plugin this site describes, the
+newest on npm.
 
 The plugin finds such packages the way CAP finds its plugins: among the
 project's `dependencies`, and outside production among its `devDependencies`

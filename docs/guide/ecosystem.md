@@ -31,13 +31,10 @@ abap2UI5 builds itself.
 | `@abap2ui5/node-runtime` | abap2UI5: upstream's ABAP, downported and transpiled over open-abap, with the UI5 frontend, which the page its GET answers with loads from the same route — backend and frontend from one commit. Since 0.8.0 it also brings what a Node host needs: the plugin boots it, queues the roundtrips, keeps stateful sessions and gzips through the package's own entry point |
 | `@cap2ui5/samples` | abap2UI5's samples as cap2UI5 apps. Optional: added to a project, they run beside its own apps — see [Apps from a package](./project-structure#apps-from-a-package) |
 
-All three are on npm: `@cap2ui5/cds-plugin` 0.7.0 (Node ≥ 22, `@sap/cds` ≥ 9 as a peer),
-`@abap2ui5/node-runtime`, of which the plugin pins one release exactly,
-and `@cap2ui5/samples` 0.4.0, whose peer range is plugin `^0.6.0`: it does not
-install beside plugin 0.7.0 (see the [Quickstart](./getting-started#the-samples)).
-Prepared and **not released yet**: plugin 0.8.0, which pins runtime `1.151.0`
-— the version this site describes — and samples 0.5.0, whose peer range is
-plugin `^0.8.0`.
+All three are on npm: `@cap2ui5/cds-plugin` 0.8.0, the version this site
+describes (Node ≥ 22, `@sap/cds` ≥ 9 as a peer), `@abap2ui5/node-runtime`, of
+which the plugin pins one release exactly (`1.151.0` for 0.8.0), and
+`@cap2ui5/samples` 0.5.0, whose peer range is plugin `^0.8.0`.
 `npm add @cap2ui5/cds-plugin` installs the first two — see the
 [Quickstart](./getting-started). Up to 0.2.0 the plugin was the unscoped
 package `cap2ui5`. On npm that name is now only a deprecated placeholder that

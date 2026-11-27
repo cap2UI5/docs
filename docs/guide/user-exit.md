@@ -153,7 +153,7 @@ onPage(cfg) {
 | Field | Default | Effect |
 |---|---|---|
 | `draft_exp_time_in_hours` | `4` | how long a draft stays resumable |
-| `draft_keep_per_chain` | `2` | since 0.8.0 (not released yet): how many drafts of an app session's chain are kept — the newest. `0` keeps every draft until its expiry. See [Persistence](./persistence#retention) |
+| `draft_keep_per_chain` | `2` | since 0.8.0: how many drafts of an app session's chain are kept — the newest. `0` keeps every draft until its expiry. See [Persistence](./persistence#retention) |
 | `check_csrf_active` | `true` | the cross-origin POST gate |
 | `check_trust_forwarded_host` | `true` | whether `X-Forwarded-Host` is trusted when the gate compares origins |
 | `check_hide_error_details` | `false` | answer framework errors with a generic 500 instead of the exception text |

@@ -95,7 +95,7 @@ names components.
 
 ### Which call came back: `tag` and `check_on_nav_back()`
 
-Since plugin 0.8.0 — **not released yet** — the caller can say why it calls,
+Since plugin 0.8.0 the caller can say why it calls,
 and read that on the one roundtrip the called app comes back on:
 
 ```js
@@ -151,7 +151,7 @@ reading one throws and points to `client.get_app_prev()`. Without an id,
 | `client.hash_replace("/detail/2")` | rewrite the hash without a history entry |
 | `client.app_state_set_active()` | keep this app's state id in the URL |
 | `client.app_state_get_href()` | the absolute link to this app's current state |
-| `client.get_start_param("name")` | since 0.8.0 (not released yet): one start parameter of the page — the URL query, the launchpad's startupParameters or the intent's query; `""` when there is none |
+| `client.get_start_param("name")` | since 0.8.0: one start parameter of the page — the URL query, the launchpad's startupParameters or the intent's query; `""` when there is none |
 
 From 0.8.0 on `hash_set( )` and `hash_replace( )` write the URL only for an app
 that owns the hash — one whose view registered a listener with

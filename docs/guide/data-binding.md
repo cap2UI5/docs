@@ -118,7 +118,7 @@ Two things to note:
   transpiler does, and appear uppercase in the model;
 - **assigning the array replaces the table.** `this.books = await SELECT…`
   is all a read from the database needs. A change made **in place** is kept as
-  well — since plugin 0.8.0, which is **not released yet**:
+  well — since plugin 0.8.0:
 
   ```js
   this.books.push({ ID: 4, title: "new", price: 1 });
@@ -155,7 +155,7 @@ this.order = { ...this.order, customer: { name: "Ada", city: "London" } };
 Assigning a structure is ABAP's `s = VALUE #( … )`: what the new value leaves out
 is initial afterwards. To change one component and keep the rest, change it in
 place — `this.order.customer.city = "London"`, `this.order.lines = [ … ]` —
-which is kept since 0.8.0 (not released yet), as for [tables](#tables).
+which is kept since 0.8.0, as for [tables](#tables).
 
 The depth limit is **8**, and it is a cycle guard rather than a judgement: an
 object containing itself would otherwise recurse until the stack goes. A field

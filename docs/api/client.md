@@ -23,10 +23,10 @@ Two rules for every method:
   recorded and carried out **in the order you called them** after it returns.
   No `await` for anything the client offers.
 
-::: info 0.8.0 is not released yet
+::: info Plugin 0.8.0
 What this page marks "since 0.8.0" — and what it says was removed with 0.8.0 —
-is `@cap2ui5/cds-plugin` 0.8.0 on runtime `1.151.0`, which is on cap2UI5's
-`main` but **not released yet**. The newest release on npm is 0.7.0; see
+is `@cap2ui5/cds-plugin` 0.8.0 on runtime `1.151.0`, the newest release on
+npm. A project still on 0.7.0 (runtime 1.149.0) has the old set; see
 [Configuration](../reference/configuration#the-runtime).
 :::
 
@@ -176,11 +176,11 @@ runtime from before transitions existed — the one plugin 0.3.x pins —
 **app** loads a window of rows at a time — the way an OData service answers
 `$skip`, `$top`, `$orderby` and `$filter`.
 
-::: warning Redesigned with 0.8.0 — not released yet
-This section describes plugin 0.8.0 on runtime `1.151.0`, which is **not
-released yet**. In 0.6.0 and 0.7.0 (runtime 1.149.0) the windowed table was
-the framework's: `window_bind_tab({ val, window, t_sort, t_filter })` sorted,
-filtered and counted on the server, the next window came without `main( )`
+::: warning Redesigned with 0.8.0
+This section describes plugin 0.8.0 on runtime `1.151.0`. In 0.6.0 and 0.7.0
+(runtime 1.149.0) the windowed table was the framework's:
+`window_bind_tab({ val, window, t_sort, t_filter })` sorted, filtered and
+counted on the server, the next window came without `main( )`
 running, and `window_get_row( )` mapped a row of the browser to a row of the
 table. With 0.8.0 that is a breaking change: `t_sort` and `t_filter` are no
 parameters any more, `total` and `event` are required, and
